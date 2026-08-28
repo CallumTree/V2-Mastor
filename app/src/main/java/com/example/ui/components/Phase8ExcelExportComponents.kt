@@ -143,6 +143,11 @@ fun ExcelExportConfirmationModal(
         containerColor = MastorSurfaceLight,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
+        val jobRef = project.projectNumber.ifBlank { project.contractRef }
+        val valNum = valuation?.entity?.valuationNumber ?: "VAL-001"
+        val fullValuationRef = if (jobRef.isNotBlank()) "${project.name} — $jobRef — $valNum"
+                               else "${project.name} — $valNum"
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -154,21 +159,24 @@ fun ExcelExportConfirmationModal(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "PHASE 8: EXCEL EXPORT ENGINE",
+                        text = "EXCEL EXPORT ENGINE",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = ExcelGreenBrand,
                         letterSpacing = 1.sp
                     )
                     Text(
-                        text = "Export V6 Workbook",
-                        style = MaterialTheme.typography.titleLarge,
+                        text = fullValuationRef,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorSlateDark,
+                        maxLines = 2
                     )
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),

@@ -57,7 +57,7 @@ Respond strictly with a JSON object containing 'workOrders' array matching the r
     }
 
     private fun callGeminiApi(rawText: String, apiKey: String): ParsedBoqResult? {
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$apiKey"
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
 
         val jsonSchema = JSONObject().apply {
             put("type", "OBJECT")

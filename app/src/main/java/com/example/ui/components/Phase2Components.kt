@@ -20,11 +20,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -54,9 +61,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.data.entity.LinkedDocument
 import com.example.data.entity.Project
 import com.example.data.entity.ScopeElement
 import com.example.data.entity.WorkOrder
@@ -264,21 +273,18 @@ fun TickAndPercentControl(
 
 /**
  * Scope Element Clean List Item Component.
- * Brief Requirement: "description as the primary line, qty/units/rate as secondary,
- * cost right-aligned and visually distinct as a number."
+ * Pure Base Only: Displays raw BoQ matching figures (qty × base rate) with zero uplift.
  */
 @Composable
 fun ScopeElementListItem(
     element: ScopeElement,
-    upliftMultiplier: Double,
     onClaimPercentChanged: (Double) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val baseCost = MastorCalculationEngine.roundMoney(element.qty * element.rate)
-    val revenue = MastorCalculationEngine.roundMoney(baseCost * upliftMultiplier)
-    val claimedRevenue = MastorCalculationEngine.roundMoney(revenue * (element.claimPercent / 100.0))
+    val claimedBase = MastorCalculationEngine.roundMoney(baseCost * (element.claimPercent / 100.0))
 
     Surface(
         modifier = modifier
@@ -294,7 +300,7 @@ fun ScopeElementListItem(
         Column(
             modifier = Modifier.padding(14.dp)
         ) {
-            // Top Row: Code, Description & Revenue / Cost
+            // Top Row: Code, Description & Base Values
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -344,22 +350,23 @@ fun ScopeElementListItem(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Right-aligned visually distinct figures
+                // Right-aligned pure base figures (qty × rate)
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = MastorCalculationEngine.formatCurrency(claimedRevenue),
+                        text = MastorCalculationEngine.formatCurrency(claimedBase),
                         style = FinancialMediumNumeralStyle,
                         color = if (element.claimPercent > 0) StatusClaimedGreen else MastorSlateDark
                     )
                     Text(
-                        text = "Total Rev: ${MastorCalculationEngine.formatCurrency(revenue)}",
+                        text = "Base Total: ${MastorCalculationEngine.formatCurrency(baseCost)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MastorSlateMuted
                     )
                     Text(
-                        text = "Base Cost: ${MastorCalculationEngine.formatCurrency(baseCost)}",
+                        text = "${element.claimPercent.toInt()}% Claimed",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MastorSlateMuted
+                        color = if (element.claimPercent > 0) StatusClaimedGreen else MastorSlateMuted,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -404,15 +411,13 @@ fun ScopeElementListItem(
 
 /**
  * Work Order Card Component with Photographic Header.
- * Brief Requirements:
- * "headed by a real/realistic placeholder photo (property exterior for PPR, room interior for Internal Works),
- * property/room name in bold, a big legible % complete figure, and a compact revenue/cost summary underneath."
+ * Displays pure base values (total base cost and claimed base value).
  */
 @Composable
 fun WorkOrderCard(
     calcWorkOrder: CalculatedWorkOrder,
     scopeElements: List<ScopeElement>,
-    upliftMultiplier: Double,
+    attachedDocuments: List<LinkedDocument> = emptyList(),
     onAddScopeElement: () -> Unit,
     onEditWorkOrder: () -> Unit,
     onDeleteWorkOrder: () -> Unit,
@@ -420,9 +425,13 @@ fun WorkOrderCard(
     onEditScopeElement: (ScopeElement) -> Unit,
     onDeleteScopeElement: (ScopeElement) -> Unit,
     onStatusChanged: (String) -> Unit = {},
+    onAttachDocument: () -> Unit = {},
+    onViewDocument: (LinkedDocument) -> Unit = {},
+    onDetachDocument: (LinkedDocument) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(true) }
+    var showDocsSection by remember { mutableStateOf(true) }
     val isPpr = calcWorkOrder.entity.workType.contains("PPR", ignoreCase = true)
     val completedCount = scopeElements.count { it.claimPercent >= 100.0 }
 
@@ -470,6 +479,12 @@ fun WorkOrderCard(
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    // Compact Progress Bar: Claimed % of Total Value (Gold on Slate)
+                    WorkOrderCompactProgressBar(
+                        claimedPercent = calcWorkOrder.percentComplete,
+                        modifier = Modifier.fillMaxWidth(0.7f)
+                    )
                 }
 
                 // Big Legible % Complete Badge on Top Right
@@ -500,7 +515,7 @@ fun WorkOrderCard(
                 }
             }
 
-            // Compact Financial Summary Bar Underneath Photo Header
+            // Compact Financial Summary Bar Underneath Photo Header (Pure Base Figures)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -511,13 +526,13 @@ fun WorkOrderCard(
             ) {
                 Column {
                     Text(
-                        text = "TOTAL REVENUE (WITH UPLIFT)",
+                        text = "TOTAL BASE VALUE",
                         style = MaterialTheme.typography.labelSmall,
                         color = MastorSlateMuted,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = MastorCalculationEngine.formatCurrency(calcWorkOrder.totalRevenueWithUplifts),
+                        text = MastorCalculationEngine.formatCurrency(calcWorkOrder.totalBaseCost),
                         style = FinancialLargeNumeralStyle,
                         color = MastorSlateDark
                     )
@@ -531,7 +546,7 @@ fun WorkOrderCard(
                         color = StatusClaimedGreen
                     )
                     Text(
-                        text = "Base Cost: ${MastorCalculationEngine.formatCurrency(calcWorkOrder.totalBaseCost)} • $completedCount/${calcWorkOrder.scopeElementsCount} Done",
+                        text = "$completedCount/${calcWorkOrder.scopeElementsCount} Items Completed",
                         style = MaterialTheme.typography.bodySmall,
                         color = MastorSlateMuted
                     )
@@ -547,11 +562,34 @@ fun WorkOrderCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    WorkOrderStatusSyncBadge(
-                        status = calcWorkOrder.entity.status,
-                        remoteRecord = null,
-                        onQuickStatusChange = onStatusChanged
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(100.dp),
+                        color = when (calcWorkOrder.entity.status) {
+                            "COMPLETE" -> StatusClaimedBg
+                            "IN_PROGRESS" -> MastorAccentBlue.copy(alpha = 0.12f)
+                            else -> MastorBackgroundLight
+                        },
+                        border = BorderStroke(
+                            1.dp,
+                            when (calcWorkOrder.entity.status) {
+                                "COMPLETE" -> StatusClaimedGreen.copy(alpha = 0.4f)
+                                "IN_PROGRESS" -> MastorAccentBlue.copy(alpha = 0.4f)
+                                else -> MastorSlateBorder
+                            }
+                        )
+                    ) {
+                        Text(
+                            text = calcWorkOrder.entity.status.replace("_", " "),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = when (calcWorkOrder.entity.status) {
+                                "COMPLETE" -> StatusClaimedGreen
+                                "IN_PROGRESS" -> MastorAccentBlue
+                                else -> MastorSlateDark
+                            }
+                        )
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "•  ${calcWorkOrder.entity.responsibleParty}",
@@ -649,13 +687,158 @@ fun WorkOrderCard(
                         scopeElements.forEach { element ->
                             ScopeElementListItem(
                                 element = element,
-                                upliftMultiplier = upliftMultiplier,
                                 onClaimPercentChanged = { newClaim ->
                                     onScopeClaimChanged(element, newClaim)
                                 },
                                 onEdit = { onEditScopeElement(element) },
                                 onDelete = { onDeleteScopeElement(element) }
                             )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Attached Project Documentation Section (Google Drive Integration)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.AttachFile,
+                                        contentDescription = null,
+                                        tint = MastorAccentBlue,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "ATTACHED DOCUMENTS (${attachedDocuments.size})",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MastorSlateDark
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = onAttachDocument,
+                                    shape = RoundedCornerShape(100.dp),
+                                    border = BorderStroke(1.dp, MastorAccentBlue),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                        horizontal = 10.dp,
+                                        vertical = 2.dp
+                                    ),
+                                    modifier = Modifier.testTag("attach_google_drive_btn_${calcWorkOrder.entity.woRef}")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Cloud,
+                                        contentDescription = null,
+                                        tint = MastorAccentBlue,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "+ Google Drive",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MastorAccentBlue,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            if (attachedDocuments.isEmpty()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "No project documentation attached. Tap '+ Google Drive' to link architectural drawings, structural calculations, or schedules.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MastorSlateMuted,
+                                    fontSize = 12.sp
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    attachedDocuments.forEach { doc ->
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color.White,
+                                            border = BorderStroke(0.5.dp, Color(0xFFCBD5E1)),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = when {
+                                                        doc.mimeType.contains("pdf") -> Icons.Default.PictureAsPdf
+                                                        doc.mimeType.contains("spreadsheet") || doc.mimeType.contains("csv") -> Icons.Default.TableChart
+                                                        else -> Icons.Default.Description
+                                                    },
+                                                    contentDescription = null,
+                                                    tint = when {
+                                                        doc.mimeType.contains("pdf") -> Color(0xFFD93025)
+                                                        doc.mimeType.contains("spreadsheet") || doc.mimeType.contains("csv") -> Color(0xFF1E8E3E)
+                                                        else -> MastorAccentBlue
+                                                    },
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = doc.fileName,
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MastorSlateDark,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(
+                                                            text = "${doc.storageProvider} • ${doc.fileSizeDisplay} • ${doc.docCategory}",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            fontSize = 10.sp,
+                                                            color = MastorSlateMuted
+                                                        )
+                                                    }
+                                                }
+
+                                                IconButton(
+                                                    onClick = { onViewDocument(doc) },
+                                                    modifier = Modifier.size(28.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.OpenInNew,
+                                                        contentDescription = "Preview",
+                                                        tint = MastorAccentBlue,
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                }
+
+                                                IconButton(
+                                                    onClick = { onDetachDocument(doc) },
+                                                    modifier = Modifier.size(28.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Close,
+                                                        contentDescription = "Detach",
+                                                        tint = StatusFlaggedRed,
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -90,7 +90,7 @@ fun MastorCard(
     backgroundColor: Color = MastorSurfaceLight,
     borderColor: Color = MastorSlateBorder,
     borderWidth: Dp = 1.dp,
-    contentPadding: Dp = 18.dp,
+    contentPadding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -126,25 +126,20 @@ fun FinancialNumeral(
             color = MastorSlateMuted,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.8.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            fontSize = 11.sp
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = MastorCalculationEngine.formatCurrency(amount),
             style = if (isLarge) FinancialLargeNumeralStyle else FinancialMediumNumeralStyle,
-            color = accentColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            color = accentColor
         )
         if (subtext != null) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtext,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MastorSlateMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                color = MastorSlateMuted
             )
         }
     }

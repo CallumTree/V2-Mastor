@@ -16,7 +16,6 @@ import com.example.data.entity.SubcontractorQuote
 import com.example.data.entity.VariationOrder
 import com.example.data.remote.GeminiClient
 import com.example.data.repository.MastorRepository
-import com.example.domain.audio.SiteDiaryAudioAnalysis
 import com.example.domain.calculation.CalculatedValuation
 import com.example.domain.calculation.CalculatedWorkOrder
 import com.example.domain.calculation.CalculationTraceStep
@@ -87,12 +86,9 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
     val projectId: String
         get() = _selectedProjectId.value ?: "proj_101"
 
-    val valuationId: String
-        get() = when (_selectedProjectId.value) {
-            "proj_102" -> "val_102"
-            "proj_103" -> "val_103"
-            else -> "val_001"
-        }
+    val valuationId: String?
+        get() = uiState.value.allValuations.firstOrNull { it.entity.status.equals("Draft", ignoreCase = true) }?.entity?.id
+            ?: uiState.value.valuation?.entity?.id
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val domainDataFlow = combine(_selectedProjectId, repository.allProjects) { pId, projects ->
@@ -108,11 +104,6 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 )
             )
         } else {
-            val valId = when (pId) {
-                "proj_102" -> "val_102"
-                "proj_103" -> "val_103"
-                else -> "val_001"
-            }
             combine(
                 combine(
                     repository.getProject(pId),
@@ -124,12 +115,12 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                     Tuple4(proj, wos, projectScopes, vos)
                 },
                 combine(
-                    repository.getCalculatedValuation(valId, pId),
                     repository.getCalculatedValuationsForProject(pId),
                     repository.getSiteDiaryEntriesForProject(pId),
                     repository.getLinkedDocumentsForProject(pId)
-                ) { valua, allValuas, diaryEntries, linkedDocs ->
-                    Tuple4(valua, allValuas, diaryEntries, linkedDocs)
+                ) { allValuas, diaryEntries, linkedDocs ->
+                    val activeDraft = allValuas.firstOrNull { it.entity.status.equals("Draft", ignoreCase = true) } ?: allValuas.firstOrNull()
+                    Triple(activeDraft, allValuas, diaryEntries) to linkedDocs
                 },
                 combine(
                     repository.getAllSubcontractors(),
@@ -140,8 +131,9 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 },
                 repository.allCachedCloudFiles
             ) { t1, t2, t3, cachedFiles ->
-                val pendingCount = t2.v3.count { it.syncStatus == "PENDING_UPLOAD" }
-                val effectiveAllValuations = if (t2.v2.isNotEmpty()) t2.v2 else (if (t2.v1 != null) listOf(t2.v1) else emptyList())
+                val (t2Main, linkedDocs) = t2
+                val (activeValuation, allValuas, diaryEntries) = t2Main
+                val pendingCount = diaryEntries.count { it.syncStatus == "PENDING_UPLOAD" }
                 Phase1UiState(
                     isLoading = t1.v1 == null,
                     selectedProjectId = pId,
@@ -150,10 +142,10 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                     workOrders = t1.v2,
                     scopeElements = t1.v3,
                     variationOrders = t1.v4,
-                    valuation = t2.v1 ?: effectiveAllValuations.firstOrNull(),
-                    allValuations = effectiveAllValuations,
-                    siteDiaryEntries = t2.v3,
-                    linkedDocuments = t2.v4,
+                    valuation = activeValuation,
+                    allValuations = allValuas,
+                    siteDiaryEntries = diaryEntries,
+                    linkedDocuments = linkedDocs,
                     cachedCloudFiles = cachedFiles,
                     subcontractors = t3.v1,
                     procurementPackages = t3.v2,
@@ -599,6 +591,10 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val currentVal = uiState.value.valuation?.entity
             if (currentVal != null) {
+                // Critical financial integrity check: Certified/Invoiced valuations cannot be changed or reverted
+                if (currentVal.status == "Invoiced" && newStatus != "Invoiced") {
+                    return@launch
+                }
                 repository.updateValuation(currentVal.copy(status = newStatus))
                 if (newStatus == "Invoiced") {
                     repository.lockInvoicedValuation(currentVal.id)
@@ -612,6 +608,10 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
             val matchingVal = uiState.value.allValuations.firstOrNull { it.entity.id == valuationId }?.entity
                 ?: uiState.value.valuation?.entity
             if (matchingVal != null) {
+                // Critical financial integrity check: Certified/Invoiced valuations cannot be changed or reverted
+                if (matchingVal.status == "Invoiced" && newStatus != "Invoiced") {
+                    return@launch
+                }
                 repository.updateValuation(matchingVal.copy(status = newStatus))
                 if (newStatus == "Invoiced") {
                     repository.lockInvoicedValuation(matchingVal.id)
@@ -737,12 +737,21 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun createVoiceTranscribedSiteDiaryEntry(
-        analysis: SiteDiaryAudioAnalysis,
+    fun createVoiceSiteDiaryEntry(
         workOrderId: String?,
         workOrderTitle: String?,
-        author: String = "Marcus Vance (Site Manager)",
-        photoUrl: String? = null
+        author: String,
+        statusUpdate: String,
+        weatherNotes: String?,
+        laborCount: Int,
+        notes: String,
+        photoUrl: String,
+        audioTranscript: String,
+        audioTasksJson: String,
+        audioTodosJson: String,
+        audioFinishedItemsJson: String,
+        audioValuationNotes: String,
+        audioSchedulingNotes: String
     ) {
         viewModelScope.launch {
             _isAnalyzingDiary.value = true
@@ -750,37 +759,36 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
             val dateStr = java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale.UK)
                 .format(java.util.Date())
 
-            val finalPhoto = photoUrl?.ifBlank { null } ?: when {
-                analysis.headline.contains("Joinery", ignoreCase = true) || analysis.headline.contains("Door", ignoreCase = true) ->
-                    "https://images.unsplash.com/photo-1517581177682-a085bb7ffb15?auto=format&fit=crop&w=800&q=80"
-                analysis.headline.contains("Concrete", ignoreCase = true) || analysis.headline.contains("Steel", ignoreCase = true) ->
-                    "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80"
-                analysis.headline.contains("Roof", ignoreCase = true) || analysis.headline.contains("Scaffold", ignoreCase = true) ->
-                    "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80"
-                else ->
-                    "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?auto=format&fit=crop&w=800&q=80"
+            val summary = if (isOffline) {
+                "Voice Log: $notes ($statusUpdate)"
+            } else {
+                GeminiClient.summarizeLogEntry(
+                    notes = notes,
+                    workOrderTitle = workOrderTitle,
+                    status = statusUpdate
+                )
             }
 
             val entry = SiteDiaryEntry(
-                id = "diary_voice_" + System.currentTimeMillis(),
+                id = "diary_" + System.currentTimeMillis(),
                 projectId = projectId,
-                workOrderId = workOrderId ?: analysis.suggestedWoRef,
-                workOrderTitle = workOrderTitle ?: analysis.suggestedWoRef?.let { "Work Order $it" },
-                author = author.ifBlank { "Marcus Vance (Site Manager)" },
+                workOrderId = workOrderId,
+                workOrderTitle = workOrderTitle,
+                author = author.ifBlank { "Dave Jenkins (Site Manager)" },
                 dateDisplay = dateStr,
-                statusUpdate = analysis.suggestedStatus,
-                weatherNotes = analysis.weatherNotes,
-                laborCount = analysis.laborCount,
-                notes = analysis.rawTranscription,
-                photoUrl = finalPhoto,
-                geminiSummary = analysis.summary,
+                statusUpdate = statusUpdate,
+                weatherNotes = weatherNotes?.ifBlank { null },
+                laborCount = laborCount,
+                notes = notes,
+                photoUrl = photoUrl.ifBlank { "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?auto=format&fit=crop&w=800&q=80" },
+                geminiSummary = summary,
                 isVoiceTranscribed = true,
-                audioTranscript = analysis.rawTranscription,
-                audioTasksJson = analysis.tasksAsJson(),
-                audioTodosJson = analysis.todosAsJson(),
-                audioFinishedItemsJson = analysis.finishedItemsAsJson(),
-                audioValuationNotes = analysis.valuationNotes,
-                audioSchedulingNotes = analysis.taskScheduling,
+                audioTranscript = audioTranscript,
+                audioTasksJson = audioTasksJson,
+                audioTodosJson = audioTodosJson,
+                audioFinishedItemsJson = audioFinishedItemsJson,
+                audioValuationNotes = audioValuationNotes,
+                audioSchedulingNotes = audioSchedulingNotes,
                 createdAtTimestamp = System.currentTimeMillis(),
                 isCachedOffline = true,
                 syncStatus = if (isOffline) "PENDING_UPLOAD" else "SYNCED",
@@ -821,6 +829,35 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
     fun unlinkCloudDocument(id: String) {
         viewModelScope.launch {
             repository.deleteLinkedDocument(id)
+        }
+    }
+
+    fun attachDocumentToWorkOrder(documentId: String, woRef: String) {
+        viewModelScope.launch {
+            repository.attachDocumentToWorkOrder(documentId, woRef)
+        }
+    }
+
+    fun detachDocumentFromWorkOrder(documentId: String) {
+        viewModelScope.launch {
+            repository.detachDocumentFromWorkOrder(documentId)
+        }
+    }
+
+    fun attachGoogleDriveFileToWorkOrder(
+        cloudFile: com.example.domain.cloud.CloudFileItem,
+        workOrderRef: String,
+        docCategory: String = "Project Documentation"
+    ) {
+        val pId = uiState.value.selectedProjectId ?: return
+        viewModelScope.launch {
+            val linkedDoc = com.example.domain.cloud.CloudStorageService.createLinkedDocumentForWorkOrder(
+                cloudFile = cloudFile,
+                projectId = pId,
+                workOrderRef = workOrderRef,
+                docCategory = docCategory
+            )
+            repository.insertLinkedDocument(linkedDoc)
         }
     }
 

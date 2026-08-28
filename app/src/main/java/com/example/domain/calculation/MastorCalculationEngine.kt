@@ -114,6 +114,17 @@ object MastorCalculationEngine {
     }
 
     /**
+     * Calculate total with compounded central project uplifts applied.
+     */
+    fun calculateCompoundedTotal(
+        baseAmount: Double,
+        uplift1Percent: Double,
+        uplift2Percent: Double
+    ): Double {
+        return calculateProjectUplifts(baseAmount, uplift1Percent, uplift2Percent).third
+    }
+
+    /**
      * Calculate Work Order figures derived live from its Scope Elements and Project Uplifts.
      */
     fun calculateWorkOrder(

@@ -77,6 +77,27 @@ object CloudStorageService {
 
     var isGoogleDriveConnected: Boolean = true
     var googleDriveAccountName: String = "m.vance.qs@gmail.com"
+    var googleDriveProjectId: String = "sitemate-5984e"
+    var googleDriveProjectNumber: String = "648784146669"
+    var googleDriveBrandName: String = "Callum Tree's Apps"
+    val googleDriveScopes: List<String> = listOf(
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file"
+    )
+    var googleDriveLastAuthorized: String = "Today, 14:15"
+    var googleDriveTokenStatus: String = "Active & Verified"
+
+    fun authorizeGoogleDrive(email: String = "m.vance.qs@gmail.com") {
+        isGoogleDriveConnected = true
+        googleDriveAccountName = email
+        googleDriveLastAuthorized = "Just now"
+        googleDriveTokenStatus = "Active & Verified"
+    }
+
+    fun disconnectGoogleDrive() {
+        isGoogleDriveConnected = false
+        googleDriveTokenStatus = "Revoked"
+    }
 
     // Dynamic file lists in OneDrive and Google Drive
     private val _userOneDriveFiles = mutableListOf<CloudFileItem>()
@@ -310,6 +331,39 @@ object CloudStorageService {
                 associatedProject = "Kensington Penthouse Restoration"
             ),
             CloudFileItem(
+                id = "gd_file_006",
+                name = "Site_Safety_RAMS_Statement.pdf",
+                provider = StorageProviders.GOOGLE_DRIVE,
+                mimeType = "application/pdf",
+                sizeDisplay = "1.9 MB",
+                lastModified = "06 Aug 2026, 08:30",
+                cloudPath = "My Drive/Mastor/142 Park Lane/Safety/",
+                sampleContent = "Risk Assessment & Method Statement (RAMS) for Flat 1 structural alterations, load temporary propping, and hot works.",
+                associatedProject = "142 Park Lane"
+            ),
+            CloudFileItem(
+                id = "gd_file_007",
+                name = "Electrical_Distribution_Layout.pdf",
+                provider = StorageProviders.GOOGLE_DRIVE,
+                mimeType = "application/pdf",
+                sizeDisplay = "5.1 MB",
+                lastModified = "07 Aug 2026, 14:00",
+                cloudPath = "My Drive/Mastor/142 Park Lane/Drawings/",
+                sampleContent = "First & Second Fix Electrical Single Line Diagram and Lighting Circuit Schematic for Mayfair Residential Units.",
+                associatedProject = "142 Park Lane"
+            ),
+            CloudFileItem(
+                id = "gd_file_008",
+                name = "Fire_Door_FD30S_Certificate_Schedule.xlsx",
+                provider = StorageProviders.GOOGLE_DRIVE,
+                mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                sizeDisplay = "410 KB",
+                lastModified = "08 Aug 2026, 09:45",
+                cloudPath = "My Drive/Mastor/142 Park Lane/Compliance/",
+                sampleContent = "FD30S and FD60S timber internal door schedule with intumescent seal test certificates and ironmongery specifications.",
+                associatedProject = "142 Park Lane"
+            ),
+            CloudFileItem(
                 id = "gd_folder_001",
                 name = "Site_Inspections",
                 provider = StorageProviders.GOOGLE_DRIVE,
@@ -318,6 +372,17 @@ object CloudStorageService {
                 lastModified = "05 Aug 2026, 09:20",
                 isFolder = true,
                 cloudPath = "My Drive/Mastor/142 Park Lane/Inspections/",
+                associatedProject = "142 Park Lane"
+            ),
+            CloudFileItem(
+                id = "gd_folder_002",
+                name = "Drawings_and_Schematics",
+                provider = StorageProviders.GOOGLE_DRIVE,
+                mimeType = "folder",
+                sizeDisplay = "14 Items",
+                lastModified = "08 Aug 2026, 16:30",
+                isFolder = true,
+                cloudPath = "My Drive/Mastor/142 Park Lane/Drawings/",
                 associatedProject = "142 Park Lane"
             )
         )).filter { it.id !in _deletedFileIds }
@@ -340,7 +405,9 @@ object CloudStorageService {
     fun createLinkedDocumentFromCloudFile(
         cloudFile: CloudFileItem,
         projectId: String,
-        isPrimaryBoq: Boolean = true
+        isPrimaryBoq: Boolean = true,
+        workOrderRef: String? = null,
+        docCategory: String = if (isPrimaryBoq) "BoQ / Specification" else "Project Documentation"
     ): LinkedDocument {
         recordFileAccessed(cloudFile)
         val nowDisplay = "09 Aug 2026, 10:45 AM"
@@ -355,7 +422,24 @@ object CloudStorageService {
             lastSyncedAt = nowDisplay,
             isPrimaryBoq = isPrimaryBoq,
             cloudPath = cloudFile.cloudPath,
-            contentSnippet = cloudFile.sampleContent ?: GeminiBoqParser.SAMPLE_BOQ_1_TEXT
+            contentSnippet = cloudFile.sampleContent ?: GeminiBoqParser.SAMPLE_BOQ_1_TEXT,
+            workOrderRef = workOrderRef,
+            docCategory = docCategory
+        )
+    }
+
+    fun createLinkedDocumentForWorkOrder(
+        cloudFile: CloudFileItem,
+        projectId: String,
+        workOrderRef: String,
+        docCategory: String = "Project Documentation"
+    ): LinkedDocument {
+        return createLinkedDocumentFromCloudFile(
+            cloudFile = cloudFile,
+            projectId = projectId,
+            isPrimaryBoq = false,
+            workOrderRef = workOrderRef,
+            docCategory = docCategory
         )
     }
 }

@@ -5,6 +5,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -53,6 +56,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -66,6 +72,8 @@ import com.example.ui.components.MastorBadge
 import com.example.ui.components.MastorButton
 import com.example.ui.components.MastorCard
 import com.example.ui.components.MastorOutlinedButton
+import com.example.ui.components.VariationSegmentedSummaryBar
+import com.example.ui.theme.FinancialLargeNumeralStyle
 import com.example.ui.theme.FinancialMediumNumeralStyle
 import com.example.ui.theme.MastorAccentBlue
 import com.example.ui.theme.MastorBackgroundLight
@@ -123,9 +131,6 @@ fun VariationOrdersScreen(
     val groupedTickets = remember(variationOrders) {
         variationOrders.groupBy { it.voNumber }
     }
-
-    val u1Pct = project?.uplift1Percent ?: 15.0
-    val u2Pct = project?.uplift2Percent ?: 5.0
 
     // Confirmation dialog for deleting a whole ticket
     voTicketToDelete?.let { voNum ->
@@ -215,15 +220,24 @@ fun VariationOrdersScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Summary & Action Bar Header
+        // Summary & Pipeline Header
         item {
+            val totalBase = variationOrders.sumOf { it.qty * it.rate }
+            val includedBase = variationOrders.filter { it.tick }.sumOf { it.qty * it.rate }
+            val pendingBase = (totalBase - includedBase).coerceAtLeast(0.0)
+
+            // Uplift calculation preview
+            val up1 = project?.uplift1Percent ?: 0.0
+            val up2 = project?.uplift2Percent ?: 0.0
+            val totalWithUplift = MastorCalculationEngine.calculateCompoundedTotal(totalBase, up1, up2)
+
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = MastorSurfaceLight,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MastorSlateBorder)
+                border = BorderStroke(1.dp, MastorSlateBorder)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -231,7 +245,15 @@ fun VariationOrdersScreen(
                     ) {
                         Column {
                             Text(
-                                text = "Variation Orders",
+                                text = "VARIATION ORDERS PIPELINE",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorSlateMuted,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Variation Portfolio",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MastorSlateDark
@@ -254,43 +276,93 @@ fun VariationOrdersScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     HorizontalDivider(color = MastorSlateBorder.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Derived Financial Summary
-                    val totalBase = variationOrders.sumOf { it.qty * it.rate }
-                    val (totalU1, totalU2, totalTender) = MastorCalculationEngine.calculateProjectUplifts(
-                        baseAmount = totalBase,
-                        uplift1Percent = u1Pct,
-                        uplift2Percent = u2Pct
-                    )
-
+                    // Primary Financial Metric (28sp bold gold)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Bottom
                     ) {
                         Column {
-                            Text("Total Base Value", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                            Text(
+                                text = "TOTAL VO VALUE (BASE)",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorSlateMuted
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = MastorCalculationEngine.formatCurrency(totalBase),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                style = FinancialLargeNumeralStyle,
+                                color = MastorGold
                             )
+                            if (up1 > 0 || up2 > 0) {
+                                Text(
+                                    text = "With Project Uplifts (+${up1}% / +${up2}%): ${MastorCalculationEngine.formatCurrency(totalWithUplift)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MastorSlateMuted,
+                                    fontSize = 11.sp
+                                )
+                            }
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("Total Tender (incl. Uplifts)", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
-                            Text(
-                                text = MastorCalculationEngine.formatCurrency(totalTender),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorAccentBlue
-                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Claimed / In Valuation", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                                    Text(
+                                        text = MastorCalculationEngine.formatCurrency(includedBase),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = StatusClaimedGreen
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Pending", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                                    Text(
+                                        text = MastorCalculationEngine.formatCurrency(pendingBase),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = StatusPendingAmber
+                                    )
+                                }
+                            }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Segmented Summary Bar: Approved (green), Pending (amber), Rejected (slate) with legend
+                    val approvedVos = variationOrders.filter {
+                        it.status.contains("Paid", ignoreCase = true) ||
+                            it.status.contains("Invoiced", ignoreCase = true) ||
+                            it.status.contains("Approved", ignoreCase = true) ||
+                            it.tick
+                    }
+                    val rejectedVos = variationOrders.filter {
+                        it.status.contains("Reject", ignoreCase = true) ||
+                            it.status.contains("Cancel", ignoreCase = true)
+                    }
+                    val pendingVos = variationOrders.filter { it !in approvedVos && it !in rejectedVos }
+
+                    val approvedTotal = approvedVos.sumOf { it.qty * it.rate }
+                    val approvedCount = approvedVos.size
+                    val pendingTotal = pendingVos.sumOf { it.qty * it.rate }
+                    val pendingCount = pendingVos.size
+                    val rejectedTotal = rejectedVos.sumOf { it.qty * it.rate }
+                    val rejectedCount = rejectedVos.size
+
+                    VariationSegmentedSummaryBar(
+                        approvedTotal = approvedTotal,
+                        approvedCount = approvedCount,
+                        pendingTotal = pendingTotal,
+                        pendingCount = pendingCount,
+                        rejectedTotal = rejectedTotal,
+                        rejectedCount = rejectedCount
+                    )
                 }
             }
         }
@@ -321,8 +393,7 @@ fun VariationOrdersScreen(
                     externalVoNumber = firstLine.externalVoNumber,
                     status = firstLine.status,
                     lines = lines,
-                    uplift1Percent = u1Pct,
-                    uplift2Percent = u2Pct,
+                    project = project,
                     onUpdateStatus = { newStatus ->
                         viewModel.updateVoTicketStatus(voNumber, newStatus)
                     },
@@ -348,7 +419,7 @@ fun VariationOrdersScreen(
 
 /**
  * Ticket Card representation of a single VO Number ticket.
- * Displays horizontal status stepper, property sub-groups, and markup breakdown.
+ * Displays horizontal status stepper, property sub-groups, and pure base financials with uplift breakdown.
  */
 @Composable
 private fun VoTicketCard(
@@ -356,8 +427,7 @@ private fun VoTicketCard(
     externalVoNumber: String,
     status: String,
     lines: List<VariationOrder>,
-    uplift1Percent: Double,
-    uplift2Percent: Double,
+    project: Project? = null,
     onUpdateStatus: (String) -> Unit,
     onToggleLineTick: (VariationOrder) -> Unit,
     onAddLineToTicket: () -> Unit,
@@ -365,7 +435,6 @@ private fun VoTicketCard(
     onDeleteTicket: () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(true) }
-    var isMarkupBreakdownExpanded by remember { mutableStateOf(false) }
 
     // Multi-property grouping inside this ticket card
     val linesByProperty = remember(lines) {
@@ -373,12 +442,9 @@ private fun VoTicketCard(
     }
 
     val ticketBaseTotal = lines.sumOf { it.qty * it.rate }
-    val (ticketU1, ticketU2, ticketTenderTotal) = MastorCalculationEngine.calculateProjectUplifts(
-        baseAmount = ticketBaseTotal,
-        uplift1Percent = uplift1Percent,
-        uplift2Percent = uplift2Percent
-    )
-
+    val up1 = project?.uplift1Percent ?: 0.0
+    val up2 = project?.uplift2Percent ?: 0.0
+    val ticketGrossTotal = MastorCalculationEngine.calculateCompoundedTotal(ticketBaseTotal, up1, up2)
     val (statusFgColor, statusBgColor) = getVoStatusColors(status)
 
     MastorCard(
@@ -386,7 +452,7 @@ private fun VoTicketCard(
             .fillMaxWidth()
             .testTag("vo_ticket_card_$voNumber")
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
 
             // Top Header Row
             Row(
@@ -394,7 +460,10 @@ private fun VoTicketCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MastorAccentBlue.copy(alpha = 0.12f),
@@ -413,7 +482,7 @@ private fun VoTicketCard(
 
                     Column {
                         Text(
-                            text = if (externalVoNumber.isNotBlank()) "Ext Ref: $externalVoNumber" else "No External Ref",
+                            text = if (externalVoNumber.isNotBlank()) "Ext Ref: $externalVoNumber" else "Internal Variation",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = MastorSlateDark
@@ -438,7 +507,9 @@ private fun VoTicketCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = onDeleteTicket,
-                        modifier = Modifier.testTag("delete_vo_ticket_$voNumber")
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("delete_vo_ticket_$voNumber")
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
@@ -447,7 +518,10 @@ private fun VoTicketCard(
                         )
                     }
 
-                    IconButton(onClick = { isExpanded = !isExpanded }) {
+                    IconButton(
+                        onClick = { isExpanded = !isExpanded },
+                        modifier = Modifier.size(36.dp)
+                    ) {
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = null,
@@ -463,7 +537,7 @@ private fun VoTicketCard(
             // HORIZONTAL STEPPER FOR 5-STAGE STATUS PROGRESSION
             // =======================================================
             Text(
-                text = "TICKET STATUS PROGRESSION (TAPPABLE STEPPER)",
+                text = "TICKET STATUS PROGRESSION",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MastorSlateMuted,
@@ -478,81 +552,44 @@ private fun VoTicketCard(
                 modifier = Modifier.testTag("vo_status_stepper_$voNumber")
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             HorizontalDivider(color = MastorSlateBorder.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Totals Banner
+            // Totals Banner with Base and Gross Uplift Breakdown
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isMarkupBreakdownExpanded = !isMarkupBreakdownExpanded },
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
-                        text = "Ticket Base Total: ${MastorCalculationEngine.formatCurrency(ticketBaseTotal)}",
+                        text = "Base Value: ${MastorCalculationEngine.formatCurrency(ticketBaseTotal)}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MastorSlateDark
                     )
-                    Text(
-                        text = "Tender Total: ${MastorCalculationEngine.formatCurrency(ticketTenderTotal)} (incl. markups)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MastorAccentBlue,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    if (up1 > 0 || up2 > 0) {
+                        Text(
+                            text = "Gross with Uplifts: ${MastorCalculationEngine.formatCurrency(ticketGrossTotal)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MastorSlateMuted,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = if (isMarkupBreakdownExpanded) "Hide Markups" else "View Markups",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MastorAccentBlue,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Icon(
-                        imageVector = if (isMarkupBreakdownExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        tint = MastorAccentBlue,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-
-            // Expandable Read-Only Derived Markups Breakdown
-            AnimatedVisibility(
-                visible = isMarkupBreakdownExpanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp)
-                        .background(MastorSurfaceLight, RoundedCornerShape(10.dp))
-                        .border(1.dp, MastorSlateBorder, RoundedCornerShape(10.dp))
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        text = "DERIVED MARKUPS (READ-ONLY INFORMATIONAL)",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    MarkupRow("Ticket Base Amount", MastorCalculationEngine.formatCurrency(ticketBaseTotal))
-                    MarkupRow("Markup 1 (+${uplift1Percent.toInt()}%)", "+ ${MastorCalculationEngine.formatCurrency(ticketU1)}")
-                    MarkupRow("Subtotal (Base + Markup 1)", MastorCalculationEngine.formatCurrency(ticketBaseTotal + ticketU1))
-                    MarkupRow("Markup 2 (+${uplift2Percent.toInt()}%)", "+ ${MastorCalculationEngine.formatCurrency(ticketU2)}")
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MastorSlateDark)
-                    MarkupRow("Total Tender Amount", MastorCalculationEngine.formatCurrency(ticketTenderTotal), isBold = true)
-                }
+                val includedCount = lines.count { it.tick }
+                Text(
+                    text = "$includedCount/${lines.size} Lines Included in Claim",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (includedCount > 0) StatusClaimedGreen else MastorSlateMuted,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
 
             if (isExpanded) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // =======================================================
                 // MULTI-PROPERTY SUB-GROUPS
@@ -561,8 +598,6 @@ private fun VoTicketCard(
                     PropertySubGroupCard(
                         property = property,
                         lines = propLines,
-                        uplift1Percent = uplift1Percent,
-                        uplift2Percent = uplift2Percent,
                         onToggleLineTick = onToggleLineTick,
                         onDeleteLine = onDeleteLine
                     )
@@ -587,7 +622,7 @@ private fun VoTicketCard(
 
 /**
  * Horizontal Stepper for the 5 VO Stages.
- * Glancable, tappable visual progression right on the ticket card.
+ * Glancable, tappable visual progression right on the ticket card with 48dp minimum touch target.
  */
 @Composable
 private fun VoStatusHorizontalStepper(
@@ -603,7 +638,7 @@ private fun VoStatusHorizontalStepper(
             .clip(RoundedCornerShape(12.dp))
             .background(MastorSurfaceLight)
             .border(1.dp, MastorSlateBorder, RoundedCornerShape(12.dp))
-            .padding(6.dp),
+            .padding(4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -616,16 +651,17 @@ private fun VoStatusHorizontalStepper(
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 2.dp)
+                    .heightIn(min = 48.dp)
                     .clickable { onStageSelected(stage) },
                 shape = RoundedCornerShape(8.dp),
                 color = if (isCurrent) stageBg else if (isPassedOrCurrent) MastorSlateBorder.copy(alpha = 0.3f) else Color.Transparent,
-                border = androidx.compose.foundation.BorderStroke(
+                border = BorderStroke(
                     1.dp,
                     if (isCurrent) stageFg else if (isPassedOrCurrent) MastorSlateBorder else Color.Transparent
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 2.dp),
+                    modifier = Modifier.padding(vertical = 6.dp, horizontal = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -655,15 +691,14 @@ private fun VoStatusHorizontalStepper(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
                         text = stage.removePrefix("VO "),
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 10.sp,
                         fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Medium,
-                        color = if (isCurrent) stageFg else if (isPassedOrCurrent) MastorSlateDark else MastorSlateMuted,
-                        maxLines = 1
+                        color = if (isCurrent) stageFg else if (isPassedOrCurrent) MastorSlateDark else MastorSlateMuted
                     )
                 }
             }
@@ -679,18 +714,16 @@ private fun VoStatusHorizontalStepper(
 private fun PropertySubGroupCard(
     property: String,
     lines: List<VariationOrder>,
-    uplift1Percent: Double,
-    uplift2Percent: Double,
     onToggleLineTick: (VariationOrder) -> Unit,
     onDeleteLine: (VariationOrder) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MastorSurfaceLight,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MastorSlateBorder)
+        border = BorderStroke(1.dp, MastorSlateBorder)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
 
             // Property Sub-Header
             Row(
@@ -701,7 +734,7 @@ private fun PropertySubGroupCard(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
                     tint = MastorAccentBlue,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
@@ -720,8 +753,6 @@ private fun PropertySubGroupCard(
             lines.forEach { vo ->
                 VoLineRowItem(
                     vo = vo,
-                    uplift1Percent = uplift1Percent,
-                    uplift2Percent = uplift2Percent,
                     onToggleTick = { onToggleLineTick(vo) },
                     onDelete = { onDeleteLine(vo) }
                 )
@@ -734,25 +765,18 @@ private fun PropertySubGroupCard(
 @Composable
 private fun VoLineRowItem(
     vo: VariationOrder,
-    uplift1Percent: Double,
-    uplift2Percent: Double,
     onToggleTick: () -> Unit,
     onDelete: () -> Unit
 ) {
     val baseLineTotal = MastorCalculationEngine.roundMoney(vo.qty * vo.rate)
-    val (u1, u2, tenderTotal) = MastorCalculationEngine.calculateProjectUplifts(
-        baseAmount = baseLineTotal,
-        uplift1Percent = uplift1Percent,
-        uplift2Percent = uplift2Percent
-    )
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("vo_line_row_${vo.id}"),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(10.dp),
         color = MastorSurfaceLight,
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             1.dp,
             if (vo.tick) StatusClaimedGreen.copy(alpha = 0.4f) else MastorSlateBorder
         )
@@ -760,12 +784,12 @@ private fun VoLineRowItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
                 modifier = Modifier.weight(1f)
             ) {
                 Checkbox(
@@ -776,7 +800,7 @@ private fun VoLineRowItem(
                         uncheckedColor = MastorSlateMuted
                     ),
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(32.dp)
                         .testTag("tick_vo_checkbox_${vo.id}")
                 )
 
@@ -796,28 +820,36 @@ private fun VoLineRowItem(
                             color = MastorSlateMuted
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    // Full wrap description — never truncated
                     Text(
                         text = vo.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Normal,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MastorSlateDark,
-                        maxLines = 1
+                        lineHeight = 18.sp
                     )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
                     Text(
                         text = "${vo.qty} ${vo.units} @ ${MastorCalculationEngine.formatCurrency(vo.rate)}",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MastorSlateMuted,
-                        fontSize = 11.sp
+                        fontSize = 12.sp
                     )
                 }
             }
 
+            Spacer(modifier = Modifier.width(8.dp))
+
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = MastorCalculationEngine.formatCurrency(baseLineTotal),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = FinancialMediumNumeralStyle,
                     fontWeight = FontWeight.Bold,
-                    color = if (vo.tick) MastorSlateDark else MastorSlateMuted
+                    color = if (vo.tick) StatusClaimedGreen else MastorSlateDark
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -830,14 +862,14 @@ private fun VoLineRowItem(
                     IconButton(
                         onClick = onDelete,
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(28.dp)
                             .testTag("delete_vo_line_${vo.id}")
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "Delete Line",
-                            tint = MastorSlateMuted,
-                            modifier = Modifier.size(14.dp)
+                            tint = Color(0xFFDC2626),
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }

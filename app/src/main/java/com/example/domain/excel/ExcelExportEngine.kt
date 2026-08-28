@@ -55,11 +55,16 @@ object ExcelExportEngine {
 
         val grandTotalValuation = valuation?.grandInvoiceTotal ?: scopeElements.sumOf { (it.qty * (it.claimPercent / 100.0) * it.rate) }
 
+        val jobRef = project.projectNumber.ifBlank { project.contractRef }
+        val fullValuationRef = if (jobRef.isNotBlank()) "${project.name} — $jobRef — ${valuation?.entity?.valuationNumber ?: "VAL-001"}"
+                               else "${project.name} — ${valuation?.entity?.valuationNumber ?: "VAL-001"}"
+
         val dashboardSheet = ExcelSheetPreview(
             sheetName = "1. Dashboard",
             description = "High-level contract financial summary and KPIs",
             rowCount = 8,
             highlights = listOf(
+                "Project & Valuation" to fullValuationRef,
                 "Original Base Scope" to currencyFormat.format(totalBaseVal),
                 "Central Uplifts (${project.uplift1Percent}% + ${project.uplift2Percent}%)" to currencyFormat.format(uplift1Val + uplift2Val),
                 "Revised Contract Value" to currencyFormat.format(revisedContractSum),
@@ -99,10 +104,13 @@ object ExcelExportEngine {
 
         val valuationSheet = ExcelSheetPreview(
             sheetName = "5. Valuation Payment",
-            description = "Interim Valuation claim schedule & retention deductions",
-            rowCount = scopeElements.count { it.claimPercent > 0 } + 5,
+            description = "Interim Valuation claim schedule & certificate header ($fullValuationRef)",
+            rowCount = scopeElements.count { it.claimPercent > 0 } + 10,
             highlights = listOf(
-                "Valuation Ref" to (valuation?.entity?.valuationNumber ?: "VAL-001"),
+                "Certificate Ref" to fullValuationRef,
+                "Project Name" to project.name,
+                "Job Reference" to if (jobRef.isNotBlank()) jobRef else "N/A",
+                "Valuation No" to (valuation?.entity?.valuationNumber ?: "VAL-001"),
                 "Scope Base Claimed" to currencyFormat.format(valuation?.scopeBaseClaimedTotal ?: 0.0),
                 "VO Base Claimed" to currencyFormat.format(valuation?.voBaseClaimedTotal ?: 0.0),
                 "Grand Total Invoice" to currencyFormat.format(grandTotalValuation)
@@ -149,7 +157,7 @@ object ExcelExportEngine {
             timestamp = currentTimestamp
         )
 
-        val sitePrintCsv = buildSitePrintCsv(scopeElements)
+        val sitePrintCsv = buildSitePrintCsv(scopeElements, project, valuation)
 
         return ExcelWorkbookSnapshot(
             timestampDisplay = currentTimestamp,
@@ -170,6 +178,11 @@ object ExcelExportEngine {
         valuation: CalculatedValuation?,
         timestamp: String
     ): String {
+        val jobRef = project.projectNumber.ifBlank { project.contractRef }
+        val valNum = valuation?.entity?.valuationNumber ?: "VAL-001"
+        val fullValuationRef = if (jobRef.isNotBlank()) "${project.name} — $jobRef — $valNum"
+                               else "${project.name} — $valNum"
+
         val sb = StringBuilder()
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         sb.append("<?mso-application progid=\"Excel.Sheet\"?>\n")
@@ -182,8 +195,9 @@ object ExcelExportEngine {
         sb.append(" <Worksheet ss:Name=\"Dashboard\">\n")
         sb.append("  <Table>\n")
         sb.append("   <Row><Cell><Data ss:Type=\"String\">MASTOR UK COMMERCIAL MANAGEMENT - V6 WORKBOOK SNAPSHOT</Data></Cell></Row>\n")
-        sb.append("   <Row><Cell><Data ss:Type=\"String\">Project: ${project.name}</Data></Cell><Cell><Data ss:Type=\"String\">Exported: $timestamp</Data></Cell></Row>\n")
-        sb.append("   <Row><Cell><Data ss:Type=\"String\">Client: ${project.client}</Data></Cell><Cell><Data ss:Type=\"String\">Location: ${project.address}</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Valuation Certificate: $fullValuationRef</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Project: ${project.name}</Data></Cell><Cell><Data ss:Type=\"String\">Job Ref: ${if (jobRef.isNotBlank()) jobRef else "N/A"}</Data></Cell><Cell><Data ss:Type=\"String\">Valuation No: $valNum</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Client: ${project.client}</Data></Cell><Cell><Data ss:Type=\"String\">Location: ${project.address}</Data></Cell><Cell><Data ss:Type=\"String\">Exported: $timestamp</Data></Cell></Row>\n")
         sb.append("   <Row></Row>\n")
         sb.append("   <Row><Cell><Data ss:Type=\"String\">Financial Summary Item</Data></Cell><Cell><Data ss:Type=\"String\">Amount (£)</Data></Cell></Row>\n")
         val totalBase = scopeElements.sumOf { (it.qty * it.rate) }
@@ -192,12 +206,16 @@ object ExcelExportEngine {
         sb.append("   <Row><Cell><Data ss:Type=\"String\">Base Contract Sum</Data></Cell><Cell><Data ss:Type=\"Number\">$totalBase</Data></Cell></Row>\n")
         sb.append("   <Row><Cell><Data ss:Type=\"String\">Central Uplifts (${project.uplift1Percent}% + ${project.uplift2Percent}%)</Data></Cell><Cell><Data ss:Type=\"Number\">${uplift1 + uplift2}</Data></Cell></Row>\n")
         sb.append("   <Row><Cell><Data ss:Type=\"String\">Revised Contract Value</Data></Cell><Cell><Data ss:Type=\"Number\">${totalBase + uplift1 + uplift2}</Data></Cell></Row>\n")
+        if (valuation != null) {
+            sb.append("   <Row><Cell><Data ss:Type=\"String\">Valuation Grand Invoice Total ($valNum)</Data></Cell><Cell><Data ss:Type=\"Number\">${valuation.grandInvoiceTotal}</Data></Cell></Row>\n")
+        }
         sb.append("  </Table>\n")
         sb.append(" </Worksheet>\n")
 
         // Sheet 2: Order Lines
         sb.append(" <Worksheet ss:Name=\"Order Lines\">\n")
         sb.append("  <Table>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">$fullValuationRef - Schedule of Work Order Lines</Data></Cell></Row>\n")
         sb.append("   <Row>")
         sb.append("<Cell><Data ss:Type=\"String\">Code</Data></Cell>")
         sb.append("<Cell><Data ss:Type=\"String\">Location</Data></Cell>")
@@ -226,9 +244,28 @@ object ExcelExportEngine {
         sb.append("  </Table>\n")
         sb.append(" </Worksheet>\n")
 
+        // Sheet 5: Valuation Certificate
+        sb.append(" <Worksheet ss:Name=\"Valuation Certificate\">\n")
+        sb.append("  <Table>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">INTERIM PAYMENT APPLICATION / VALUATION CERTIFICATE</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Certificate Reference: $fullValuationRef</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Project Name: ${project.name}</Data></Cell><Cell><Data ss:Type=\"String\">Job Reference: ${if (jobRef.isNotBlank()) jobRef else "N/A"}</Data></Cell><Cell><Data ss:Type=\"String\">Valuation No: $valNum</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Client: ${project.client}</Data></Cell><Cell><Data ss:Type=\"String\">Surveyor: ${valuation?.entity?.preparedBy ?: project.surveyor}</Data></Cell><Cell><Data ss:Type=\"String\">Date: ${valuation?.entity?.date ?: timestamp}</Data></Cell></Row>\n")
+        sb.append("   <Row></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Valuation Line Item</Data></Cell><Cell><Data ss:Type=\"String\">Base (£)</Data></Cell><Cell><Data ss:Type=\"String\">Central Markups</Data></Cell><Cell><Data ss:Type=\"String\">Certified Total (£)</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Scope Base Claimed</Data></Cell><Cell><Data ss:Type=\"Number\">${valuation?.scopeBaseClaimedTotal ?: 0.0}</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Variation Orders Base Claimed</Data></Cell><Cell><Data ss:Type=\"Number\">${valuation?.voBaseClaimedTotal ?: 0.0}</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Subtotal Base Claimed</Data></Cell><Cell><Data ss:Type=\"Number\">${valuation?.subtotalBaseClaimed ?: 0.0}</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Uplift 1 (+${valuation?.uplift1Percent ?: project.uplift1Percent}%)</Data></Cell><Cell><Data ss:Type=\"Number\">${valuation?.uplift1Amount ?: 0.0}</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Uplift 2 (+${valuation?.uplift2Percent ?: project.uplift2Percent}%)</Data></Cell><Cell><Data ss:Type=\"Number\">${valuation?.uplift2Amount ?: 0.0}</Data></Cell></Row>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">Grand Invoice Total</Data></Cell><Cell></Cell><Cell></Cell><Cell><Data ss:Type=\"Number\">${valuation?.grandInvoiceTotal ?: totalBase}</Data></Cell></Row>\n")
+        sb.append("  </Table>\n")
+        sb.append(" </Worksheet>\n")
+
         // Sheet 6: Site Print (Rates Hidden)
         sb.append(" <Worksheet ss:Name=\"Site Print (Rates Hidden)\">\n")
         sb.append("  <Table>\n")
+        sb.append("   <Row><Cell><Data ss:Type=\"String\">$fullValuationRef - Site Print Schedule</Data></Cell></Row>\n")
         sb.append("   <Row>")
         sb.append("<Cell><Data ss:Type=\"String\">Code</Data></Cell>")
         sb.append("<Cell><Data ss:Type=\"String\">Location</Data></Cell>")
@@ -254,8 +291,15 @@ object ExcelExportEngine {
         return sb.toString()
     }
 
-    private fun buildSitePrintCsv(scopeElements: List<ScopeElement>): String {
+    private fun buildSitePrintCsv(scopeElements: List<ScopeElement>, project: Project? = null, valuation: CalculatedValuation? = null): String {
         val sb = StringBuilder()
+        val jobRef = project?.projectNumber?.ifBlank { project.contractRef } ?: project?.contractRef ?: ""
+        val valNum = valuation?.entity?.valuationNumber ?: "VAL-001"
+        if (project != null) {
+            val fullValuationRef = if (jobRef.isNotBlank()) "${project.name} — $jobRef — $valNum" else "${project.name} — $valNum"
+            sb.append("# Valuation Certificate Reference: $fullValuationRef\n")
+            sb.append("# Project: ${project.name}, Job Ref: ${if (jobRef.isNotBlank()) jobRef else "N/A"}, Valuation: $valNum\n")
+        }
         sb.append("Code,Location,Item Description,Unit,Target Qty,Claim Percent\n")
         scopeElements.forEach { item ->
             sb.append("\"${item.code}\",\"${item.locationRoom}\",\"${item.description.replace("\"", "\"\"")}\",\"${item.units}\",${item.qty},${item.claimPercent}\n")

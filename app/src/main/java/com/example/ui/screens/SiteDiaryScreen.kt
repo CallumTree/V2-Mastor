@@ -1,6 +1,11 @@
 package com.example.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,6 +23,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
@@ -25,62 +32,69 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PriceCheck
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.example.data.entity.Project
 import com.example.data.entity.SiteDiaryEntry
+import com.example.domain.audio.AudioDiaryAnalysis
+import com.example.domain.audio.SampleVoiceNote
+import com.example.domain.audio.SiteAudioRecorder
+import com.example.domain.audio.SiteDiaryAudioTranscriber
 import com.example.domain.calculation.CalculatedWorkOrder
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.ui.components.AudioTranscriptionModal
+import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.components.MastorButton
 import com.example.ui.components.MastorCard
 import com.example.ui.components.MastorInput
 import com.example.ui.components.MastorOutlinedButton
 import com.example.ui.components.MastorTopBar
-import com.example.ui.components.OfflineCacheStatusBar
 import com.example.ui.theme.MastorAccentBlue
 import com.example.ui.theme.MastorAccentBlueLight
 import com.example.ui.theme.MastorBackgroundLight
@@ -99,6 +113,8 @@ import com.example.ui.theme.StatusIdentifiedSky
 import com.example.ui.theme.StatusPendingAmber
 import com.example.ui.theme.StatusPendingBg
 import com.example.ui.viewmodel.Phase1ViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // Sample realistic photographic site placeholders for daily logging
 val SAMPLE_SITE_PHOTOS = listOf(
@@ -117,6 +133,10 @@ val SITE_LOG_STATUSES = listOf(
     "Safety Inspection Flag"
 )
 
+/**
+ * Completely rebuilt Site Diary Screen.
+ * Designed for a site manager on a building site: immediate, tactile, one-tap actions.
+ */
 @Composable
 fun SiteDiaryScreen(
     viewModel: Phase1ViewModel,
@@ -127,32 +147,74 @@ fun SiteDiaryScreen(
     modifier: Modifier = Modifier,
     onMenuClick: (() -> Unit)? = null
 ) {
-    var showAddDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     var showAudioModal by remember { mutableStateOf(false) }
-    var selectedWorkOrderFilter by remember { mutableStateOf<String?>(null) }
-    var searchQuery by remember { mutableStateOf("") }
+    var showPhotoModal by remember { mutableStateOf(false) }
+    var showVideoModal by remember { mutableStateOf(false) }
+    var permissionDeniedMessage by remember { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
 
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    val filteredEntries = entries.filter { entry ->
-        val matchesWO = selectedWorkOrderFilter == null || entry.workOrderId == selectedWorkOrderFilter
-        val matchesSearch = searchQuery.isBlank() ||
-                entry.notes.contains(searchQuery, ignoreCase = true) ||
-                entry.author.contains(searchQuery, ignoreCase = true) ||
-                (entry.workOrderTitle?.contains(searchQuery, ignoreCase = true) == true) ||
-                (entry.audioValuationNotes?.contains(searchQuery, ignoreCase = true) == true) ||
-                (entry.audioSchedulingNotes?.contains(searchQuery, ignoreCase = true) == true)
-        matchesWO && matchesSearch
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            permissionDeniedMessage = null
+            showAudioModal = true
+            SiteAudioRecorder.startRecording(context)
+        } else {
+            permissionDeniedMessage = "Microphone permission is required to record audio site logs."
+        }
     }
 
-    if (showAddDialog) {
-        NewSiteLogDialog(
+    fun startVoiceRecordingFlow() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            permissionDeniedMessage = null
+            showAudioModal = true
+            SiteAudioRecorder.startRecording(context)
+        } else {
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    // Modals
+    if (showAudioModal) {
+        AudioSiteLogModal(
             workOrders = workOrders,
-            onDismiss = { showAddDialog = false },
-            onOpenAudioTranscribe = {
-                showAddDialog = false
-                showAudioModal = true
+            onDismiss = {
+                SiteAudioRecorder.stopRecording()
+                showAudioModal = false
             },
+            onSaveVoiceEntry = { woId, woTitle, author, status, weather, labor, notes, photoUrl, transcript, tasksJson, todosJson, finishedJson, valNotes, schedNotes ->
+                viewModel.createVoiceSiteDiaryEntry(
+                    workOrderId = woId,
+                    workOrderTitle = woTitle,
+                    author = author,
+                    statusUpdate = status,
+                    weatherNotes = weather,
+                    laborCount = labor,
+                    notes = notes,
+                    photoUrl = photoUrl,
+                    audioTranscript = transcript,
+                    audioTasksJson = tasksJson,
+                    audioTodosJson = todosJson,
+                    audioFinishedItemsJson = finishedJson,
+                    audioValuationNotes = valNotes,
+                    audioSchedulingNotes = schedNotes
+                )
+                showAudioModal = false
+            }
+        )
+    }
+
+    if (showPhotoModal) {
+        PhotoLogModal(
+            workOrders = workOrders,
+            onDismiss = { showPhotoModal = false },
             onSubmit = { woId, woTitle, author, status, weather, labor, notes, photoUrl ->
                 viewModel.createSiteDiaryEntry(
                     workOrderId = woId,
@@ -164,21 +226,27 @@ fun SiteDiaryScreen(
                     notes = notes,
                     photoUrl = photoUrl
                 )
-                showAddDialog = false
+                showPhotoModal = false
             }
         )
     }
 
-    if (showAudioModal) {
-        AudioTranscriptionModal(
-            onDismiss = { showAudioModal = false },
-            onApplyToDiary = { analysis ->
-                viewModel.createVoiceTranscribedSiteDiaryEntry(
-                    analysis = analysis,
-                    workOrderId = null,
-                    workOrderTitle = null
+    if (showVideoModal) {
+        VideoLogModal(
+            workOrders = workOrders,
+            onDismiss = { showVideoModal = false },
+            onSubmit = { woId, woTitle, author, status, weather, labor, notes, photoUrl ->
+                viewModel.createSiteDiaryEntry(
+                    workOrderId = woId,
+                    workOrderTitle = woTitle,
+                    author = author,
+                    statusUpdate = status,
+                    weatherNotes = weather,
+                    laborCount = labor,
+                    notes = notes,
+                    photoUrl = photoUrl
                 )
-                showAudioModal = false
+                showVideoModal = false
             }
         )
     }
@@ -188,152 +256,232 @@ fun SiteDiaryScreen(
             .fillMaxSize()
             .background(MastorBackgroundLight)
     ) {
-        // Standardized Header Bar
+        // Project Header Banner (Consistent with other tabs)
         MastorTopBar(
-            title = "Site Diary",
-            subtitle = "Daily site log, photos & QS observations for ${project?.name ?: "Current Job"}",
+            title = project?.name ?: "142 Park Lane Townhouse",
+            subtitle = "Client: ${project?.client ?: "Private Client"} • Ref: ${project?.contractRef ?: "CT-2026-991"}",
             onMenuClick = onMenuClick
         ) {
-            MastorOutlinedButton(
-                text = "Transcribe Audio",
-                onClick = { showAudioModal = true },
-                icon = Icons.Default.Mic,
-                testTag = "open_audio_transcribe_button"
-            )
-
-            MastorButton(
-                text = "New Log",
-                onClick = { showAddDialog = true },
-                icon = Icons.Default.CameraAlt,
-                testTag = "new_site_log_button"
-            )
+            Surface(
+                color = MastorGold.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, MastorGold.copy(alpha = 0.4f))
+            ) {
+                Text(
+                    text = MastorCalculationEngine.formatCurrency(project?.contractValue ?: 150000.0),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MastorGold,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Column(
+        LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // Top Spacing
+            item {
+                Spacer(modifier = Modifier.height(2.dp))
+            }
 
-        // Room Database Local Offline Cache Status & Interactive Toggle
-        OfflineCacheStatusBar(
-            isOfflineMode = uiState.isOfflineMode,
-            onToggleOfflineMode = { viewModel.toggleOfflineMode() },
-            cachedEntriesCount = entries.size,
-            cachedFilesCount = uiState.cachedCloudFiles.size,
-            pendingSyncCount = uiState.pendingDiaryUploadsCount,
-            onSyncPendingClick = { viewModel.syncOfflinePendingEntries() }
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Search and Work Order Filter Controls
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search site logs or notes...", style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MastorSlateMuted) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp)
-                    .testTag("site_log_search"),
-                shape = RoundedCornerShape(10.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = MastorSurfaceLight,
-                    focusedContainerColor = MastorSurfaceLight,
-                    unfocusedBorderColor = MastorSlateBorder,
-                    focusedBorderColor = MastorAccentBlue
-                ),
-                singleLine = true
-            )
-
-            WorkOrderFilterDropdown(
-                workOrders = workOrders,
-                selectedWorkOrderId = selectedWorkOrderFilter,
-                onSelectFilter = { selectedWorkOrderFilter = it }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Feed Status & Count
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "${filteredEntries.size} Site Log Entries",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MastorSlateMuted
-            )
-
-            if (isAnalyzing) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(14.dp),
-                        strokeWidth = 2.dp,
-                        color = MastorAccentBlue
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Analyzing log with Gemini...",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MastorAccentBlue,
-                        fontWeight = FontWeight.Medium
-                    )
+            // Permission Denied Explanation Banner
+            if (permissionDeniedMessage != null) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = StatusFlaggedBg,
+                        border = BorderStroke(1.dp, StatusFlaggedRed.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MicOff,
+                                contentDescription = "Permission Denied",
+                                tint = StatusFlaggedRed,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Microphone Permission Required",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = StatusFlaggedRed
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = permissionDeniedMessage ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MastorSlateDark
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            MastorButton(
+                                text = "Grant",
+                                onClick = { micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
+                                testTag = "retry_mic_permission_btn"
+                            )
+                            IconButton(
+                                onClick = { permissionDeniedMessage = null },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Dismiss",
+                                    tint = MastorSlateMuted,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            // =========================================================================
+            // 1. THREE LARGE ACTION BUTTONS (FULL WIDTH, STACKED, MINIMUM 64DP+ HEIGHT)
+            // =========================================================================
 
-        // Feed / Timeline
-        if (filteredEntries.isEmpty()) {
-            MastorCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            // 1) 🎙️ Record Voice Diary
+            item {
+                SiteActionCard(
+                    title = "Record Voice Diary",
+                    description = "Speak your site update — AI will transcribe and extract progress items",
+                    icon = Icons.Default.Mic,
+                    iconBgColor = MastorGold.copy(alpha = 0.16f),
+                    iconTint = MastorGold,
+                    testTag = "voice_site_log_button",
+                    onClick = { startVoiceRecordingFlow() }
+                )
+            }
+
+            // 2) 📷 Photo Log
+            item {
+                SiteActionCard(
+                    title = "Photo Log",
+                    description = "Capture progress, deliveries, defects or site conditions",
+                    icon = Icons.Default.CameraAlt,
+                    iconBgColor = MastorAccentBlue.copy(alpha = 0.16f),
+                    iconTint = MastorAccentBlue,
+                    testTag = "photo_site_log_button",
+                    onClick = { showPhotoModal = true }
+                )
+            }
+
+            // 3) 🎥 Video Diary
+            item {
+                SiteActionCard(
+                    title = "Video Diary",
+                    description = "Record site walkthrough, structural inspections or visual evidence",
+                    icon = Icons.Default.Videocam,
+                    iconBgColor = StatusPendingAmber.copy(alpha = 0.16f),
+                    iconTint = StatusPendingAmber,
+                    testTag = "video_site_log_button",
+                    onClick = { showVideoModal = true }
+                )
+            }
+
+            // =========================================================================
+            // 2. PREVIOUS ENTRIES LIST
+            // =========================================================================
+            item {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MastorSlateMuted
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "No site diary entries found",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "PREVIOUS ENTRIES",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorSlateMuted,
+                        letterSpacing = 1.sp
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Tap 'New Log Entry' above to capture a site photo and record daily progress.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MastorSlateMuted
-                    )
+
+                    if (isAnalyzing) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(12.dp),
+                                strokeWidth = 2.dp,
+                                color = MastorAccentBlue
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "AI Analyzing...",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 11.sp,
+                                color = MastorAccentBlue,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    } else if (entries.isNotEmpty()) {
+                        Text(
+                            text = "${entries.size} recorded",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.sp,
+                            color = MastorSlateMuted
+                        )
+                    }
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(filteredEntries, key = { it.id }) { entry ->
+
+            if (entries.isEmpty()) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MastorSurfaceLight,
+                        border = BorderStroke(1.dp, MastorSlateBorder)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(54.dp)
+                                    .clip(CircleShape)
+                                    .background(MastorGold.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Mic,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MastorGold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "No Diary Entries Yet",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorSlateDark
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Tap Record Voice Diary, Photo Log or Video Diary above to capture your first site update in seconds.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MastorSlateMuted,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(entries, key = { it.id }) { entry ->
                     SiteDiaryCard(
                         entry = entry,
                         onReAnalyze = { viewModel.generateGeminiSummaryForEntry(entry) },
@@ -341,490 +489,477 @@ fun SiteDiaryScreen(
                     )
                 }
             }
+
+            // Bottom space
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
     }
 }
+
+/**
+ * Large, builder-friendly action button card (min height 72dp for fast tactile access)
+ */
+@Composable
+fun SiteActionCard(
+    title: String,
+    description: String,
+    icon: ImageVector,
+    iconBgColor: Color,
+    iconTint: Color,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(76.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, MastorSlateBorder, RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .testTag(testTag),
+        color = MastorSurfaceLight,
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .background(iconBgColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = MastorSlateDark
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 11.5.sp,
+                    color = MastorSlateMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MastorSlateMuted,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
 }
 
+/**
+ * Individual Site Diary Entry Card:
+ * Date bold at top, headline/summary below, badges for voice/photo/operatives, and tap to expand full entry.
+ */
 @Composable
 fun SiteDiaryCard(
     entry: SiteDiaryEntry,
+    isHighlighted: Boolean = false,
     onReAnalyze: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expandedInsights by remember { mutableStateOf(entry.isVoiceTranscribed) }
+    var expanded by remember { mutableStateOf(false) }
 
     val tasksList = remember(entry.audioTasksJson) { entry.getTasksList() }
     val todosList = remember(entry.audioTodosJson) { entry.getTodosList() }
     val finishedList = remember(entry.audioFinishedItemsJson) { entry.getFinishedItemsList() }
     val hasVoiceInsights = entry.isVoiceTranscribed || tasksList.isNotEmpty() || todosList.isNotEmpty() || finishedList.isNotEmpty() || !entry.audioValuationNotes.isNullOrBlank()
 
-    MastorCard(
+    val headlineText = entry.geminiSummary?.takeIf { it.isNotBlank() } ?: entry.notes
+
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .testTag("site_diary_card_${entry.id}")
+            .clip(RoundedCornerShape(14.dp))
+            .border(
+                width = if (isHighlighted) 2.dp else 1.dp,
+                color = if (isHighlighted) MastorGold else MastorSlateBorder,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable { expanded = !expanded }
+            .testTag("site_diary_card_${entry.id}"),
+        color = MastorSurfaceLight,
+        shadowElevation = 1.dp
     ) {
-        Column {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header Row: Date bold at top + expand chevron
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                Column {
+                    Text(
+                        text = entry.dateDisplay,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = MastorSlateDark
+                    )
+                    if (entry.author.isNotBlank()) {
                         Text(
                             text = entry.author,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
-                        )
-                        if (entry.isVoiceTranscribed) {
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = MastorAccentBlueLight
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Mic,
-                                        contentDescription = null,
-                                        tint = MastorAccentBlue,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Voice Log",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MastorAccentBlue
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = entry.dateDisplay,
                             style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp,
                             color = MastorSlateMuted
                         )
-                        if (entry.workOrderTitle != null) {
-                            Text(
-                                text = "•",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted
-                            )
-                            Text(
-                                text = entry.workOrderTitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MastorAccentBlue
-                            )
-                        }
-
-                        // Offline sync status pill
-                        if (entry.syncStatus == "PENDING_UPLOAD") {
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = Color(0xFFFEF3C7),
-                                border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFF59E0B))
-                            ) {
-                                Text(
-                                    text = "Room Cached (Pending Sync)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFB45309),
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                )
-                            }
-                        } else {
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = Color(0xFFDCFCE7),
-                                border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF86EFAC))
-                            ) {
-                                Text(
-                                    text = "Room DB Cached",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF15803D),
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                )
-                            }
-                        }
                     }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     StatusPill(status = entry.statusUpdate)
                     Spacer(modifier = Modifier.width(4.dp))
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .testTag("delete_site_log_${entry.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete entry",
-                            tint = MastorSlateMuted,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        tint = MastorSlateMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
-            // PHOTO FIRST
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .background(MastorBackgroundLight)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Headline / Summary Below
+            Text(
+                text = headlineText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MastorSlateDark,
+                lineHeight = 20.sp,
+                maxLines = if (expanded) Int.MAX_VALUE else 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Badges Row: Voice transcribed icon, Photo count, Operatives
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                AsyncImage(
-                    model = entry.photoUrl,
-                    contentDescription = "Site Photo - ${entry.workOrderTitle ?: "Site Entry"}",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.Black.copy(alpha = 0.65f),
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .align(Alignment.BottomStart)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = entry.workOrderTitle ?: "Site Observation",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
-            // Details & Notes
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (entry.laborCount > 0) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MastorBackgroundLight,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MastorSlateBorder)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Groups,
-                                    contentDescription = null,
-                                    tint = MastorSlateDark,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "${entry.laborCount} Operatives",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorSlateDark
-                                )
-                            }
-                        }
-                    }
-
-                    if (!entry.weatherNotes.isNullOrBlank()) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MastorBackgroundLight,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MastorSlateBorder)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Cloud,
-                                    contentDescription = null,
-                                    tint = MastorSlateMuted,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = entry.weatherNotes,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MastorSlateMuted
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Text(
-                    text = entry.notes,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MastorSlateDark,
-                    lineHeight = 22.sp
-                )
-
-                // Gemini Summary Card
-                if (!entry.geminiSummary.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                if (entry.isVoiceTranscribed) {
                     Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        color = MastorBackgroundLight,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MastorSlateBorder)
+                        shape = RoundedCornerShape(6.dp),
+                        color = MastorGold.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, MastorGold.copy(alpha = 0.3f))
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                        tint = MastorAccentBlue,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "AI Summary & Site Intelligence",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MastorAccentBlue,
-                                        letterSpacing = 0.5.sp
-                                    )
-                                }
-
-                                IconButton(
-                                    onClick = onReAnalyze,
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = "Refresh Gemini summary",
-                                        tint = MastorSlateMuted,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Voice Log",
+                                tint = MastorGold,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = entry.geminiSummary,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateText,
-                                lineHeight = 18.sp
+                                text = "Voice Log",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorGold
                             )
                         }
                     }
                 }
 
-                // Expandable Section for Structured Voice Insights (Tasks, To-Dos, Valuations, Scheduling)
-                if (hasVoiceInsights) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                if (entry.photoUrl.isNotBlank()) {
                     Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .border(1.dp, if (expandedInsights) MastorAccentBlue.copy(alpha = 0.4f) else MastorSlateBorder, RoundedCornerShape(10.dp))
-                            .clickable { expandedInsights = !expandedInsights }
-                            .testTag("toggle_voice_insights_${entry.id}"),
-                        color = if (expandedInsights) MastorBackgroundLight else MastorSurfaceLight
+                        shape = RoundedCornerShape(6.dp),
+                        color = MastorAccentBlueLight,
+                        border = BorderStroke(1.dp, MastorAccentBlue.copy(alpha = 0.25f))
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Photo Attached",
+                                tint = MastorAccentBlue,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Photo Log",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorAccentBlue
+                            )
+                        }
+                    }
+                }
+
+                if (entry.laborCount > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MastorBackgroundLight,
+                        border = BorderStroke(1.dp, MastorSlateBorder)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Groups,
+                                contentDescription = null,
+                                tint = MastorSlateDark,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${entry.laborCount} Operatives",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MastorSlateDark
+                            )
+                        }
+                    }
+                }
+
+                if (!entry.weatherNotes.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MastorBackgroundLight,
+                        border = BorderStroke(1.dp, MastorSlateBorder)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Cloud,
+                                contentDescription = null,
+                                tint = MastorSlateMuted,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = entry.weatherNotes,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.5.sp,
+                                color = MastorSlateMuted
+                            )
+                        }
+                    }
+                }
+            }
+
+            // =========================================================================
+            // EXPANDED VIEW: Full Site Photo, Transcript, Structured AI Insights, Delete
+            // =========================================================================
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 14.dp)) {
+                    // Full Photo
+                    if (entry.photoUrl.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MastorBackgroundLight)
+                        ) {
+                            AsyncImage(
+                                model = entry.photoUrl,
+                                contentDescription = "Site Photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    // Full Detailed Notes
+                    if (entry.notes.isNotBlank()) {
+                        Text(
+                            text = "Site Notes:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateMuted
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = entry.notes,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MastorSlateDark,
+                            lineHeight = 19.sp
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    // Audio Transcript
+                    if (!entry.audioTranscript.isNullOrBlank()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            color = MastorBackgroundLight,
+                            border = BorderStroke(1.dp, MastorSlateBorder)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.AssignmentTurnedIn,
-                                        contentDescription = null,
-                                        tint = MastorAccentBlue,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(Icons.Default.Mic, contentDescription = null, tint = MastorGold, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Tasks, To-Dos, Valuations & Scheduling",
-                                        style = MaterialTheme.typography.titleSmall,
+                                        text = "Audio Transcript",
+                                        style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = MastorSlateDark
+                                        color = MastorGold
                                     )
                                 }
-                                Icon(
-                                    imageVector = if (expandedInsights) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    contentDescription = null,
-                                    tint = MastorSlateMuted
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = entry.audioTranscript,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MastorSlateDark,
+                                    lineHeight = 18.sp
                                 )
                             }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
 
-                            AnimatedVisibility(visible = expandedInsights) {
-                                Column(modifier = Modifier.padding(top = 12.dp)) {
-                                    // Finished Items
-                                    if (finishedList.isNotEmpty()) {
+                    // Gemini AI Summary
+                    if (!entry.geminiSummary.isNullOrBlank()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            color = MastorAccentBlueLight.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MastorAccentBlue.copy(alpha = 0.2f))
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MastorAccentBlue, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
                                         Text(
-                                            text = "Completed & Finished Items (Valuation Ready)",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = StatusClaimedGreen
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        finishedList.forEach { item ->
-                                            Row(
-                                                modifier = Modifier.padding(vertical = 2.dp),
-                                                verticalAlignment = Alignment.Top
-                                            ) {
-                                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusClaimedGreen, modifier = Modifier.size(14.dp).padding(top = 2.dp))
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text(item, style = MaterialTheme.typography.bodySmall, color = MastorSlateDark)
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                    }
-
-                                    // Active Tasks
-                                    if (tasksList.isNotEmpty()) {
-                                        Text(
-                                            text = "Active Tasks Underway",
+                                            text = "AI Site Summary",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MastorAccentBlue
                                         )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        tasksList.forEach { item ->
-                                            Row(
-                                                modifier = Modifier.padding(vertical = 2.dp),
-                                                verticalAlignment = Alignment.Top
-                                            ) {
-                                                Text("•", fontWeight = FontWeight.Bold, color = MastorAccentBlue, modifier = Modifier.padding(end = 6.dp))
-                                                Text(item, style = MaterialTheme.typography.bodySmall, color = MastorSlateDark)
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.height(10.dp))
                                     }
-
-                                    // To-Do Actions
-                                    if (todosList.isNotEmpty()) {
-                                        Text(
-                                            text = "Action Items & Subcontractor To-Dos",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = StatusPendingAmber
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        todosList.forEach { item ->
-                                            Row(
-                                                modifier = Modifier.padding(vertical = 2.dp),
-                                                verticalAlignment = Alignment.Top
-                                            ) {
-                                                Text("→", fontWeight = FontWeight.Bold, color = StatusPendingAmber, modifier = Modifier.padding(end = 6.dp))
-                                                Text(item, style = MaterialTheme.typography.bodySmall, color = MastorSlateDark)
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                    }
-
-                                    // Valuation Impact
-                                    if (!entry.audioValuationNotes.isNullOrBlank()) {
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = MastorGold.copy(alpha = 0.08f),
-                                            border = androidx.compose.foundation.BorderStroke(1.dp, MastorGold.copy(alpha = 0.3f)),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Column(modifier = Modifier.padding(10.dp)) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(Icons.Default.PriceCheck, contentDescription = null, tint = Color(0xFFB45309), modifier = Modifier.size(16.dp))
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text(
-                                                        text = "Valuation & Interim Claim Notes",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF92400E)
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = entry.audioValuationNotes,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MastorSlateDark,
-                                                    lineHeight = 18.sp
-                                                )
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    }
-
-                                    // Task Scheduling Notes
-                                    if (!entry.audioSchedulingNotes.isNullOrBlank()) {
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = StatusIdentifiedBg,
-                                            border = androidx.compose.foundation.BorderStroke(1.dp, StatusIdentifiedSky.copy(alpha = 0.3f)),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Column(modifier = Modifier.padding(10.dp)) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = StatusIdentifiedSky, modifier = Modifier.size(16.dp))
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text(
-                                                        text = "Task Scheduling & Trade Sequencing",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = MastorSlateDark
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = entry.audioSchedulingNotes,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MastorSlateDark,
-                                                    lineHeight = 18.sp
-                                                )
-                                            }
-                                        }
+                                    IconButton(
+                                        onClick = onReAnalyze,
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Icon(Icons.Default.Refresh, contentDescription = "Re-analyze", tint = MastorSlateMuted, modifier = Modifier.size(13.dp))
                                     }
                                 }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = entry.geminiSummary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MastorSlateDark,
+                                    lineHeight = 18.sp
+                                )
                             }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    // Structured Voice Insights (Tasks / To-Dos / Finished)
+                    if (hasVoiceInsights) {
+                        if (finishedList.isNotEmpty()) {
+                            Text("Completed Items:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusClaimedGreen)
+                            finishedList.forEach { item ->
+                                Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(vertical = 1.dp)) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusClaimedGreen, modifier = Modifier.size(13.dp).padding(top = 2.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(item, style = MaterialTheme.typography.bodySmall, color = MastorSlateDark)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
+
+                        if (todosList.isNotEmpty()) {
+                            Text("Action Items / To-Dos:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusPendingAmber)
+                            todosList.forEach { item ->
+                                Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(vertical = 1.dp)) {
+                                    Text("→", fontWeight = FontWeight.Bold, color = StatusPendingAmber, modifier = Modifier.padding(end = 6.dp))
+                                    Text(item, style = MaterialTheme.typography.bodySmall, color = MastorSlateDark)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
+
+                        if (!entry.audioValuationNotes.isNullOrBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MastorGold.copy(alpha = 0.08f),
+                                border = BorderStroke(1.dp, MastorGold.copy(alpha = 0.25f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.PriceCheck, contentDescription = null, tint = MastorGold, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Valuation Note", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorGold)
+                                    }
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(entry.audioValuationNotes, style = MaterialTheme.typography.bodySmall, color = MastorSlateDark)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
+                    }
+
+                    // Delete Entry Button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .testTag("delete_site_log_${entry.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete site log",
+                                tint = StatusFlaggedRed.copy(alpha = 0.8f),
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
                 }
@@ -847,104 +982,402 @@ fun StatusPill(status: String) {
     }
 
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = bgColor
     ) {
         Text(
             text = status.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
+            fontSize = 9.5.sp,
             color = textColor,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
         )
     }
 }
 
+// =========================================================================
+// 3. VOICE RECORDING MODAL WITH AI TRANSCRIPTION
+// =========================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkOrderFilterDropdown(
+fun AudioSiteLogModal(
     workOrders: List<CalculatedWorkOrder>,
-    selectedWorkOrderId: String?,
-    onSelectFilter: (String?) -> Unit
+    onDismiss: () -> Unit,
+    onSaveVoiceEntry: (
+        woId: String?,
+        woTitle: String?,
+        author: String,
+        status: String,
+        weather: String?,
+        labor: Int,
+        notes: String,
+        photoUrl: String,
+        transcript: String,
+        tasksJson: String,
+        todosJson: String,
+        finishedJson: String,
+        valNotes: String,
+        schedNotes: String
+    ) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedText = if (selectedWorkOrderId == null) "All Work Orders" else {
-        workOrders.find { it.entity.woRef == selectedWorkOrderId }?.let { "${it.entity.woRef}: ${it.entity.description}" } ?: selectedWorkOrderId
-    }
+    val coroutineScope = rememberCoroutineScope()
+    var isRecording by remember { mutableStateOf(true) }
+    var recordingSeconds by remember { mutableIntStateOf(0) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var analysisResult by remember { mutableStateOf<AudioDiaryAnalysis?>(null) }
+    var transcriptText by remember { mutableStateOf("") }
+    var editableHeadline by remember { mutableStateOf("") }
+    var selectedWoRef by remember { mutableStateOf<String?>(null) }
+    var selectedWoTitle by remember { mutableStateOf<String?>(null) }
+    var author by remember { mutableStateOf("Dave Jenkins (Site Manager)") }
+    var selectedStatus by remember { mutableStateOf("Progress On Track") }
+    var selectedPhotoUrl by remember { mutableStateOf(SAMPLE_SITE_PHOTOS.first().first) }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        Surface(
-            modifier = Modifier
-                .menuAnchor()
-                .height(50.dp),
-            shape = RoundedCornerShape(10.dp),
-            color = MastorSurfaceLight,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MastorSlateBorder)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.FilterList, contentDescription = null, tint = MastorSlateMuted, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = selectedText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MastorSlateDark,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            while (isRecording) {
+                delay(1000)
+                recordingSeconds++
             }
         }
+    }
 
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(MastorSurfaceLight)
+    fun processAudioText(rawVoiceText: String, sampleNote: SampleVoiceNote? = null) {
+        isProcessing = true
+        isRecording = false
+        transcriptText = rawVoiceText
+        if (sampleNote != null) {
+            author = sampleNote.author
+        }
+        coroutineScope.launch {
+            val analysis = SiteDiaryAudioTranscriber.analyzeVoiceNote(rawVoiceText)
+            analysisResult = analysis
+            editableHeadline = analysis.headline
+            isProcessing = false
+        }
+    }
+
+    fun stopLiveRecording() {
+        SiteAudioRecorder.stopRecording()
+        isRecording = false
+        val simulatedLiveAudio = "Completed first fix structural timber and partition framing in bedroom 2. 4 joiners on site. Dry lining inspection scheduled for tomorrow."
+        processAudioText(simulatedLiveAudio)
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MastorSurfaceLight,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
         ) {
-            DropdownMenuItem(
-                text = { Text("All Work Orders", fontWeight = FontWeight.Bold) },
-                onClick = {
-                    onSelectFilter(null)
-                    expanded = false
-                }
-            )
-            workOrders.forEach { wo ->
-                DropdownMenuItem(
-                    text = { Text("${wo.entity.woRef}: ${wo.entity.description}") },
-                    onClick = {
-                        onSelectFilter(wo.entity.woRef)
-                        expanded = false
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MastorGold.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Mic,
+                                    contentDescription = null,
+                                    tint = MastorGold,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Voice Site Diary",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorSlateDark
+                            )
+                        }
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                        }
                     }
-                )
+                }
+
+                // Recording Status Card
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isRecording) StatusFlaggedBg else MastorBackgroundLight,
+                        border = BorderStroke(
+                            1.dp,
+                            if (isRecording) StatusFlaggedRed.copy(alpha = 0.4f) else MastorSlateBorder
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            if (isRecording) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Mic,
+                                        contentDescription = null,
+                                        tint = StatusFlaggedRed,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Recording Voice Note... (${recordingSeconds / 60}:${(recordingSeconds % 60).toString().padStart(2, '0')})",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = StatusFlaggedRed
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(14.dp))
+                                MastorButton(
+                                    text = "Stop & Transcribe (Gemini AI)",
+                                    onClick = { stopLiveRecording() },
+                                    icon = Icons.Default.Stop,
+                                    testTag = "stop_voice_recording_btn"
+                                )
+                            } else if (isProcessing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(26.dp),
+                                    color = MastorGold,
+                                    strokeWidth = 2.5.dp
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "Analyzing audio with Gemini 2.0 Flash...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MastorGold,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            } else {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = StatusClaimedGreen,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Audio Transcribed & Analyzed",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = StatusClaimedGreen
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Sample QS Voice Presets
+                item {
+                    Text(
+                        text = "Or tap a sample site update to test:",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MastorSlateMuted
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(SiteAudioRecorder.sampleVoiceNotes) { sample ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MastorSurfaceLight,
+                                border = BorderStroke(1.dp, MastorSlateBorder),
+                                modifier = Modifier.clickable {
+                                    processAudioText(sample.transcript, sample)
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        tint = MastorGold,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = sample.title,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MastorSlateDark
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (analysisResult != null) {
+                    val analysis = analysisResult!!
+
+                    item {
+                        Text(
+                            text = "Headline Summary",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateMuted
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = editableHeadline,
+                            onValueChange = { editableHeadline = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    item {
+                        Text(
+                            text = "Audio Transcript",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateMuted
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MastorBackgroundLight,
+                            border = BorderStroke(1.dp, MastorSlateBorder),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = transcriptText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MastorSlateDark,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+
+                    // Extracted Tasks / Finished / To-Dos Chips
+                    if (analysis.tasks.isNotEmpty() || analysis.todos.isNotEmpty()) {
+                        item {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = StatusClaimedBg,
+                                border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.3f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = "AI Extracted Actions & Progress:",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = StatusClaimedGreen
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    for (task in analysis.tasks) {
+                                        Text(
+                                            text = "• Done: $task",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MastorSlateDark
+                                        )
+                                    }
+                                    for (todo in analysis.todos) {
+                                        Text(
+                                            text = "• To-Do: $todo",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MastorSlateDark,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            MastorOutlinedButton(
+                                text = "Cancel",
+                                onClick = onDismiss
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            MastorButton(
+                                text = "Save to Site Diary",
+                                onClick = {
+                                    val tasksJson = "[" + analysis.tasks.joinToString(",") { "\"$it\"" } + "]"
+                                    val todosJson = "[" + analysis.todos.joinToString(",") { "\"$it\"" } + "]"
+                                    val finishedJson = "[" + analysis.finishedItems.joinToString(",") { "\"$it\"" } + "]"
+                                    onSaveVoiceEntry(
+                                        selectedWoRef,
+                                        selectedWoTitle,
+                                        author,
+                                        selectedStatus,
+                                        "Overcast, 16°C",
+                                        4,
+                                        editableHeadline.ifBlank { transcriptText },
+                                        selectedPhotoUrl,
+                                        transcriptText,
+                                        tasksJson,
+                                        todosJson,
+                                        finishedJson,
+                                        analysis.valuationNotes,
+                                        analysis.taskScheduling
+                                    )
+                                },
+                                icon = Icons.Default.CheckCircle,
+                                testTag = "save_voice_diary_btn"
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// =========================================================================
+// 4. PHOTO LOG MODAL (ONE-TAP SITE PHOTO CAPTURE)
+// =========================================================================
 @Composable
-fun NewSiteLogDialog(
+fun PhotoLogModal(
     workOrders: List<CalculatedWorkOrder>,
     onDismiss: () -> Unit,
-    onOpenAudioTranscribe: () -> Unit = {},
     onSubmit: (woId: String?, woTitle: String?, author: String, status: String, weather: String?, labor: Int, notes: String, photoUrl: String) -> Unit
 ) {
-    var selectedWoRef by remember { mutableStateOf<String?>(workOrders.firstOrNull()?.entity?.woRef) }
-    var selectedWoTitle by remember { mutableStateOf<String?>(workOrders.firstOrNull()?.let { "${it.entity.woRef}: ${it.entity.description}" }) }
     var author by remember { mutableStateOf("Marcus Vance (Site Manager)") }
     var selectedStatus by remember { mutableStateOf(SITE_LOG_STATUSES[0]) }
-    var weatherNotes by remember { mutableStateOf("18°C, Overcast, Mild Wind") }
+    var weatherNotes by remember { mutableStateOf("18°C, Dry") }
     var laborCountText by remember { mutableStateOf("6") }
     var notes by remember { mutableStateOf("") }
     var selectedPhotoUrl by remember { mutableStateOf(SAMPLE_SITE_PHOTOS[0].first) }
-
-    var woDropdownExpanded by remember { mutableStateOf(false) }
-    var statusDropdownExpanded by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -953,147 +1386,50 @@ fun NewSiteLogDialog(
             shadowElevation = 8.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
-                .testTag("new_site_log_dialog")
+                .padding(vertical = 12.dp)
+                .testTag("photo_log_dialog")
         ) {
             Column(
                 modifier = Modifier
                     .padding(20.dp)
                     .fillMaxWidth()
             ) {
-                Text(
-                    text = "New Site Log Entry",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
-                )
-                Text(
-                    text = "Capture daily site photo & status notes for record-keeping",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MastorAccentBlue.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                tint = MastorAccentBlue,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Site Photo Log",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateDark
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Fast Audio Dictate Option
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MastorAccentBlueLight,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MastorAccentBlue.copy(alpha = 0.3f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Mic,
-                                contentDescription = null,
-                                tint = MastorAccentBlue,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = "Have a voice note or want to speak?",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorAccentBlue
-                                )
-                                Text(
-                                    text = "Transcribe & extract tasks, valuations & to-dos",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp,
-                                    color = MastorSlateText
-                                )
-                            }
-                        }
-
-                        MastorOutlinedButton(
-                            text = "Record / Preset",
-                            onClick = onOpenAudioTranscribe,
-                            icon = Icons.Default.Mic
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text("Associated Work Order", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(4.dp))
-                ExposedDropdownMenuBox(
-                    expanded = woDropdownExpanded,
-                    onExpandedChange = { woDropdownExpanded = !woDropdownExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = selectedWoTitle ?: "General Site",
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = woDropdownExpanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = woDropdownExpanded,
-                        onDismissRequest = { woDropdownExpanded = false }
-                    ) {
-                        workOrders.forEach { wo ->
-                            val title = "${wo.entity.woRef}: ${wo.entity.description}"
-                            DropdownMenuItem(
-                                text = { Text(title) },
-                                onClick = {
-                                    selectedWoRef = wo.entity.woRef
-                                    selectedWoTitle = title
-                                    woDropdownExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text("Status Update", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(4.dp))
-                ExposedDropdownMenuBox(
-                    expanded = statusDropdownExpanded,
-                    onExpandedChange = { statusDropdownExpanded = !statusDropdownExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = selectedStatus,
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusDropdownExpanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = statusDropdownExpanded,
-                        onDismissRequest = { statusDropdownExpanded = false }
-                    ) {
-                        SITE_LOG_STATUSES.forEach { st ->
-                            DropdownMenuItem(
-                                text = { Text(st) },
-                                onClick = {
-                                    selectedStatus = st
-                                    statusDropdownExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text("Select Site Photo (Photo-First)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("Select Captured Photo", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
                 Spacer(modifier = Modifier.height(6.dp))
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1103,7 +1439,7 @@ fun NewSiteLogDialog(
                         val isSelected = selectedPhotoUrl == url
                         Box(
                             modifier = Modifier
-                                .size(72.dp)
+                                .size(70.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .border(
                                     width = if (isSelected) 3.dp else 1.dp,
@@ -1124,49 +1460,20 @@ fun NewSiteLogDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MastorInput(
-                        value = author,
-                        onValueChange = { author = it },
-                        label = "Author",
-                        modifier = Modifier.weight(1f)
-                    )
-                    MastorInput(
-                        value = laborCountText,
-                        onValueChange = { laborCountText = it },
-                        label = "Operatives",
-                        keyboardType = KeyboardType.Number,
-                        modifier = Modifier.width(100.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                MastorInput(
-                    value = weatherNotes,
-                    onValueChange = { weatherNotes = it },
-                    label = "Weather Notes"
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text("Site Notes & Observations", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted, fontWeight = FontWeight.Bold)
+                Text("Photo Notes & Observations", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    placeholder = { Text("Enter detailed site observation notes...") },
+                    placeholder = { Text("What progress or defect does this photo show?") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp)
+                        .height(84.dp)
                         .testTag("site_log_notes_input"),
                     shape = RoundedCornerShape(10.dp)
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1179,23 +1486,169 @@ fun NewSiteLogDialog(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     MastorButton(
-                        text = "Submit Entry",
+                        text = "Save Photo Log",
                         onClick = {
-                            if (notes.isNotBlank()) {
-                                onSubmit(
-                                    selectedWoRef,
-                                    selectedWoTitle,
-                                    author,
-                                    selectedStatus,
-                                    weatherNotes,
-                                    laborCountText.toIntOrNull() ?: 0,
-                                    notes,
-                                    selectedPhotoUrl
-                                )
-                            }
+                            val finalNotes = notes.ifBlank { "Site photographic inspection logged." }
+                            onSubmit(
+                                null,
+                                "General Site",
+                                author,
+                                selectedStatus,
+                                weatherNotes,
+                                laborCountText.toIntOrNull() ?: 4,
+                                finalNotes,
+                                selectedPhotoUrl
+                            )
                         },
                         icon = Icons.Default.CameraAlt,
-                        testTag = "submit_site_log_button"
+                        testTag = "submit_photo_log_button"
+                    )
+                }
+            }
+        }
+    }
+}
+
+// =========================================================================
+// 5. VIDEO LOG MODAL (SITE WALKTHROUGH & VIDEO DIARY)
+// =========================================================================
+@Composable
+fun VideoLogModal(
+    workOrders: List<CalculatedWorkOrder>,
+    onDismiss: () -> Unit,
+    onSubmit: (woId: String?, woTitle: String?, author: String, status: String, weather: String?, labor: Int, notes: String, photoUrl: String) -> Unit
+) {
+    var author by remember { mutableStateOf("Marcus Vance (Site Manager)") }
+    var notes by remember { mutableStateOf("") }
+    var selectedPhotoUrl by remember { mutableStateOf(SAMPLE_SITE_PHOTOS[2].first) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MastorSurfaceLight,
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
+                .testTag("video_log_dialog")
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(StatusPendingAmber.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Videocam,
+                                contentDescription = null,
+                                tint = StatusPendingAmber,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Site Video Diary",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateDark
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MastorBackgroundLight,
+                    border = BorderStroke(1.dp, MastorSlateBorder)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Videocam,
+                            contentDescription = null,
+                            tint = StatusPendingAmber,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Site Walkthrough Video Ready (00:45)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateDark
+                        )
+                        Text(
+                            text = "1080p HD • Site walk recorded",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MastorSlateMuted
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("Walkthrough Notes & Key Focus Areas", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    placeholder = { Text("e.g. Structural steel alignments and ceiling service voids inspection...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(84.dp)
+                        .testTag("video_log_notes_input"),
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    MastorOutlinedButton(
+                        text = "Cancel",
+                        onClick = onDismiss
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    MastorButton(
+                        text = "Save Video Diary",
+                        onClick = {
+                            val finalNotes = notes.ifBlank { "Video site walkthrough recorded: Structural inspections and progress overview." }
+                            onSubmit(
+                                null,
+                                "General Site",
+                                author,
+                                "Progress On Track",
+                                "18°C, Dry",
+                                6,
+                                finalNotes,
+                                selectedPhotoUrl
+                            )
+                        },
+                        icon = Icons.Default.Videocam,
+                        testTag = "submit_video_log_button"
                     )
                 }
             }

@@ -48,6 +48,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,422 +77,324 @@ import com.example.ui.theme.MastorSurfaceLight
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusFlaggedRed
+import kotlinx.coroutines.launch
 
 /**
  * Clean Document Upload Screen for BoQ files.
  * Adheres strictly to Design System: Plain document icon, NO wand/sparkle/magic language, no AI iconography.
  */
+/**
+ * Unified Single Upload-and-Confirm Screen for BoQ Import.
+ * Collapses multi-step review into a single seamless view with mandatory human review step.
+ */
 @Composable
-fun BoqUploadSection(
-    onParseText: (String) -> Unit,
-    onSelectSample1: () -> Unit,
-    onSelectSample2: () -> Unit,
+fun BoqUnifiedUploadAndConfirmScreen(
     linkedDocument: LinkedDocument? = null,
     onOpenCloudPicker: (() -> Unit)? = null,
     onUnlinkDocument: ((LinkedDocument) -> Unit)? = null,
+    onConfirmAndImport: (ParsedBoqResult) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     var pastedText by remember { mutableStateOf("") }
+    var isParsing by remember { mutableStateOf(false) }
+    var parsedResult by remember { mutableStateOf<ParsedBoqResult?>(null) }
 
-    Column(
+    val totalWorkOrders = parsedResult?.workOrders?.size ?: 0
+    val totalScopeElements = parsedResult?.workOrders?.sumOf { it.scopeElements.size } ?: 0
+    val totalBaseCost = parsedResult?.workOrders?.sumOf { wo ->
+        wo.scopeElements.sumOf { it.qty * it.rate }
+    } ?: 0.0
+    val lowConfidenceCount = parsedResult?.workOrders?.sumOf { wo ->
+        wo.scopeElements.count { it.confidence.equals("LOW", ignoreCase = true) || it.confidence.equals("MEDIUM", ignoreCase = true) || it.flagReason != null }
+    } ?: 0
+
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Column {
+        item {
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "PHASE 3: GEMINI BOQ PARSING PIPELINE",
+                text = "BILL OF QUANTITIES (BOQ) IMPORT",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MastorAccentBlue,
                 letterSpacing = 1.sp
             )
             Text(
-                text = "Document Upload & Extraction",
+                text = "Upload & Confirm Scope",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MastorSlateDark
             )
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Upload a Bill of Quantities or contract schedule. Gemini extracts verbatim base rates, quantities, and scope lines for mandatory QS human review before creation.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MastorSlateMuted
-            )
-        }
-
-        // Phase 7 Linked Cloud Storage Section
-        LinkedCloudBoqSourceSection(
-            linkedDocument = linkedDocument,
-            onOpenPicker = { onOpenCloudPicker?.invoke() },
-            onParseLinkedDocument = { doc ->
-                val snippet = doc.contentSnippet ?: GeminiBoqParser.SAMPLE_BOQ_1_TEXT
-                onParseText(snippet)
-            },
-            onUnlinkDocument = onUnlinkDocument
-        )
-
-        // Clean Drag-and-Drop / File Drop Zone
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(2.dp, MastorSlateBorder, RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp))
-                .clickable {
-                    // Quick paste default sample text if empty
-                    if (pastedText.isBlank()) {
-                        pastedText = GeminiBoqParser.SAMPLE_BOQ_1_TEXT
-                    }
-                },
-            color = MastorSurfaceLight
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Surface(
-                    color = MastorAccentBlue.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(100.dp),
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = "Document Upload Icon",
-                            tint = MastorAccentBlue,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "Drag and drop BoQ file here, or click to browse",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
-                )
-                Text(
-                    text = "Supports CSV, TXT, JSON, or raw schedule text",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = onSelectSample1,
-                        shape = RoundedCornerShape(100.dp),
-                        modifier = Modifier.testTag("sample_boq_1_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FileUpload,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Sample 1: House Refurb BoQ")
-                    }
-
-                    OutlinedButton(
-                        onClick = onSelectSample2,
-                        shape = RoundedCornerShape(100.dp),
-                        modifier = Modifier.testTag("sample_boq_2_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FileUpload,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Sample 2: M&E Fitout BoQ")
-                    }
-                }
-            }
-        }
-
-        // Direct Text Paste Area
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-            border = BorderStroke(1.dp, MastorSlateBorder)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Direct BoQ Text / Schedule Paste",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = pastedText,
-                    onValueChange = { pastedText = it },
-                    placeholder = { Text("Paste CSV or schedule text lines here...") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .testTag("boq_text_input"),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorAccentBlue)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
-                    onClick = {
-                        if (pastedText.isNotBlank()) {
-                            onParseText(pastedText)
-                        } else {
-                            onSelectSample1()
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("parse_boq_btn"),
-                    shape = RoundedCornerShape(100.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ListAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Parse BoQ Document",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Calm progress indicator during parsing.
- * NO anthropomorphised thinking language or magic iconography.
- */
-@Composable
-fun BoqParsingLoadingState(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(
-                color = MastorAccentBlue,
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Parsing Bill of Quantities...",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MastorSlateDark
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Extracting verbatim base rates, quantities, and work order groups",
+                text = "Extract verbatim rates, quantities, and scope lines. Review below before committing to live scope.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MastorSlateMuted
             )
         }
-    }
-}
 
-/**
- * Mandatory Review / Confirm Screen for Parsed BoQ Data.
- * Core safety mechanism: Every parsed line must be human confirmed before writing to live financial data.
- */
-@Composable
-fun BoqReviewScreen(
-    parsedResult: ParsedBoqResult,
-    onConfirmAndImport: (ParsedBoqResult) -> Unit,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var mutableResult by remember(parsedResult) { mutableStateOf(parsedResult) }
+        // Cloud Document Section (if linked)
+        if (linkedDocument != null || onOpenCloudPicker != null) {
+            item {
+                LinkedCloudBoqSourceSection(
+                    linkedDocument = linkedDocument,
+                    onOpenPicker = { onOpenCloudPicker?.invoke() },
+                    onParseLinkedDocument = { doc ->
+                        isParsing = true
+                        val snippet = doc.contentSnippet ?: GeminiBoqParser.SAMPLE_BOQ_1_TEXT
+                        coroutineScope.launch {
+                            val res = GeminiBoqParser.parseBoqText(snippet)
+                            parsedResult = res
+                            isParsing = false
+                        }
+                    },
+                    onUnlinkDocument = onUnlinkDocument
+                )
+            }
+        }
 
-    // Summary stats
-    val totalWorkOrders = mutableResult.workOrders.size
-    val totalScopeElements = mutableResult.workOrders.sumOf { it.scopeElements.size }
-    val totalBaseCost = mutableResult.workOrders.sumOf { wo ->
-        wo.scopeElements.sumOf { it.qty * it.rate }
-    }
-    val lowConfidenceCount = mutableResult.workOrders.sumOf { wo ->
-        wo.scopeElements.count { it.confidence.equals("LOW", ignoreCase = true) || it.confidence.equals("MEDIUM", ignoreCase = true) || it.flagReason != null }
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MastorBackgroundLight)
-    ) {
-        // Standardized Top Bar Header
-        MastorTopBar(
-            title = "Review Parsed BoQ Items",
-            subtitle = "Human Confirmation Required • Verbatim Rates & Quantities",
-            onMenuClick = null
-        ) {
-            Surface(
-                color = MastorAccentBlue.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(100.dp)
+        // Source Selection & Input Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
+                border = BorderStroke(1.dp, MastorSlateBorder)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MastorAccentBlue,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "Review Required",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "1. Provide BoQ Data",
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorAccentBlue
+                        color = MastorSlateDark
                     )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                isParsing = true
+                                val res = GeminiBoqParser.getSampleBoqResult1()
+                                parsedResult = res
+                                isParsing = false
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("sample_boq_1_btn")
+                        ) {
+                            Text("Sample 1 (House Refurb)", fontSize = 11.sp, maxLines = 1)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                isParsing = true
+                                val res = GeminiBoqParser.getSampleBoqResult2()
+                                parsedResult = res
+                                isParsing = false
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("sample_boq_2_btn")
+                        ) {
+                            Text("Sample 2 (M&E Fitout)", fontSize = 11.sp, maxLines = 1)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = pastedText,
+                        onValueChange = { pastedText = it },
+                        placeholder = { Text("Or paste BoQ / CSV schedule text here...", fontSize = 12.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(90.dp)
+                            .testTag("boq_text_input"),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorAccentBlue)
+                    )
+
+                    if (pastedText.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                isParsing = true
+                                coroutineScope.launch {
+                                    val res = GeminiBoqParser.parseBoqText(pastedText)
+                                    parsedResult = res
+                                    isParsing = false
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("parse_boq_btn"),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue)
+                        ) {
+                            Text("Extract Scope Lines from Text", fontSize = 13.sp)
+                        }
+                    }
                 }
             }
         }
 
-        // Financial Summary Bar
-        Surface(
-            color = MastorSurfaceLight,
-            border = BorderStroke(1.dp, MastorSlateBorder)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "PARSED BASE COST TOTAL",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MastorSlateMuted
-                    )
-                    Text(
-                        text = MastorCalculationEngine.formatCurrency(totalBaseCost),
-                        style = FinancialLargeNumeralStyle,
-                        color = MastorSlateDark
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "$totalWorkOrders Work Orders • $totalScopeElements Items",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
-                    )
-                    if (lowConfidenceCount > 0) {
-                        Text(
-                            text = "$lowConfidenceCount items flagged for review",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorAccentBlue
+        // Loading State
+        if (isParsing) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
+                    border = BorderStroke(1.dp, MastorSlateBorder)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            color = MastorAccentBlue,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(36.dp)
                         )
-                    } else {
+                        Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "All items high confidence",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = StatusClaimedGreen
+                            text = "Extracting Verbatim Scope & Rates...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateDark
                         )
                     }
                 }
             }
         }
 
-        // List of Parsed Work Orders and Scope Elements
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        // Parsed Review Section (Mandatory Human Review)
+        parsedResult?.let { currentResult ->
             item {
-                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = MastorSurfaceLight,
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, MastorSlateBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "2. HUMAN REVIEW & CONFIRMATION",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorAccentBlue
+                            )
+                            Text(
+                                text = "$totalWorkOrders Work Orders • $totalScopeElements Items",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorSlateDark
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = MastorCalculationEngine.formatCurrency(totalBaseCost),
+                                style = FinancialLargeNumeralStyle,
+                                color = MastorSlateDark
+                            )
+                            if (lowConfidenceCount > 0) {
+                                Text(
+                                    text = "$lowConfidenceCount items flagged",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MastorAccentBlue,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
+            // Work Order Cards
             items(
-                items = mutableResult.workOrders,
+                items = currentResult.workOrders,
                 key = { it.id }
             ) { parsedWo ->
                 ParsedWorkOrderReviewCard(
                     parsedWo = parsedWo,
                     onUpdateWorkOrder = { updatedWo ->
-                        val updatedWos = mutableResult.workOrders.map { if (it.id == updatedWo.id) updatedWo else it }
-                        mutableResult = mutableResult.copy(workOrders = updatedWos)
+                        val updatedWos = currentResult.workOrders.map { if (it.id == updatedWo.id) updatedWo else it }
+                        parsedResult = currentResult.copy(workOrders = updatedWos)
                     },
                     onDeleteWorkOrder = {
-                        val updatedWos = mutableResult.workOrders.filter { it.id != parsedWo.id }
-                        mutableResult = mutableResult.copy(workOrders = updatedWos)
+                        val updatedWos = currentResult.workOrders.filter { it.id != parsedWo.id }
+                        parsedResult = currentResult.copy(workOrders = updatedWos)
                     }
                 )
             }
 
+            // Confirmation Commit Bar
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Surface(
+                    color = MastorSurfaceLight,
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, MastorSlateBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { parsedResult = null },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Reset")
+                        }
+
+                        Button(
+                            onClick = { onConfirmAndImport(currentResult) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = StatusClaimedGreen),
+                            modifier = Modifier.testTag("confirm_import_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Confirm & Import to Scope",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // Bottom Action Bar
-        Surface(
-            color = MastorSurfaceLight,
-            border = BorderStroke(1.dp, MastorSlateBorder),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = onCancel,
-                    shape = RoundedCornerShape(100.dp)
-                ) {
-                    Text("Discard / Cancel")
-                }
-
-                Button(
-                    onClick = { onConfirmAndImport(mutableResult) },
-                    shape = RoundedCornerShape(100.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = StatusClaimedGreen),
-                    modifier = Modifier.testTag("confirm_import_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Confirm & Import to Scope",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-            }
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

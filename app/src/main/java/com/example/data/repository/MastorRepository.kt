@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import com.example.BuildConfig
 import com.example.data.dao.MastorDao
 import com.example.data.entity.CachedCloudFile
 import com.example.data.entity.LinkedDocument
@@ -44,6 +45,9 @@ class MastorRepository(private val dao: MastorDao) {
 
     fun getLinkedDocumentsForProject(projectId: String): Flow<List<LinkedDocument>> =
         dao.getLinkedDocumentsForProject(projectId)
+
+    fun getLinkedDocumentsForWorkOrder(projectId: String, woRef: String): Flow<List<LinkedDocument>> =
+        dao.getLinkedDocumentsForWorkOrder(projectId, woRef)
 
 
     // --- Reactive Live Calculated Derived Views ---
@@ -211,7 +215,11 @@ class MastorRepository(private val dao: MastorDao) {
 
     suspend fun updateScopeElement(scopeElement: ScopeElement) {
         withContext(Dispatchers.IO) {
-            dao.updateScopeElement(scopeElement)
+            val minPercent = scopeElement.previouslyCertifiedPercent
+            val safeElement = scopeElement.copy(
+                claimPercent = scopeElement.claimPercent.coerceIn(minPercent, 100.0)
+            )
+            dao.updateScopeElement(safeElement)
         }
     }
 
@@ -223,8 +231,10 @@ class MastorRepository(private val dao: MastorDao) {
 
     suspend fun updateScopeElementClaimPercent(id: String, claimPercent: Double) {
         withContext(Dispatchers.IO) {
-            // Hard constraint: claimPercent cannot drop below previouslyCertifiedPercent
-            dao.updateScopeElementClaimPercent(id, claimPercent.coerceIn(0.0, 100.0))
+            val element = dao.getScopeElementById(id)
+            val minPercent = element?.previouslyCertifiedPercent ?: 0.0
+            val enforcedPercent = claimPercent.coerceIn(minPercent, 100.0)
+            dao.updateScopeElementClaimPercent(id, enforcedPercent)
         }
     }
 
@@ -280,6 +290,11 @@ class MastorRepository(private val dao: MastorDao) {
 
     suspend fun updateValuation(valuation: Valuation) {
         withContext(Dispatchers.IO) {
+            val existing = dao.getValuationByIdDirect(valuation.id)
+            if (existing?.status == "Invoiced" && valuation.status != "Invoiced") {
+                // Hard financial integrity guarantee: Certified/Invoiced valuations cannot be reverted
+                return@withContext
+            }
             dao.updateValuation(valuation)
         }
     }
@@ -328,6 +343,18 @@ class MastorRepository(private val dao: MastorDao) {
     suspend fun insertLinkedDocument(document: LinkedDocument) {
         withContext(Dispatchers.IO) {
             dao.insertLinkedDocument(document)
+        }
+    }
+
+    suspend fun attachDocumentToWorkOrder(documentId: String, woRef: String) {
+        withContext(Dispatchers.IO) {
+            dao.attachDocumentToWorkOrder(documentId, woRef)
+        }
+    }
+
+    suspend fun detachDocumentFromWorkOrder(documentId: String) {
+        withContext(Dispatchers.IO) {
+            dao.detachDocumentFromWorkOrder(documentId)
         }
     }
 
@@ -457,6 +484,7 @@ class MastorRepository(private val dao: MastorDao) {
     // --- Seed Data Pre-population ---
 
     suspend fun seedInitialDataIfNeeded() {
+        if (!BuildConfig.DEBUG) return
         withContext(Dispatchers.IO) {
             val existing = dao.getAllProjects().firstOrNull()
             if (existing.isNullOrEmpty()) {
@@ -729,7 +757,54 @@ class MastorRepository(private val dao: MastorDao) {
                         lastSyncedAt = "09 Aug 2026, 09:15 AM",
                         isPrimaryBoq = true,
                         cloudPath = "/Contracts/142_Park_Lane/BoQ/",
-                        contentSnippet = GeminiBoqParser.SAMPLE_BOQ_1_TEXT
+                        contentSnippet = GeminiBoqParser.SAMPLE_BOQ_1_TEXT,
+                        workOrderRef = null,
+                        docCategory = "BoQ / Specification"
+                    ),
+                    LinkedDocument(
+                        id = "doc_gd_001",
+                        projectId = "proj_101",
+                        storageProvider = StorageProviders.GOOGLE_DRIVE,
+                        fileId = "gd_file_002",
+                        fileName = "Architectural_Drawings_RevC.pdf",
+                        mimeType = "application/pdf",
+                        fileSizeDisplay = "14.8 MB",
+                        lastSyncedAt = "09 Aug 2026, 10:30 AM",
+                        isPrimaryBoq = false,
+                        cloudPath = "My Drive/Mastor/142 Park Lane/Drawings/",
+                        contentSnippet = "Architectural Section Plans & Elevation Details for Flat 1 Living Room & Hallway renovation.",
+                        workOrderRef = "WO-001",
+                        docCategory = "Architectural Drawing"
+                    ),
+                    LinkedDocument(
+                        id = "doc_gd_002",
+                        projectId = "proj_101",
+                        storageProvider = StorageProviders.GOOGLE_DRIVE,
+                        fileId = "gd_file_001",
+                        fileName = "M&E_Subcontract_Schedule.csv",
+                        mimeType = "text/csv",
+                        fileSizeDisplay = "64 KB",
+                        lastSyncedAt = "09 Aug 2026, 10:45 AM",
+                        isPrimaryBoq = false,
+                        cloudPath = "My Drive/Mastor/142 Park Lane/M&E/",
+                        contentSnippet = GeminiBoqParser.SAMPLE_BOQ_2_TEXT,
+                        workOrderRef = "WO-002",
+                        docCategory = "Subcontract Schedule"
+                    ),
+                    LinkedDocument(
+                        id = "doc_gd_003",
+                        projectId = "proj_101",
+                        storageProvider = StorageProviders.GOOGLE_DRIVE,
+                        fileId = "gd_file_003",
+                        fileName = "Structural_Calculations_ParkLane.xlsx",
+                        mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        fileSizeDisplay = "310 KB",
+                        lastSyncedAt = "09 Aug 2026, 11:00 AM",
+                        isPrimaryBoq = false,
+                        cloudPath = "My Drive/Mastor/142 Park Lane/Engineers/",
+                        contentSnippet = "Structural loading calcs, RSJ beam sizing, and joist strengthening calculations for load-bearing partitions.",
+                        workOrderRef = "WO-001",
+                        docCategory = "Structural Calculations"
                     )
                 )
 

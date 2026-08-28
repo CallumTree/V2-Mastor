@@ -72,12 +72,14 @@ import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.components.MastorIcon
 import com.example.ui.components.MastorTopBar
 import com.example.ui.components.MastorWordmark
+import com.example.ui.theme.FinancialMediumNumeralStyle
 import com.example.ui.theme.MastorAccentBlue
 import com.example.ui.theme.MastorBackgroundLight
 import com.example.ui.theme.MastorSlateBorder
 import com.example.ui.theme.MastorSlateDark
 import com.example.ui.theme.MastorSlateMuted
 import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 
 data class PropertyImagePreset(
@@ -236,243 +238,181 @@ fun ProjectPickerCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val fallbackBg = DEFAULT_PROPERTY_PRESETS.first().url
-    val effectiveImageUrl = project.imageUrl.ifBlank { fallbackBg }
-
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onClick() }
             .testTag("job_card_${project.id}"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
         border = BorderStroke(1.dp, MastorSlateBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Property Picture Snapshot Header with Overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(MastorAccentBlue.copy(alpha = 0.8f), MastorSlateDark)
-                        )
-                    )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Top Row: Status Badge & Work Type Tag
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                AsyncImage(
-                    model = effectiveImageUrl,
-                    contentDescription = "Property Photo ${project.name}",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                // Dark Gradient Gradient Overlay for maximum text contrast
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.25f),
-                                    Color.Black.copy(alpha = 0.75f)
-                                )
-                            )
-                        )
-                )
-
-                // Top Header Badges: Contract Ref & Status
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Surface(
+                    color = MastorAccentBlue.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(100.dp),
+                    border = BorderStroke(1.dp, MastorAccentBlue.copy(alpha = 0.2f))
                 ) {
-                    Surface(
-                        color = MastorAccentBlue.copy(alpha = 0.9f),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = project.contractRef,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+                    Text(
+                        text = project.workType.ifBlank { "Commercial Fitout" }.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MastorAccentBlue,
+                        letterSpacing = 0.5.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
 
-                    Surface(
-                        color = StatusClaimedGreen.copy(alpha = 0.9f),
-                        shape = RoundedCornerShape(6.dp)
+                Surface(
+                    color = StatusClaimedBg,
+                    shape = RoundedCornerShape(100.dp),
+                    border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(StatusClaimedGreen)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = project.status.uppercase(),
                             style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            color = StatusClaimedGreen
                         )
                     }
-                }
-
-                // Property Title Floating on Image Snapshot
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(14.dp)
-                ) {
-                    Surface(
-                        color = Color.White.copy(alpha = 0.25f),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = project.workType.ifBlank { "Construction Work" },
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = project.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 17.sp
-                    )
                 }
             }
 
-            // Card Body Details
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Business,
-                        contentDescription = null,
-                        tint = MastorSlateMuted,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Client: ${project.client}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MastorSlateDark
-                    )
-                }
+            Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(6.dp))
+            // Line 1: Full Project Name (allow full wrap, no truncation)
+            Text(
+                text = project.name,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MastorSlateDark,
+                fontSize = 18.sp
+            )
 
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Line 2: Client name & Contract ref, fully visible
+            Text(
+                text = "Client: ${project.client} • Ref: ${project.contractRef}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MastorSlateMuted,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Line 3: Address & Managers metadata
+            if (project.address.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
                         tint = MastorSlateMuted,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = project.address,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted
+                        color = MastorSlateMuted,
+                        fontSize = 13.sp
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
-                Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Site: ${project.siteManager}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MastorSlateMuted,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "QS: ${project.surveyor}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MastorSlateMuted,
+                    fontSize = 12.sp
+                )
+            }
 
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Financial Summary Row: Contract Value Large & Right-Aligned
+            Surface(
+                color = MastorBackgroundLight,
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MastorSlateBorder)
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = MastorSlateMuted,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                    Column {
                         Text(
-                            text = "Site: ${project.siteManager}",
+                            text = "CENTRAL MARKUPS",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MastorSlateMuted
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateMuted,
+                            letterSpacing = 0.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "+${project.uplift1Percent.toInt()}% / +${project.uplift2Percent.toInt()}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorAccentBlue
                         )
                     }
 
-                    Text(
-                        text = "QS: ${project.surveyor}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MastorSlateMuted
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Financial Summary Bar
-                Surface(
-                    color = MastorBackgroundLight,
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, MastorSlateBorder)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "CONTRACT VALUE",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 9.sp,
-                                color = MastorSlateMuted
-                            )
-                            Text(
-                                text = MastorCalculationEngine.formatCurrency(project.contractValue),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "CENTRAL MARKUPS",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 9.sp,
-                                color = MastorSlateMuted
-                            )
-                            Text(
-                                text = "+${project.uplift1Percent.toInt()}% / +${project.uplift2Percent.toInt()}%",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorAccentBlue
-                            )
-                        }
-
-                        Surface(
-                            color = MastorAccentBlue,
-                            shape = CircleShape,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                    contentDescription = "Open Job",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "CONTRACT VALUE",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateMuted,
+                            letterSpacing = 0.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = MastorCalculationEngine.formatCurrency(project.contractValue),
+                            style = FinancialMediumNumeralStyle,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MastorSlateDark,
+                            fontSize = 22.sp
+                        )
                     }
                 }
             }

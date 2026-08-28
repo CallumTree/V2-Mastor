@@ -54,5 +54,11 @@ data class LinkedDocument(
     val cloudPath: String = "/",
 
     @ColumnInfo(name = "content_snippet")
-    val contentSnippet: String? = null
+    val contentSnippet: String? = null,
+
+    @ColumnInfo(name = "work_order_ref")
+    val workOrderRef: String? = null,
+
+    @ColumnInfo(name = "doc_category")
+    val docCategory: String = "Project Documentation"
 )

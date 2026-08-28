@@ -77,6 +77,9 @@ interface MastorDao {
     @Update
     suspend fun updateScopeElement(scopeElement: ScopeElement)
 
+    @Query("SELECT * FROM scope_elements WHERE id = :id LIMIT 1")
+    suspend fun getScopeElementById(id: String): ScopeElement?
+
     @Query("DELETE FROM scope_elements WHERE id = :id")
     suspend fun deleteScopeElement(id: String)
 
@@ -135,6 +138,9 @@ interface MastorDao {
     @Query("SELECT * FROM valuations WHERE id = :id")
     fun getValuationById(id: String): Flow<Valuation?>
 
+    @Query("SELECT * FROM valuations WHERE id = :id LIMIT 1")
+    suspend fun getValuationByIdDirect(id: String): Valuation?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertValuation(valuation: Valuation)
 
@@ -169,9 +175,12 @@ interface MastorDao {
     @Query("DELETE FROM site_diary_entries WHERE id = :id")
     suspend fun deleteSiteDiaryEntry(id: String)
 
-    // --- Linked Documents (Phase 7 Cloud Storage) ---
+    // --- Linked Documents (Phase 7 Cloud Storage & Work Order Attachments) ---
     @Query("SELECT * FROM linked_documents WHERE project_id = :projectId ORDER BY is_primary_boq DESC, file_name ASC")
     fun getLinkedDocumentsForProject(projectId: String): Flow<List<LinkedDocument>>
+
+    @Query("SELECT * FROM linked_documents WHERE project_id = :projectId AND work_order_ref = :woRef ORDER BY file_name ASC")
+    fun getLinkedDocumentsForWorkOrder(projectId: String, woRef: String): Flow<List<LinkedDocument>>
 
     @Query("SELECT * FROM linked_documents WHERE id = :id")
     suspend fun getLinkedDocumentById(id: String): LinkedDocument?
@@ -184,6 +193,12 @@ interface MastorDao {
 
     @Update
     suspend fun updateLinkedDocument(document: LinkedDocument)
+
+    @Query("UPDATE linked_documents SET work_order_ref = :woRef WHERE id = :id")
+    suspend fun attachDocumentToWorkOrder(id: String, woRef: String)
+
+    @Query("UPDATE linked_documents SET work_order_ref = NULL WHERE id = :id")
+    suspend fun detachDocumentFromWorkOrder(id: String)
 
     @Query("DELETE FROM linked_documents WHERE id = :id")
     suspend fun deleteLinkedDocument(id: String)

@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,7 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material3.AlertDialog
 import coil.compose.AsyncImage
+import com.example.ui.components.ScopeStatusSummaryRingChart
 import com.example.ui.theme.StatusClaimedGreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,6 +50,7 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Rule
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
@@ -54,6 +59,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,12 +71,14 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
+import com.example.ui.components.ScopeElementListItem
 import com.example.ui.components.SubcontractorProcurementComponent
 import com.example.ui.theme.MastorSlateDark
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -91,14 +99,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.entity.Project
+import com.example.data.entity.LinkedDocument
 import com.example.data.entity.ScopeElement
 import com.example.data.entity.WorkOrder
 import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.components.CalculationTraceDialog
 import com.example.ui.components.CreateEditScopeElementDialog
 import com.example.ui.components.CreateEditWorkOrderDialog
+import com.example.ui.components.DocumentPreviewDialog
 import com.example.ui.components.ExcelExportConfirmationModal
 import com.example.ui.components.ExportToExcelButton
+import com.example.ui.components.GoogleDriveAccountDetailsDialog
+import com.example.ui.components.GoogleDriveAuthCard
+import com.example.ui.components.GoogleDriveBrowserModal
 import com.example.ui.components.MastorButton
 import com.example.ui.components.MastorCard
 import com.example.ui.components.MastorIcon
@@ -109,6 +122,8 @@ import com.example.ui.components.MastorWordmark
 import com.example.ui.components.ProjectDashboardOverviewScreen
 import com.example.ui.components.ProjectSetupForm
 import com.example.ui.components.WorkOrderCard
+import com.example.domain.cloud.CloudFileItem
+import com.example.domain.cloud.CloudStorageService
 import com.example.ui.theme.FinancialLargeNumeralStyle
 import com.example.ui.theme.MastorAccentBlue
 import com.example.ui.theme.MastorBackgroundLight
@@ -122,15 +137,16 @@ import com.example.ui.viewmodel.Phase1ViewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import com.example.domain.boq.GeminiBoqParser
 import com.example.domain.boq.ParsedBoqResult
-import com.example.ui.components.BoqParsingLoadingState
-import com.example.ui.components.BoqReviewScreen
-import com.example.ui.components.BoqUploadSection
+import com.example.ui.components.BoqUnifiedUploadAndConfirmScreen
 import com.example.ui.components.CloudDocumentPickerModal
 import com.example.ui.components.LinkedDocumentCard
-import com.example.ui.components.Phase10DataIntegrityQaScreen
-import com.example.ui.components.WorkOrderSyncHubModal
-import com.example.ui.components.WorkOrderSyncStatusBar
 import kotlinx.coroutines.launch
+
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Construction
+import androidx.compose.material.icons.filled.CorporateFare
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.SettingsSuggest
 
 private val MastorNavy = MastorSlateDark
 
@@ -140,12 +156,8 @@ enum class Phase2Tab {
     SITE_DIARY,
     VALUATIONS,
     VARIATIONS,
-    PROCUREMENT,
-    INVOICES,
     BOQ_IMPORT,
-    PROJECT_SETUP,
-    CALC_INSPECTOR,
-    QA_INSPECTOR
+    PROJECT_SETUP
 }
 
 enum class BoqParsingUiState {
@@ -161,21 +173,26 @@ fun Phase2ScopeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf(Phase2Tab.DASHBOARD) }
+    var jobToolsSubIndex by remember { mutableStateOf(0) }
 
     // Phase 3 Gemini BoQ Parsing Pipeline state
     val coroutineScope = rememberCoroutineScope()
     var boqUiState by remember { mutableStateOf(BoqParsingUiState.IDLE) }
     var parsedBoqData by remember { mutableStateOf<ParsedBoqResult?>(null) }
 
-    // Phase 7 Cloud Storage Modal State
+    // Phase 7 & Google Drive State
     var showCloudPickerModal by remember { mutableStateOf(false) }
+    var showGoogleDriveBrowserModal by remember { mutableStateOf(false) }
+    var targetWoRefForDrive by remember { mutableStateOf<String?>(null) }
+    var showGoogleDriveAccountDetails by remember { mutableStateOf(false) }
+    var previewingLinkedDoc by remember { mutableStateOf<LinkedDocument?>(null) }
+    var previewingCloudFileItem by remember { mutableStateOf<CloudFileItem?>(null) }
+    var scopeSubTabIndex by remember { mutableStateOf(0) } // 0: Work Orders & Attached Docs, 1: Scope Items List
 
-    // Work Order Sync Service State
-    val syncState by viewModel.syncState.collectAsState()
-    var showSyncHubModal by remember { mutableStateOf(false) }
+    // Account & Preferences Modal State
+    var showAccountPreferencesModal by remember { mutableStateOf(false) }
 
-    // Phase 8 Excel Modal & Phase 9 More Menu
-    var showMoreMenu by remember { mutableStateOf(false) }
+    // Phase 8 Excel Modal
     var showExcelModal by remember { mutableStateOf(false) }
 
     // Dialog States
@@ -228,11 +245,6 @@ fun Phase2ScopeScreen(
     }
 
     val proj = uiState.project ?: return
-    val (_, _, upliftMultiplier) = MastorCalculationEngine.calculateProjectUplifts(
-        baseAmount = 1.0,
-        uplift1Percent = proj.uplift1Percent,
-        uplift2Percent = proj.uplift2Percent
-    )
 
     // Navigation Drawer State
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -243,7 +255,7 @@ fun Phase2ScopeScreen(
             ModalDrawerSheet(
                 drawerContainerColor = MastorSurfaceLight,
                 drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
-                modifier = Modifier.width(300.dp)
+                modifier = Modifier.width(310.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -252,19 +264,19 @@ fun Phase2ScopeScreen(
                 ) {
                     MastorWordmark(
                         iconSize = 36.dp,
-                        tagline = "Commercial Management"
+                        tagline = "Enterprise Administration"
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = proj.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        text = "Mastor Prime Construction Ltd",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
                         color = MastorSlateDark,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "Ref: ${proj.contractRef} • Client: ${proj.client}",
+                        text = "Job: ${proj.name} (${proj.contractRef})",
                         style = MaterialTheme.typography.labelSmall,
                         color = MastorSlateMuted,
                         maxLines = 1,
@@ -280,57 +292,23 @@ fun Phase2ScopeScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 12.dp)
                 ) {
-                    NavigationDrawerItem(
-                        label = { Text("All Projects", fontWeight = FontWeight.Bold, color = MastorAccentBlue) },
-                        selected = false,
-                        onClick = {
-                            coroutineScope.launch { drawerState.close() }
-                            viewModel.selectProject(null)
-                        },
-                        icon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "All Projects", tint = MastorAccentBlue) },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            unselectedContainerColor = MastorAccentBlue.copy(alpha = 0.08f)
-                        ),
-                        modifier = Modifier
-                            .padding(vertical = 4.dp)
-                            .testTag("drawer_all_projects_btn")
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "PROJECT TOOLS",
+                        text = "PROJECT SETUP & CONFIGURATION",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MastorSlateMuted,
                         letterSpacing = 0.8.sp,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
 
                     NavigationDrawerItem(
-                        label = { Text("Procurement Packages", fontWeight = FontWeight.SemiBold) },
-                        selected = selectedTab == Phase2Tab.PROCUREMENT,
+                        label = { Text("Project Setup & Uplifts", fontWeight = FontWeight.SemiBold) },
+                        selected = selectedTab == Phase2Tab.PROJECT_SETUP,
                         onClick = {
-                            selectedTab = Phase2Tab.PROCUREMENT
+                            selectedTab = Phase2Tab.PROJECT_SETUP
                             coroutineScope.launch { drawerState.close() }
                         },
-                        icon = { Icon(Icons.Default.Work, contentDescription = "Procurement") },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MastorAccentBlue.copy(alpha = 0.12f),
-                            selectedIconColor = MastorAccentBlue,
-                            selectedTextColor = MastorAccentBlue,
-                            unselectedIconColor = MastorSlateMuted,
-                            unselectedTextColor = MastorSlateDark
-                        )
-                    )
-
-                    NavigationDrawerItem(
-                        label = { Text("BoQ Import (Excel / AI)", fontWeight = FontWeight.SemiBold) },
-                        selected = selectedTab == Phase2Tab.BOQ_IMPORT,
-                        onClick = {
-                            selectedTab = Phase2Tab.BOQ_IMPORT
-                            coroutineScope.launch { drawerState.close() }
-                        },
-                        icon = { Icon(Icons.Default.CloudUpload, contentDescription = "BoQ Import") },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Project Setup") },
                         colors = NavigationDrawerItemDefaults.colors(
                             selectedContainerColor = MastorAccentBlue.copy(alpha = 0.12f),
                             selectedIconColor = MastorAccentBlue,
@@ -357,14 +335,24 @@ fun Phase2ScopeScreen(
                         )
                     )
 
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "ACCOUNT & PREFERENCES",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MastorSlateMuted,
+                        letterSpacing = 0.8.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+
                     NavigationDrawerItem(
-                        label = { Text("Project Setup & Uplifts", fontWeight = FontWeight.SemiBold) },
-                        selected = selectedTab == Phase2Tab.PROJECT_SETUP,
+                        label = { Text("Company & Billing Preferences", fontWeight = FontWeight.SemiBold) },
+                        selected = false,
                         onClick = {
-                            selectedTab = Phase2Tab.PROJECT_SETUP
+                            showAccountPreferencesModal = true
                             coroutineScope.launch { drawerState.close() }
                         },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Project Setup") },
+                        icon = { Icon(Icons.Default.CorporateFare, contentDescription = "Company Preferences") },
                         colors = NavigationDrawerItemDefaults.colors(
                             selectedContainerColor = MastorAccentBlue.copy(alpha = 0.12f),
                             selectedIconColor = MastorAccentBlue,
@@ -374,38 +362,24 @@ fun Phase2ScopeScreen(
                         )
                     )
 
-                    NavigationDrawerItem(
-                        label = { Text("Calc Engine Inspector", fontWeight = FontWeight.SemiBold) },
-                        selected = selectedTab == Phase2Tab.CALC_INSPECTOR,
-                        onClick = {
-                            selectedTab = Phase2Tab.CALC_INSPECTOR
-                            coroutineScope.launch { drawerState.close() }
-                        },
-                        icon = { Icon(Icons.Default.Calculate, contentDescription = "Calc Inspector") },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MastorAccentBlue.copy(alpha = 0.12f),
-                            selectedIconColor = MastorAccentBlue,
-                            selectedTextColor = MastorAccentBlue,
-                            unselectedIconColor = MastorSlateMuted,
-                            unselectedTextColor = MastorSlateDark
-                        )
-                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = MastorSlateBorder)
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     NavigationDrawerItem(
-                        label = { Text("QA Integrity Suite", fontWeight = FontWeight.SemiBold) },
-                        selected = selectedTab == Phase2Tab.QA_INSPECTOR,
+                        label = { Text("Switch Project", fontWeight = FontWeight.Bold, color = MastorAccentBlue) },
+                        selected = false,
                         onClick = {
-                            selectedTab = Phase2Tab.QA_INSPECTOR
                             coroutineScope.launch { drawerState.close() }
+                            viewModel.selectProject(null)
                         },
-                        icon = { Icon(Icons.Default.Security, contentDescription = "QA Inspector") },
+                        icon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Switch Project", tint = MastorAccentBlue) },
                         colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MastorAccentBlue.copy(alpha = 0.12f),
-                            selectedIconColor = MastorAccentBlue,
-                            selectedTextColor = MastorAccentBlue,
-                            unselectedIconColor = MastorSlateMuted,
-                            unselectedTextColor = MastorSlateDark
-                        )
+                            unselectedContainerColor = MastorAccentBlue.copy(alpha = 0.08f)
+                        ),
+                        modifier = Modifier
+                            .padding(vertical = 4.dp)
+                            .testTag("drawer_switch_project_btn")
                     )
                 }
             }
@@ -421,11 +395,13 @@ fun Phase2ScopeScreen(
                     modifier = Modifier.border(BorderStroke(1.dp, MastorSlateBorder))
                 ) {
                     val primaryTabs = listOf(
-                        Triple("Overview", Icons.Default.Dashboard, Phase2Tab.DASHBOARD),
+                        Triple("Dash", Icons.Default.Dashboard, Phase2Tab.DASHBOARD),
                         Triple("Scope", Icons.AutoMirrored.Filled.ListAlt, Phase2Tab.SCOPE),
-                        Triple("Valuations", Icons.AutoMirrored.Filled.ReceiptLong, Phase2Tab.VALUATIONS),
-                        Triple("Variations", Icons.Default.Receipt, Phase2Tab.VARIATIONS),
-                        Triple("Diary", Icons.Default.CameraAlt, Phase2Tab.SITE_DIARY)
+                        Triple("Diary", Icons.Default.CameraAlt, Phase2Tab.SITE_DIARY),
+                        Triple("Vals", Icons.AutoMirrored.Filled.ReceiptLong, Phase2Tab.VALUATIONS),
+                        Triple("VOs", Icons.Default.Receipt, Phase2Tab.VARIATIONS),
+                        Triple("BoQ", Icons.Default.CloudUpload, Phase2Tab.BOQ_IMPORT),
+                        Triple("Setup", Icons.Default.Settings, Phase2Tab.PROJECT_SETUP)
                     )
 
                     primaryTabs.forEach { (label, icon, tab) ->
@@ -451,36 +427,6 @@ fun Phase2ScopeScreen(
                             )
                         )
                     }
-
-                    // Tools / More button to open drawer
-                    val isDrawerTool = selectedTab in listOf(
-                        Phase2Tab.PROCUREMENT,
-                        Phase2Tab.INVOICES,
-                        Phase2Tab.BOQ_IMPORT,
-                        Phase2Tab.PROJECT_SETUP,
-                        Phase2Tab.CALC_INSPECTOR,
-                        Phase2Tab.QA_INSPECTOR
-                    )
-                    NavigationBarItem(
-                        selected = isDrawerTool,
-                        onClick = { coroutineScope.launch { drawerState.open() } },
-                        icon = { Icon(Icons.Default.MoreHoriz, contentDescription = "Tools") },
-                        label = {
-                            Text(
-                                text = "Tools",
-                                fontWeight = if (isDrawerTool) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 11.sp,
-                                maxLines = 1
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MastorAccentBlue,
-                            selectedTextColor = MastorAccentBlue,
-                            indicatorColor = MastorAccentBlue.copy(alpha = 0.14f),
-                            unselectedIconColor = MastorSlateMuted,
-                            unselectedTextColor = MastorSlateMuted
-                        )
-                    )
                 }
             }
         ) { paddingValues ->
@@ -548,207 +494,283 @@ fun Phase2ScopeScreen(
                 )
 
                 // Body Content per Selected Tab
-            Crossfade(
-                targetState = selectedTab,
-                modifier = Modifier.fillMaxSize()
-            ) { tab ->
-                when (tab) {
-                    Phase2Tab.DASHBOARD -> {
-                        ProjectDashboardOverviewScreen(
-                            project = proj,
-                            scopeElements = uiState.scopeElements,
-                            workOrders = uiState.workOrders.map { it.entity },
-                            variationOrders = uiState.variationOrders,
-                            calculatedValuation = uiState.valuation,
-                            siteDiaryEntries = uiState.siteDiaryEntries,
-                            linkedDocuments = uiState.linkedDocuments,
-                            procurementPackages = uiState.procurementPackages,
-                            onNavigateTab = { target ->
-                                when (target) {
-                                    "SCOPE" -> selectedTab = Phase2Tab.SCOPE
-                                    "VALUATIONS" -> selectedTab = Phase2Tab.VALUATIONS
-                                    "VARIATIONS" -> selectedTab = Phase2Tab.VARIATIONS
-                                    "PROCUREMENT" -> selectedTab = Phase2Tab.PROCUREMENT
-                                    "SITE_DIARY" -> selectedTab = Phase2Tab.SITE_DIARY
-                                    else -> selectedTab = Phase2Tab.VALUATIONS
+                Crossfade(
+                    targetState = selectedTab,
+                    modifier = Modifier.fillMaxSize()
+                ) { tab ->
+                    when (tab) {
+                        Phase2Tab.DASHBOARD -> {
+                            ProjectDashboardOverviewScreen(
+                                project = proj,
+                                scopeElements = uiState.scopeElements,
+                                workOrders = uiState.workOrders.map { it.entity },
+                                variationOrders = uiState.variationOrders,
+                                calculatedValuation = uiState.valuation,
+                                allValuations = uiState.allValuations,
+                                siteDiaryEntries = uiState.siteDiaryEntries,
+                                linkedDocuments = uiState.linkedDocuments,
+                                procurementPackages = uiState.procurementPackages
+                            )
+                        }
+
+                        Phase2Tab.VALUATIONS -> {
+                            ValuationsScreen(
+                                viewModel = viewModel,
+                                calculatedValuation = uiState.valuation,
+                                allValuations = uiState.allValuations,
+                                scopeElements = uiState.scopeElements,
+                                variationOrders = uiState.variationOrders
+                            )
+                        }
+
+                        Phase2Tab.VARIATIONS -> {
+                            VariationOrdersScreen(
+                                viewModel = viewModel,
+                                project = uiState.project,
+                                variationOrders = uiState.variationOrders
+                            )
+                        }
+
+                        Phase2Tab.SITE_DIARY -> {
+                            SiteDiaryScreen(
+                                viewModel = viewModel,
+                                project = uiState.project,
+                                workOrders = uiState.workOrders,
+                                entries = uiState.siteDiaryEntries,
+                                isAnalyzing = uiState.isAnalyzingDiary
+                            )
+                        }
+
+                        Phase2Tab.BOQ_IMPORT -> {
+                            val primaryDoc = uiState.linkedDocuments.firstOrNull { it.isPrimaryBoq } ?: uiState.linkedDocuments.firstOrNull()
+                            BoqUnifiedUploadAndConfirmScreen(
+                                linkedDocument = primaryDoc,
+                                onOpenCloudPicker = { showCloudPickerModal = true },
+                                onUnlinkDocument = { doc -> viewModel.unlinkCloudDocument(doc.id) },
+                                onConfirmAndImport = { confirmedResult ->
+                                    viewModel.importParsedBoq(confirmedResult) {
+                                        selectedTab = Phase2Tab.SCOPE
+                                    }
                                 }
-                            },
-                            onExportExcel = { showExcelModal = true }
-                        )
-                    }
+                            )
+                        }
 
-                    Phase2Tab.VALUATIONS, Phase2Tab.INVOICES -> {
-                        ValuationsScreen(
-                            viewModel = viewModel,
-                            calculatedValuation = uiState.valuation,
-                            allValuations = uiState.allValuations,
-                            scopeElements = uiState.scopeElements,
-                            variationOrders = uiState.variationOrders
-                        )
-                    }
+                        Phase2Tab.PROJECT_SETUP -> {
+                            val linkedDoc = uiState.linkedDocuments.firstOrNull { it.isPrimaryBoq } ?: uiState.linkedDocuments.firstOrNull()
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                item {
+                                    Text(
+                                        text = "LINKED CLOUD DOCUMENT (PHASE 7)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MastorAccentBlue,
+                                        letterSpacing = 1.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    LinkedDocumentCard(
+                                        linkedDocument = linkedDoc,
+                                        onOpenPicker = { showCloudPickerModal = true },
+                                        onSyncNow = {
+                                            linkedDoc?.let { viewModel.syncCloudDocument(it.id) }
+                                        },
+                                        onParseInPhase3 = {
+                                            selectedTab = Phase2Tab.BOQ_IMPORT
+                                        },
+                                        onUnlinkDocument = { doc ->
+                                            viewModel.unlinkCloudDocument(doc.id)
+                                        }
+                                    )
+                                }
+                                item {
+                                    ProjectSetupForm(
+                                        project = proj,
+                                        onSaveProject = { updatedProj ->
+                                            viewModel.saveProject(updatedProj)
+                                        }
+                                    )
+                                }
+                            }
+                        }
 
-                    Phase2Tab.VARIATIONS -> {
-                        VariationOrdersScreen(
-                            viewModel = viewModel,
-                            project = uiState.project,
-                            variationOrders = uiState.variationOrders
-                        )
-                    }
+                    Phase2Tab.SCOPE -> {
+                        var scopeSearchQuery by remember { mutableStateOf("") }
+                        var selectedWoFilter by remember { mutableStateOf<String?>(null) }
 
-                    Phase2Tab.SITE_DIARY -> {
-                        SiteDiaryScreen(
-                            viewModel = viewModel,
-                            project = uiState.project,
-                            workOrders = uiState.workOrders,
-                            entries = uiState.siteDiaryEntries,
-                            isAnalyzing = uiState.isAnalyzingDiary
+                        val totalBaseCost = uiState.scopeElements.sumOf { it.qty * it.rate }
+                        val totalClaimedBaseCost = MastorCalculationEngine.roundMoney(
+                            uiState.scopeElements.sumOf { (it.qty * it.rate) * (it.claimPercent / 100.0) }
                         )
-                    }
+                        val notStartedCount = uiState.scopeElements.count { it.claimPercent == 0.0 }
+                        val inProgressCount = uiState.scopeElements.count { it.claimPercent > 0.0 && it.claimPercent < 100.0 }
+                        val completedCount = uiState.scopeElements.count { it.claimPercent >= 100.0 }
+                        val overallProgress = if (totalBaseCost > 0.0) (totalClaimedBaseCost / totalBaseCost) * 100.0 else 0.0
 
-                    Phase2Tab.PROCUREMENT -> {
-                        var procurementSubTab by remember { mutableStateOf(0) } // 0 = Subcontractor Trade Packages, 1 = Work Orders & Scope
+                        val woOptions = uiState.workOrders.map { it.entity.woRef }.distinct()
+                        val filteredElements = uiState.scopeElements.filter { elem ->
+                            (selectedWoFilter == null || elem.woRef == selectedWoFilter) &&
+                                (scopeSearchQuery.isBlank() ||
+                                    elem.description.contains(scopeSearchQuery, ignoreCase = true) ||
+                                    elem.code.contains(scopeSearchQuery, ignoreCase = true) ||
+                                    elem.locationRoom.contains(scopeSearchQuery, ignoreCase = true))
+                        }
 
                         Column(modifier = Modifier.fillMaxSize()) {
+                            // Summary Ring Chart at Top: Three Segments (Not Started, In Progress, Claimed)
+                            ScopeStatusSummaryRingChart(
+                                notStartedCount = notStartedCount,
+                                inProgressCount = inProgressCount,
+                                claimedCount = completedCount,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                            )
+
+                            // Sub-navigation: Toggle between Work Orders & Attached Docs vs Scope Elements Checklist
                             Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 color = MastorSurfaceLight,
                                 border = BorderStroke(1.dp, MastorSlateBorder)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                TabRow(
+                                    selectedTabIndex = scopeSubTabIndex,
+                                    containerColor = Color.Transparent,
+                                    contentColor = MastorAccentBlue,
+                                    indicator = { tabPositions ->
+                                        TabRowDefaults.SecondaryIndicator(
+                                            Modifier.tabIndicatorOffset(tabPositions[scopeSubTabIndex]),
+                                            color = MastorAccentBlue,
+                                            height = 3.dp
+                                        )
+                                    },
+                                    divider = {}
                                 ) {
-                                    MastorSegmentedTabs(
-                                        tabs = listOf(
-                                            MastorTabItem(
-                                                label = "Subcontractor Procurement",
-                                                icon = Icons.Default.Engineering
-                                            ),
-                                            MastorTabItem(
-                                                label = "Work Orders & Scope",
-                                                icon = Icons.Default.Receipt,
-                                                badgeCount = uiState.workOrders.size
+                                    Tab(
+                                        selected = scopeSubTabIndex == 0,
+                                        onClick = { scopeSubTabIndex = 0 },
+                                        text = {
+                                            Text(
+                                                text = "Work Orders & Project Docs (${uiState.workOrders.size})",
+                                                fontWeight = if (scopeSubTabIndex == 0) FontWeight.Bold else FontWeight.Normal,
+                                                fontSize = 12.sp
                                             )
-                                        ),
-                                        selectedIndex = procurementSubTab,
-                                        onTabSelected = { procurementSubTab = it }
+                                        }
+                                    )
+                                    Tab(
+                                        selected = scopeSubTabIndex == 1,
+                                        onClick = { scopeSubTabIndex = 1 },
+                                        text = {
+                                            Text(
+                                                text = "All Scope Items (${uiState.scopeElements.size})",
+                                                fontWeight = if (scopeSubTabIndex == 1) FontWeight.Bold else FontWeight.Normal,
+                                                fontSize = 12.sp
+                                            )
+                                        }
                                     )
                                 }
                             }
 
-                            if (procurementSubTab == 0) {
-                                SubcontractorProcurementComponent(
-                                    projectId = proj.id,
-                                    packages = uiState.procurementPackages,
-                                    subcontractors = uiState.subcontractors,
-                                    allScopeElements = uiState.scopeElements,
-                                    allClaims = uiState.subcontractorClaims,
-                                    onCreatePackage = { trade, scopeIds, dateSent ->
-                                        viewModel.createProcurementPackage(trade, scopeIds, dateSent)
-                                    },
-                                    onRecordQuote = { pkgId, subId, amount, date, notes ->
-                                        viewModel.recordSubcontractorQuote(pkgId, subId, amount, date, notes)
-                                    },
-                                    onAwardPackage = { pkgId, subId ->
-                                        viewModel.awardProcurementPackage(pkgId, subId)
-                                    },
-                                    onAddClaim = { pkgId, amount, date, notes ->
-                                        viewModel.addSubcontractorClaim(pkgId, amount, date, notes)
-                                    },
-                                    onUpdateStatus = { pkgId, status ->
-                                        viewModel.updateProcurementPackageStatus(pkgId, status)
-                                    },
-                                    onDeletePackage = { pkgId ->
-                                        viewModel.deleteProcurementPackage(pkgId)
-                                    },
-                                    onCreateSubcontractor = { comp, contact, phone, email, spec, notes ->
-                                        viewModel.createSubcontractor(comp, contact, phone, email, spec, notes)
-                                    },
-                                    onDeleteSubcontractor = { id ->
-                                        viewModel.deleteSubcontractor(id)
-                                    },
-                                    onUpdateReviewStatus = { pkgId, newRevStatus ->
-                                        viewModel.updateProcurementPackageReviewStatus(pkgId, newRevStatus)
-                                    },
-                                    onAutoGeneratePackages = {
-                                        viewModel.autoGenerateTradePackagesForProject()
-                                    },
-                                    onMoveScopeLine = { scopeId, srcPkgId, targetPkgId ->
-                                        viewModel.moveScopeLineToPackage(scopeId, srcPkgId, targetPkgId)
-                                    },
-                                    onRemoveScopeLine = { scopeId, pkgId ->
-                                        viewModel.removeScopeLineFromPackage(scopeId, pkgId)
-                                    },
-                                    onUpdateScopeElement = { elem ->
-                                        viewModel.updateScopeElement(elem)
-                                    },
-                                    onAddScopeLine = { pkgId, woRef, locRoom, code, desc, qty, units, rate ->
-                                        viewModel.addScopeLineToPackage(pkgId, woRef, locRoom, code, desc, qty, units, rate)
+                            if (scopeSubTabIndex == 0) {
+                                // --- VIEW 0: WORK ORDERS & GOOGLE DRIVE ATTACHED DOCS ---
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    // Google Drive Integration & Authorization Banner Card
+                                    item {
+                                        GoogleDriveAuthCard(
+                                            onBrowseGoogleDrive = {
+                                                targetWoRefForDrive = null
+                                                showGoogleDriveBrowserModal = true
+                                            },
+                                            onManageAccount = {
+                                                showGoogleDriveAccountDetails = true
+                                            }
+                                        )
                                     }
-                                )
-                            } else {
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text(
-                                                text = "SUBCONTRACTOR WORK ORDERS & SCOPE",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MastorSlateMuted
-                                            )
-                                            Text(
-                                                text = "${uiState.workOrders.size} Work Orders Allocated",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MastorSlateDark,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                        }
 
-                                        Button(
-                                            onClick = { showCreateWoDialog = true },
-                                            shape = RoundedCornerShape(100.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue)
+                                    // Work Orders Section Header & Add WO Button
+                                    item {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Add,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text("New Work Order")
+                                            Column {
+                                                Text(
+                                                    text = "WORK ORDERS & SCOPE PACKAGES",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MastorAccentBlue
+                                                )
+                                                Text(
+                                                    text = "${uiState.workOrders.size} Packages • Total Base ${MastorCalculationEngine.formatCurrency(totalBaseCost)}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MastorSlateMuted
+                                                )
+                                            }
+
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Button(
+                                                    onClick = { showCreateWoDialog = true },
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                    modifier = Modifier.testTag("add_work_order_btn")
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Add,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("New Work Order", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
                                         }
                                     }
 
-                                    LazyColumn(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(horizontal = 16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
+                                    if (uiState.workOrders.isEmpty()) {
                                         item {
-                                            WorkOrderSyncStatusBar(
-                                                syncState = syncState,
-                                                onSyncNow = { viewModel.syncWorkOrders() },
-                                                onOpenSyncHub = { showSyncHubModal = true }
-                                            )
+                                            Surface(
+                                                shape = RoundedCornerShape(16.dp),
+                                                color = MastorSurfaceLight,
+                                                border = BorderStroke(1.dp, MastorSlateBorder),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(32.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "No Work Orders defined yet. Tap 'New Work Order' to create scope packages.",
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MastorSlateMuted
+                                                    )
+                                                }
+                                            }
                                         }
-
+                                    } else {
                                         items(
                                             items = uiState.workOrders,
                                             key = { it.entity.id }
                                         ) { calcWo ->
-                                            val woScopes = uiState.scopeElements.filter { it.woRef == calcWo.entity.woRef }
+                                            val woScopeElements = uiState.scopeElements.filter { it.woRef == calcWo.entity.woRef }
+                                            val attachedDocs = uiState.linkedDocuments.filter { it.workOrderRef == calcWo.entity.woRef }
 
                                             WorkOrderCard(
                                                 calcWorkOrder = calcWo,
-                                                scopeElements = woScopes,
-                                                upliftMultiplier = upliftMultiplier,
+                                                scopeElements = woScopeElements,
+                                                attachedDocuments = attachedDocs,
                                                 onAddScopeElement = {
                                                     addingScopeToWoRef = calcWo.entity.woRef
                                                 },
@@ -756,326 +778,207 @@ fun Phase2ScopeScreen(
                                                     editingWorkOrder = calcWo.entity
                                                 },
                                                 onDeleteWorkOrder = {
-                                                    viewModel.deleteWorkOrder(calcWo.entity.woRef)
+                                                    viewModel.deleteWorkOrder(calcWo.entity.id)
                                                 },
-                                                onScopeClaimChanged = { element, newClaim ->
-                                                    viewModel.updateScopeClaimPercent(element.id, newClaim)
+                                                onScopeClaimChanged = { elem, newClaim ->
+                                                    viewModel.updateScopeClaimPercent(elem.id, newClaim)
                                                 },
-                                                onEditScopeElement = { element ->
-                                                    editingScopeElement = element
+                                                onEditScopeElement = { elem ->
+                                                    editingScopeElement = elem
                                                 },
-                                                onDeleteScopeElement = { element ->
-                                                    viewModel.deleteScopeElement(element.id)
+                                                onDeleteScopeElement = { elem ->
+                                                    viewModel.deleteScopeElement(elem.id)
                                                 },
-                                                onStatusChanged = { newStatus ->
-                                                    viewModel.updateWorkOrderStatus(calcWo.entity.woRef, newStatus)
+                                                onAttachDocument = {
+                                                    targetWoRefForDrive = calcWo.entity.woRef
+                                                    showGoogleDriveBrowserModal = true
+                                                },
+                                                onViewDocument = { doc ->
+                                                    previewingLinkedDoc = doc
+                                                },
+                                                onDetachDocument = { doc ->
+                                                    viewModel.detachDocumentFromWorkOrder(doc.id)
                                                 }
                                             )
                                         }
+                                    }
 
-                                        item {
-                                            Spacer(modifier = Modifier.height(24.dp))
-                                        }
+                                    item {
+                                        Spacer(modifier = Modifier.height(32.dp))
                                     }
                                 }
-                            }
-                        }
-                    }
-
-                    Phase2Tab.SCOPE -> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // Scope Header Action Bar
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "PHASE 2: SCOPE MANAGEMENT",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MastorSlateMuted
-                                    )
-                                    Text(
-                                        text = "${uiState.workOrders.size} Work Orders • ${uiState.scopeElements.size} Scope Lines",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MastorSlateDark,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-
-                                Button(
-                                    onClick = { showCreateWoDialog = true },
-                                    shape = RoundedCornerShape(100.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
-                                    modifier = Modifier.testTag("add_work_order_btn")
+                            } else {
+                                // --- VIEW 1: ALL SCOPE ELEMENTS CHECKLIST ---
+                                // Unified Scope Header & Financial Progress Card
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MastorSurfaceLight,
+                                    border = BorderStroke(1.dp, MastorSlateBorder)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("New Work Order")
-                                }
-                            }
-
-                            // Work Orders List
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(
-                                    items = uiState.workOrders,
-                                    key = { it.entity.id }
-                                ) { calcWo ->
-                                    val woScopes = uiState.scopeElements.filter { it.woRef == calcWo.entity.woRef }
-
-                                    WorkOrderCard(
-                                        calcWorkOrder = calcWo,
-                                        scopeElements = woScopes,
-                                        upliftMultiplier = upliftMultiplier,
-                                        onAddScopeElement = {
-                                            addingScopeToWoRef = calcWo.entity.woRef
-                                        },
-                                        onEditWorkOrder = {
-                                            editingWorkOrder = calcWo.entity
-                                        },
-                                        onDeleteWorkOrder = {
-                                            viewModel.deleteWorkOrder(calcWo.entity.woRef)
-                                        },
-                                        onScopeClaimChanged = { element, newClaim ->
-                                            viewModel.updateScopeClaimPercent(element.id, newClaim)
-                                        },
-                                        onEditScopeElement = { element ->
-                                            editingScopeElement = element
-                                        },
-                                        onDeleteScopeElement = { element ->
-                                            viewModel.deleteScopeElement(element.id)
-                                        }
-                                    )
-                                }
-
-                                item {
-                                    Spacer(modifier = Modifier.height(24.dp))
-                                }
-                            }
-                        }
-                    }
-
-                    Phase2Tab.BOQ_IMPORT -> {
-                        val primaryDoc = uiState.linkedDocuments.firstOrNull { it.isPrimaryBoq } ?: uiState.linkedDocuments.firstOrNull()
-                        when (boqUiState) {
-                            BoqParsingUiState.IDLE -> {
-                                BoqUploadSection(
-                                    linkedDocument = primaryDoc,
-                                    onOpenCloudPicker = { showCloudPickerModal = true },
-                                    onUnlinkDocument = { doc -> viewModel.unlinkCloudDocument(doc.id) },
-                                    onParseText = { rawText ->
-                                        boqUiState = BoqParsingUiState.PARSING
-                                        coroutineScope.launch {
-                                            val res = GeminiBoqParser.parseBoqText(rawText)
-                                            parsedBoqData = res
-                                            boqUiState = BoqParsingUiState.REVIEW
-                                        }
-                                    },
-                                    onSelectSample1 = {
-                                        boqUiState = BoqParsingUiState.PARSING
-                                        coroutineScope.launch {
-                                            val res = GeminiBoqParser.getSampleBoqResult1()
-                                            parsedBoqData = res
-                                            boqUiState = BoqParsingUiState.REVIEW
-                                        }
-                                    },
-                                    onSelectSample2 = {
-                                        boqUiState = BoqParsingUiState.PARSING
-                                        coroutineScope.launch {
-                                            val res = GeminiBoqParser.getSampleBoqResult2()
-                                            parsedBoqData = res
-                                            boqUiState = BoqParsingUiState.REVIEW
-                                        }
-                                    }
-                                )
-                            }
-                            BoqParsingUiState.PARSING -> {
-                                BoqParsingLoadingState()
-                            }
-                            BoqParsingUiState.REVIEW -> {
-                                parsedBoqData?.let { data ->
-                                    BoqReviewScreen(
-                                        parsedResult = data,
-                                        onConfirmAndImport = { confirmedResult ->
-                                            viewModel.importParsedBoq(confirmedResult) {
-                                                boqUiState = BoqParsingUiState.IDLE
-                                                parsedBoqData = null
-                                                selectedTab = Phase2Tab.SCOPE
-                                            }
-                                        },
-                                        onCancel = {
-                                            boqUiState = BoqParsingUiState.IDLE
-                                            parsedBoqData = null
-                                        }
-                                    )
-                                } ?: run {
-                                    boqUiState = BoqParsingUiState.IDLE
-                                }
-                            }
-                        }
-                    }
-
-                    Phase2Tab.PROJECT_SETUP -> {
-                        val linkedDoc = uiState.linkedDocuments.firstOrNull { it.isPrimaryBoq } ?: uiState.linkedDocuments.firstOrNull()
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            item {
-                                Text(
-                                    text = "LINKED CLOUD DOCUMENT (PHASE 7)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorAccentBlue,
-                                    letterSpacing = 1.sp
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                LinkedDocumentCard(
-                                    linkedDocument = linkedDoc,
-                                    onOpenPicker = { showCloudPickerModal = true },
-                                    onSyncNow = {
-                                        linkedDoc?.let { viewModel.syncCloudDocument(it.id) }
-                                    },
-                                    onParseInPhase3 = {
-                                        selectedTab = Phase2Tab.BOQ_IMPORT
-                                    },
-                                    onUnlinkDocument = { doc ->
-                                        viewModel.unlinkCloudDocument(doc.id)
-                                    }
-                                )
-                            }
-                            item {
-                                ProjectSetupForm(
-                                    project = proj,
-                                    onSaveProject = { updatedProj ->
-                                        viewModel.saveProject(updatedProj)
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    Phase2Tab.CALC_INSPECTOR -> {
-                        val valuation = uiState.valuation
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            item {
-                                Text(
-                                    text = "LIVE CALCULATION ENGINE & VALUATION INSPECTOR",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorSlateMuted,
-                                    letterSpacing = 1.sp
-                                )
-                                Text(
-                                    text = "Phase 1 Calculation Layer Verification",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorSlateDark
-                                )
-                            }
-
-                            if (valuation != null) {
-                                item {
-                                    MastorCard {
-                                        Text(
-                                            text = "VALUATION ${valuation.entity.valuationNumber}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MastorAccentBlue
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Grand Live Invoice Total",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MastorSlateMuted
-                                        )
-                                        Text(
-                                            text = MastorCalculationEngine.formatCurrency(valuation.grandInvoiceTotal),
-                                            style = FinancialLargeNumeralStyle,
-                                            color = StatusClaimedGreen
-                                        )
-
-                                        Spacer(modifier = Modifier.height(12.dp))
-
+                                    Column(modifier = Modifier.padding(14.dp)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Column {
                                                 Text(
-                                                    text = "Claimed Scope Total",
+                                                    text = "SCOPE OF WORKS",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = MastorSlateMuted
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MastorAccentBlue
                                                 )
                                                 Text(
-                                                    text = MastorCalculationEngine.formatCurrency(valuation.scopeBaseClaimedTotal),
+                                                    text = "${uiState.scopeElements.size} Items • $completedCount Completed",
                                                     style = MaterialTheme.typography.titleMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MastorSlateDark
                                                 )
                                             }
+
                                             Column(horizontalAlignment = Alignment.End) {
                                                 Text(
-                                                    text = "Claimed Variations Total",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MastorSlateMuted
+                                                    text = MastorCalculationEngine.formatCurrency(totalClaimedBaseCost),
+                                                    style = FinancialLargeNumeralStyle,
+                                                    color = StatusClaimedGreen
                                                 )
                                                 Text(
-                                                    text = MastorCalculationEngine.formatCurrency(valuation.voBaseClaimedTotal),
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MastorSlateDark
+                                                    text = "of ${MastorCalculationEngine.formatCurrency(totalBaseCost)} (${overallProgress.toInt()}%)",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MastorSlateMuted
                                                 )
                                             }
                                         }
 
-                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Spacer(modifier = Modifier.height(10.dp))
 
-                                        MastorButton(
-                                            text = "Audit Trace Calculations",
-                                            onClick = {
-                                                viewModel.showTrace(
-                                                    title = "Valuation ${valuation.entity.valuationNumber} Trace",
-                                                    steps = valuation.traceSteps
+                                        // Search and Add Button
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            OutlinedTextField(
+                                                value = scopeSearchQuery,
+                                                onValueChange = { scopeSearchQuery = it },
+                                                placeholder = { Text("Search scope items...", fontSize = 13.sp) },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Search,
+                                                        contentDescription = "Search",
+                                                        tint = MastorSlateMuted,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                },
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(48.dp),
+                                                shape = RoundedCornerShape(10.dp),
+                                                singleLine = true
+                                            )
+
+                                            Spacer(modifier = Modifier.width(8.dp))
+
+                                            Button(
+                                                onClick = {
+                                                    val defaultWo = uiState.workOrders.firstOrNull()?.entity?.woRef ?: "WO-001"
+                                                    addingScopeToWoRef = defaultWo
+                                                },
+                                                shape = RoundedCornerShape(10.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                                                modifier = Modifier
+                                                    .height(48.dp)
+                                                    .testTag("add_scope_item_btn")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Add,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp)
                                                 )
-                                            },
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Add Item", fontSize = 13.sp)
+                                            }
+                                        }
+
+                                        // Filter Chips Row
+                                        if (woOptions.size > 1) {
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .horizontalScroll(rememberScrollState()),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                FilterChip(
+                                                    selected = selectedWoFilter == null,
+                                                    onClick = { selectedWoFilter = null },
+                                                    label = { Text("All (${uiState.scopeElements.size})", fontSize = 11.sp) }
+                                                )
+                                                woOptions.forEach { woRef ->
+                                                    val count = uiState.scopeElements.count { it.woRef == woRef }
+                                                    FilterChip(
+                                                        selected = selectedWoFilter == woRef,
+                                                        onClick = {
+                                                            selectedWoFilter = if (selectedWoFilter == woRef) null else woRef
+                                                        },
+                                                        label = { Text("$woRef ($count)", fontSize = 11.sp) }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Single Clean List of Scope Items (One item = One row = Tick + % Claim)
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    if (filteredElements.isEmpty()) {
+                                        item {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 32.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = if (scopeSearchQuery.isNotBlank()) "No scope items matching \"$scopeSearchQuery\"" else "No scope items added yet. Tap 'Add Item' to start.",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MastorSlateMuted
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        items(
+                                            items = filteredElements,
+                                            key = { it.id }
+                                        ) { element ->
+                                            ScopeElementListItem(
+                                                element = element,
+                                                onClaimPercentChanged = { newClaim ->
+                                                    viewModel.updateScopeClaimPercent(element.id, newClaim)
+                                                },
+                                                onEdit = {
+                                                    editingScopeElement = element
+                                                },
+                                                onDelete = {
+                                                    viewModel.deleteScopeElement(element.id)
+                                                }
+                                            )
+                                        }
+                                    }
+
+                                    item {
+                                        Spacer(modifier = Modifier.height(24.dp))
                                     }
                                 }
                             }
                         }
-                    }
-
-                    Phase2Tab.QA_INSPECTOR -> {
-                        Phase10DataIntegrityQaScreen(
-                            project = proj,
-                            scopeElements = uiState.scopeElements,
-                            workOrders = uiState.workOrders.map { it.entity },
-                            variationOrders = uiState.variationOrders,
-                            valuation = uiState.valuation?.entity,
-                            invoices = emptyList()
-                        )
                     }
                 }
             }
@@ -1195,6 +1098,45 @@ fun Phase2ScopeScreen(
         )
     }
 
+    // Google Drive Browser Modal (For Work Orders & Project Documentation)
+    if (showGoogleDriveBrowserModal) {
+        GoogleDriveBrowserModal(
+            availableWorkOrders = uiState.workOrders.map { it.entity },
+            targetWorkOrderRef = targetWoRefForDrive,
+            onDismiss = { showGoogleDriveBrowserModal = false },
+            onAttachFileToWorkOrder = { cloudFile, woRef, category ->
+                viewModel.attachGoogleDriveFileToWorkOrder(cloudFile, woRef, category)
+                showGoogleDriveBrowserModal = false
+            },
+            onPreviewFile = { cloudFile ->
+                previewingCloudFileItem = cloudFile
+            }
+        )
+    }
+
+    // Google Drive Account Details & OAuth Dialog
+    if (showGoogleDriveAccountDetails) {
+        GoogleDriveAccountDetailsDialog(
+            onDismiss = { showGoogleDriveAccountDetails = false }
+        )
+    }
+
+    // Document Preview Dialog (for LinkedDocument)
+    previewingLinkedDoc?.let { doc ->
+        DocumentPreviewDialog(
+            document = doc,
+            onDismiss = { previewingLinkedDoc = null }
+        )
+    }
+
+    // Document Preview Dialog (for CloudFileItem)
+    previewingCloudFileItem?.let { fileItem ->
+        DocumentPreviewDialog(
+            cloudFile = fileItem,
+            onDismiss = { previewingCloudFileItem = null }
+        )
+    }
+
     // Phase 8 Excel Export Confirmation Modal
     if (showExcelModal) {
         ExcelExportConfirmationModal(
@@ -1207,259 +1149,93 @@ fun Phase2ScopeScreen(
         )
     }
 
-    // Phase 9 More Options Navigation Modal
-    if (showMoreMenu) {
-        Dialog(onDismissRequest = { showMoreMenu = false }) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MastorSurfaceLight,
-                border = BorderStroke(1.dp, MastorSlateBorder),
-                modifier = Modifier.padding(16.dp)
+    // Account & Preferences Modal
+    if (showAccountPreferencesModal) {
+        CompanyAccountPreferencesModal(
+            onDismiss = { showAccountPreferencesModal = false }
+        )
+    }
+}
+
+@Composable
+fun CompanyAccountPreferencesModal(
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.CorporateFare,
+                    contentDescription = null,
+                    tint = MastorAccentBlue,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Account & Preferences",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MastorSlateDark
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "App-level configuration and SaaS organizational settings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MastorSlateMuted
+                )
+
+                Surface(
+                    color = MastorSurfaceLight,
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, MastorSlateBorder),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "MASTOR TOOLS & NAVIGATION",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorAccentBlue,
-                        letterSpacing = 1.sp
-                    )
-
-                    // Invoices Option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                selectedTab = Phase2Tab.INVOICES
-                                showMoreMenu = false
-                            },
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = MastorAccentBlue)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Invoices & Application Ledger", fontWeight = FontWeight.Bold, color = MastorSlateDark)
-                                Text("View issued valuations and invoice schedule", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
-                            }
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Organization:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
+                            Text("Mastor Prime Ltd", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                         }
-                    }
-
-                    // BoQ Import Option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                selectedTab = Phase2Tab.BOQ_IMPORT
-                                showMoreMenu = false
-                            },
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Description, contentDescription = null, tint = MastorAccentBlue)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("BoQ Document Parser", fontWeight = FontWeight.Bold, color = MastorSlateDark)
-                                Text("Upload or paste contract bills of quantities", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
-                            }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("VAT Registration:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
+                            Text("GB 938 2841 02", style = MaterialTheme.typography.bodyMedium)
                         }
-                    }
-
-                    // Project Setup Option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                selectedTab = Phase2Tab.PROJECT_SETUP
-                                showMoreMenu = false
-                            },
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Settings, contentDescription = null, tint = MastorAccentBlue)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Project Setup & Central Uplifts", fontWeight = FontWeight.Bold, color = MastorSlateDark)
-                                Text("Configure project details, client, and uplift rates", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
-                            }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Current Plan:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
+                            Text("Enterprise QS (Active)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MastorAccentBlue)
                         }
-                    }
-
-                    // Cloud Storage Option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                showMoreMenu = false
-                                showCloudPickerModal = true
-                            },
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Cloud, contentDescription = null, tint = MastorAccentBlue)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Cloud Document Storage", fontWeight = FontWeight.Bold, color = MastorSlateDark)
-                                Text("OneDrive / Google Drive live document sync", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
-                            }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Standard Retention:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
+                            Text("5.00%", style = MaterialTheme.typography.bodyMedium)
                         }
-                    }
-
-                    // Calculation Audit Inspector Option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                selectedTab = Phase2Tab.CALC_INSPECTOR
-                                showMoreMenu = false
-                            },
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Calculate, contentDescription = null, tint = MastorAccentBlue)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Calculation Engine Audit Inspector", fontWeight = FontWeight.Bold, color = MastorSlateDark)
-                                Text("Inspect single source of truth calculations", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
-                            }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Valuation Cycle:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
+                            Text("Monthly (28-day)", style = MaterialTheme.typography.bodyMedium)
                         }
-                    }
-
-                    // Data Integrity QA Suite Option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                selectedTab = Phase2Tab.QA_INSPECTOR
-                                showMoreMenu = false
-                            },
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Security, contentDescription = null, tint = MastorAccentBlue)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Phase 10 Data Integrity QA Suite", fontWeight = FontWeight.Bold, color = MastorSlateDark)
-                                Text("Run launch readiness & mathematical audit verification", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
-                            }
-                        }
-                    }
-
-                    // Work Order Cloud & ERP Sync Hub Option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                showMoreMenu = false
-                                showSyncHubModal = true
-                            },
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Sync, contentDescription = null, tint = MastorAccentBlue)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Work Order Cloud & ERP Sync Hub", fontWeight = FontWeight.Bold, color = MastorSlateDark)
-                                Text("Real-time bi-directional status sync, offline queuing & audit logs", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
-                            }
-                        }
-                    }
-
-                    // Excel Export Option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                showMoreMenu = false
-                                showExcelModal = true
-                            },
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.FileDownload, contentDescription = null, tint = MastorAccentBlue)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Export Complete V6 Excel Workbook", fontWeight = FontWeight.Bold, color = MastorSlateDark)
-                                Text("Live snapshot with all formulas intact", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
-                            }
-                        }
-                    }
-
-                    Button(
-                        onClick = { showMoreMenu = false },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Close")
                     }
                 }
             }
-        }
-    }
-
-    // Work Order Cloud & ERP Sync Hub Bottom Sheet
-    if (showSyncHubModal) {
-        WorkOrderSyncHubModal(
-            syncState = syncState,
-            onDismiss = { showSyncHubModal = false },
-            onSyncNow = { viewModel.syncWorkOrders() },
-            onToggleOnline = { viewModel.toggleSyncOnline() },
-            onSetConflictStrategy = { strategy -> viewModel.setSyncConflictStrategy(strategy) },
-            onSimulateExternalUpdate = { woRef, newStatus, updatedBy, note ->
-                viewModel.simulateRemoteWorkOrderUpdate(woRef, newStatus, updatedBy, note)
-            },
-            onResolveConflict = { conflict, chosenStatus ->
-                viewModel.resolveSyncConflict(conflict, chosenStatus)
-            },
-            onClearLogs = { viewModel.clearSyncLogs() },
-            onResetDefaults = { viewModel.resetSyncState() }
-        )
-    }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(16.dp)
+    )
 }
 
 @Composable
@@ -1592,17 +1368,13 @@ fun JobBannerHeader(
                             text = project.name,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            color = Color.White
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "${project.client} • ${project.address}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.85f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            color = Color.White.copy(alpha = 0.85f)
                         )
                     }
 
@@ -1618,8 +1390,7 @@ fun JobBannerHeader(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            maxLines = 1
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
                 }

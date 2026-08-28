@@ -1,6 +1,6 @@
 {
   "name": "Mastor",
-  "description": "UK construction commercial management — Phase 7 Document Storage (OneDrive + Google Drive)",
+  "description": "UK construction commercial management — Full-suite BoQ, Scope, Work Orders, Valuations, Variations, Site Diary, Procurement, Document Linking, and Financial Visualizations",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
