@@ -109,4 +109,95 @@ class ValuationsEngineTest {
         assertEquals(0.00, revertedCalc.scopeBaseClaimedTotal, 0.01)
         assertEquals(0.00, revertedCalc.grandInvoiceTotal, 0.01)
     }
+
+    @Test
+    fun testPreviouslyCertifiedFreezeAndIncrementalClaimInValuation2() {
+        // Valuation 1 scenario: item 1 claimed 100%
+        val scope1 = ScopeElement(
+            id = "se_1",
+            woRef = "WO-001",
+            locationRoom = "Bathroom",
+            code = "BTH-101",
+            description = "Bathroom skim",
+            qty = 1.0,
+            units = "item",
+            rate = 2000.0,
+            claimPercent = 100.0,
+            previouslyCertifiedPercent = 0.0,
+            currentValuationId = "val_001"
+        )
+
+        val val1 = Valuation(
+            id = "val_001",
+            valuationNumber = "VAL-001",
+            projectId = "proj_101",
+            date = "01 Jan 2026",
+            preparedBy = "Surveyor",
+            status = "Draft"
+        )
+
+        val calcVal1 = MastorCalculationEngine.calculateValuation(
+            valuation = val1,
+            scopeElements = listOf(scope1),
+            variationOrders = emptyList(),
+            project = testProject
+        )
+
+        assertEquals(2000.00, calcVal1.subtotalBaseClaimed, 0.01)
+        assertEquals(0.00, calcVal1.previouslyCertifiedBaseTotal, 0.01)
+        assertEquals(2000.00, calcVal1.cumulativeBaseTotal, 0.01)
+
+        // Snapshot freeze on invoice:
+        val scope1Frozen = scope1.copy(
+            previouslyCertifiedPercent = 100.0,
+            currentValuationId = null // unlinked upon invoicing
+        )
+
+        // New item in project
+        val scope2 = ScopeElement(
+            id = "se_2",
+            woRef = "WO-001",
+            locationRoom = "Bedroom",
+            code = "BED-101",
+            description = "Bedroom skim",
+            qty = 1.0,
+            units = "item",
+            rate = 3000.0,
+            claimPercent = 50.0,
+            previouslyCertifiedPercent = 0.0,
+            currentValuationId = "val_002"
+        )
+
+        val val2 = Valuation(
+            id = "val_002",
+            valuationNumber = "VAL-002",
+            projectId = "proj_101",
+            date = "01 Feb 2026",
+            preparedBy = "Surveyor",
+            status = "Draft"
+        )
+
+        val calcVal2 = MastorCalculationEngine.calculateValuation(
+            valuation = val2,
+            scopeElements = listOf(scope1Frozen, scope2),
+            variationOrders = emptyList(),
+            project = testProject
+        )
+
+        // Scope 1 has (100% - 100%) = 0% increment
+        // Scope 2 has (50% - 0%) = 50% of 3000 = 1500
+        assertEquals(1500.00, calcVal2.subtotalBaseClaimed, 0.01)
+        // Previously certified total across project items = 100% of 2000 = 2000
+        assertEquals(2000.00, calcVal2.previouslyCertifiedBaseTotal, 0.01)
+        // Cumulative certified = 2000 + 1500 = 3500
+        assertEquals(3500.00, calcVal2.cumulativeBaseTotal, 0.01)
+
+        // Uplifts on This Period Only (+15%, +5%):
+        // U1 = 1500 * 0.15 = 225.00
+        // U2 = (1500 + 225) * 0.05 = 86.25
+        // Gross Invoice Total = 1500 + 225 + 86.25 = 1811.25
+        assertEquals(225.00, calcVal2.uplift1Amount, 0.01)
+        assertEquals(86.25, calcVal2.uplift2Amount, 0.01)
+        assertEquals(1811.25, calcVal2.grandInvoiceTotal, 0.01)
+    }
 }

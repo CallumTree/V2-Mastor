@@ -25,7 +25,24 @@ data class CalculationTraceStep(
 data class CalculatedScopeElement(
     val entity: ScopeElement,
     val baseCost: Double,
-    val claimedBaseValue: Double
+    val claimedBaseValue: Double,
+    val thisClaimPercent: Double = 0.0,
+    val thisClaimValue: Double = 0.0,
+    val previouslyCertifiedValue: Double = 0.0,
+    val cumulativeValue: Double = claimedBaseValue
+)
+
+/**
+ * Calculated domain representation of a Variation Order.
+ */
+data class CalculatedVariationOrder(
+    val entity: VariationOrder,
+    val baseCost: Double,
+    val claimedBaseValue: Double,
+    val thisClaimPercent: Double = 0.0,
+    val thisClaimValue: Double = 0.0,
+    val previouslyCertifiedValue: Double = 0.0,
+    val cumulativeValue: Double = claimedBaseValue
 )
 
 /**
@@ -58,7 +75,9 @@ data class CalculatedValuation(
     val grandInvoiceTotal: Double,
     val claimedScopeCount: Int,
     val claimedVoCount: Int,
-    val traceSteps: List<CalculationTraceStep>
+    val traceSteps: List<CalculationTraceStep>,
+    val previouslyCertifiedBaseTotal: Double = 0.0,
+    val cumulativeBaseTotal: Double = subtotalBaseClaimed
 )
 
 /**
@@ -91,10 +110,38 @@ object MastorCalculationEngine {
     fun calculateScopeElement(scopeElement: ScopeElement): CalculatedScopeElement {
         val baseCost = roundMoney(scopeElement.qty * scopeElement.rate)
         val claimedBaseValue = roundMoney(baseCost * (scopeElement.claimPercent / 100.0))
+        val thisClaimPercent = (scopeElement.claimPercent - scopeElement.previouslyCertifiedPercent).coerceAtLeast(0.0)
+        val thisClaimValue = roundMoney(baseCost * (thisClaimPercent / 100.0))
+        val previouslyCertifiedValue = roundMoney(baseCost * (scopeElement.previouslyCertifiedPercent / 100.0))
         return CalculatedScopeElement(
             entity = scopeElement,
             baseCost = baseCost,
-            claimedBaseValue = claimedBaseValue
+            claimedBaseValue = claimedBaseValue,
+            thisClaimPercent = thisClaimPercent,
+            thisClaimValue = thisClaimValue,
+            previouslyCertifiedValue = previouslyCertifiedValue,
+            cumulativeValue = claimedBaseValue
+        )
+    }
+
+    /**
+     * Calculate single Variation Order figures.
+     */
+    fun calculateVariationOrder(vo: VariationOrder): CalculatedVariationOrder {
+        val baseCost = roundMoney(vo.qty * vo.rate)
+        val effectiveClaimPercent = if (vo.tick && vo.claimPercent <= 0.0) 100.0 else vo.claimPercent
+        val claimedBaseValue = roundMoney(baseCost * (effectiveClaimPercent / 100.0))
+        val thisClaimPercent = (effectiveClaimPercent - vo.previouslyCertifiedPercent).coerceAtLeast(0.0)
+        val thisClaimValue = roundMoney(baseCost * (thisClaimPercent / 100.0))
+        val previouslyCertifiedValue = roundMoney(baseCost * (vo.previouslyCertifiedPercent / 100.0))
+        return CalculatedVariationOrder(
+            entity = vo,
+            baseCost = baseCost,
+            claimedBaseValue = claimedBaseValue,
+            thisClaimPercent = thisClaimPercent,
+            thisClaimValue = thisClaimValue,
+            previouslyCertifiedValue = previouslyCertifiedValue,
+            cumulativeValue = claimedBaseValue
         )
     }
 
@@ -196,9 +243,20 @@ object MastorCalculationEngine {
         variationOrders: List<VariationOrder>,
         project: Project
     ): CalculatedValuation {
-        // Filter elements attached to this valuation
-        val valScopes = scopeElements.filter { it.currentValuationId == valuation.id }
-        val valVos = variationOrders.filter { it.currentValuationId == valuation.id && it.tick }
+        // Filter elements attached to this valuation, or available project elements for draft/history
+        val valScopes = scopeElements.filter {
+            it.currentValuationId == valuation.id ||
+            (valuation.status.equals("Draft", ignoreCase = true) && (it.currentValuationId == null || it.currentValuationId == valuation.id))
+        }.ifEmpty {
+            scopeElements
+        }
+
+        val valVos = variationOrders.filter {
+            it.tick && (it.currentValuationId == valuation.id ||
+            (valuation.status.equals("Draft", ignoreCase = true) && (it.currentValuationId == null || it.currentValuationId == valuation.id)))
+        }.ifEmpty {
+            variationOrders.filter { it.tick }
+        }
 
         // This valuation increment = (percent_claimed_to_date - previously_certified_percent) * baseCost
         val scopeBaseClaimedTotal = roundMoney(
@@ -220,47 +278,81 @@ object MastorCalculationEngine {
 
         val subtotalBaseClaimed = roundMoney(scopeBaseClaimedTotal + voBaseClaimedTotal)
 
+        // Uplifts applied to this period claim only (incremental, not cumulative)
         val (u1Amount, u2Amount, grandInvoiceTotal) = calculateProjectUplifts(
             baseAmount = subtotalBaseClaimed,
             uplift1Percent = project.uplift1Percent,
             uplift2Percent = project.uplift2Percent
         )
 
+        val scopePrevCertifiedTotal = roundMoney(
+            valScopes.sumOf { elem ->
+                val baseCost = elem.qty * elem.rate
+                roundMoney(baseCost * (elem.previouslyCertifiedPercent / 100.0))
+            }
+        )
+        val voPrevCertifiedTotal = roundMoney(
+            valVos.sumOf { vo ->
+                val baseCost = vo.qty * vo.rate
+                roundMoney(baseCost * (vo.previouslyCertifiedPercent / 100.0))
+            }
+        )
+        val previouslyCertifiedBaseTotal = roundMoney(scopePrevCertifiedTotal + voPrevCertifiedTotal)
+        val cumulativeBaseTotal = roundMoney(previouslyCertifiedBaseTotal + subtotalBaseClaimed)
+
+        val claimedScopeCount = valScopes.count { (it.claimPercent - it.previouslyCertifiedPercent) > 0.0 }
+        val claimedVoCount = valVos.count {
+            val voClaimPercent = if (it.tick) (if (it.claimPercent <= 0.0) 100.0 else it.claimPercent) else 0.0
+            (voClaimPercent - it.previouslyCertifiedPercent) > 0.0
+        }
+
         val traceSteps = listOf(
             CalculationTraceStep(
-                title = "Scope Elements Base Claimed",
-                formula = "Sum(Scope Element qty × rate × claim_percent)",
-                inputsDescription = "${valScopes.size} Scope Elements attached to Valuation ${valuation.valuationNumber}",
+                title = "Scope Elements This Period Claim",
+                formula = "Sum(qty × rate × (claim% - previously_certified%))",
+                inputsDescription = "$claimedScopeCount Scope Elements claiming new progress in Valuation ${valuation.valuationNumber}",
                 resultFormatted = formatCurrency(scopeBaseClaimedTotal)
             ),
             CalculationTraceStep(
-                title = "Variation Orders Base Claimed",
-                formula = "Sum(VO qty × rate where tick = true)",
-                inputsDescription = "${valVos.size} Variation Orders attached & ticked",
+                title = "Variation Orders This Period Claim",
+                formula = "Sum(qty × rate × (claim% - previously_certified%) where tick = true)",
+                inputsDescription = "$claimedVoCount Variation Orders attached & claiming new progress",
                 resultFormatted = formatCurrency(voBaseClaimedTotal)
             ),
             CalculationTraceStep(
-                title = "Subtotal Base Claimed",
-                formula = "Scope Claimed + VO Claimed",
+                title = "This Period Claim (Subtotal)",
+                formula = "Scope Incremental + VO Incremental",
                 inputsDescription = "${formatCurrency(scopeBaseClaimedTotal)} + ${formatCurrency(voBaseClaimedTotal)}",
                 resultFormatted = formatCurrency(subtotalBaseClaimed)
             ),
             CalculationTraceStep(
-                title = "Uplift 1 (${project.uplift1Percent}%)",
-                formula = "Subtotal Base Claimed × ${project.uplift1Percent}%",
-                inputsDescription = "Centrally stored project uplift 1",
+                title = "Previously Certified Total",
+                formula = "Sum(qty × rate × previously_certified%)",
+                inputsDescription = "Frozen baseline from previous valuations",
+                resultFormatted = formatCurrency(previouslyCertifiedBaseTotal)
+            ),
+            CalculationTraceStep(
+                title = "Cumulative Certified To Date",
+                formula = "Previously Certified + This Period Claim",
+                inputsDescription = "${formatCurrency(previouslyCertifiedBaseTotal)} + ${formatCurrency(subtotalBaseClaimed)}",
+                resultFormatted = formatCurrency(cumulativeBaseTotal)
+            ),
+            CalculationTraceStep(
+                title = "Uplift 1 (${project.uplift1Percent}%) on This Period",
+                formula = "This Period Claim × ${project.uplift1Percent}%",
+                inputsDescription = "Centrally stored project uplift 1 applied to this period",
                 resultFormatted = formatCurrency(u1Amount)
             ),
             CalculationTraceStep(
-                title = "Uplift 2 (${project.uplift2Percent}%)",
-                formula = "(Subtotal Base + Uplift 1) × ${project.uplift2Percent}%",
-                inputsDescription = "Centrally stored project uplift 2",
+                title = "Uplift 2 (${project.uplift2Percent}%) on This Period",
+                formula = "(This Period Claim + Uplift 1) × ${project.uplift2Percent}%",
+                inputsDescription = "Centrally stored project uplift 2 applied to this period",
                 resultFormatted = formatCurrency(u2Amount)
             ),
             CalculationTraceStep(
-                title = "Grand Invoice Total",
-                formula = "Subtotal Base + Uplift 1 + Uplift 2",
-                inputsDescription = "Final live calculated valuation invoice amount",
+                title = "Gross Invoice Total",
+                formula = "This Period Claim + Uplifts on This Period",
+                inputsDescription = "Final live calculated invoice total for this period",
                 resultFormatted = formatCurrency(grandInvoiceTotal)
             )
         )
@@ -275,9 +367,11 @@ object MastorCalculationEngine {
             uplift2Percent = project.uplift2Percent,
             uplift2Amount = u2Amount,
             grandInvoiceTotal = grandInvoiceTotal,
-            claimedScopeCount = valScopes.size,
-            claimedVoCount = valVos.size,
-            traceSteps = traceSteps
+            claimedScopeCount = claimedScopeCount,
+            claimedVoCount = claimedVoCount,
+            traceSteps = traceSteps,
+            previouslyCertifiedBaseTotal = previouslyCertifiedBaseTotal,
+            cumulativeBaseTotal = cumulativeBaseTotal
         )
     }
 }

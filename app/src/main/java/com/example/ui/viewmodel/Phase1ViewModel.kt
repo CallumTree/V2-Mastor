@@ -22,17 +22,22 @@ import com.example.domain.audio.ScopeMatcher
 import com.example.domain.calculation.CalculatedValuation
 import com.example.domain.calculation.CalculatedWorkOrder
 import com.example.domain.calculation.CalculationTraceStep
+import com.example.domain.invoice.InvoiceGenerator
 import com.example.domain.sync.ConflictStrategy
 import com.example.domain.sync.SyncResult
 import com.example.domain.sync.WorkOrderSyncConflict
 import com.example.domain.sync.WorkOrderSyncService
 import com.example.domain.sync.WorkOrderSyncState
+import java.io.File
+import android.content.Context
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -95,6 +100,20 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
     private val _isAnalyzingDiary = MutableStateFlow(false)
     private val _isOfflineMode = MutableStateFlow(false)
     private val _lastMatchSummary = MutableStateFlow<ScopeMatchSummary?>(null)
+
+    private val _generatedInvoiceFile = MutableStateFlow<File?>(null)
+    val generatedInvoiceFile: StateFlow<File?> = _generatedInvoiceFile.asStateFlow()
+
+    private val _invoiceError = MutableStateFlow<String?>(null)
+    val invoiceError: StateFlow<String?> = _invoiceError.asStateFlow()
+
+    fun clearGeneratedInvoiceFile() {
+        _generatedInvoiceFile.value = null
+    }
+
+    fun clearInvoiceError() {
+        _invoiceError.value = null
+    }
 
     val lastMatchSummary: StateFlow<ScopeMatchSummary?> = _lastMatchSummary
 
@@ -209,6 +228,14 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
     fun updateScopeClaimPercent(scopeId: String, claimPercent: Double) {
         viewModelScope.launch {
             repository.updateScopeElementClaimPercent(scopeId, claimPercent)
+            val currentValId = valuationId
+            if (currentValId != null) {
+                val element = uiState.value.scopeElements.firstOrNull { it.id == scopeId }
+                val prev = element?.previouslyCertifiedPercent ?: 0.0
+                if (claimPercent > prev) {
+                    repository.linkScopeElementToValuation(scopeId, currentValId)
+                }
+            }
         }
     }
 
@@ -220,6 +247,14 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 100.0
             }
             repository.updateScopeElementClaimPercent(scopeElement.id, target)
+            val currentValId = valuationId
+            if (currentValId != null) {
+                if (target > scopeElement.previouslyCertifiedPercent) {
+                    repository.linkScopeElementToValuation(scopeElement.id, currentValId)
+                } else {
+                    repository.unlinkScopeElementFromValuation(scopeElement.id)
+                }
+            }
         }
     }
 
@@ -536,13 +571,20 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
 
     fun toggleVariationOrderTick(vo: VariationOrder) {
         viewModelScope.launch {
-            repository.updateVariationOrder(vo.copy(tick = !vo.tick))
+            val newTick = !vo.tick
+            val currentValId = valuationId
+            repository.updateVariationOrder(
+                vo.copy(
+                    tick = newTick,
+                    currentValuationId = if (newTick) (vo.currentValuationId ?: currentValId) else null
+                )
+            )
         }
     }
 
     fun revertVoToUnclaimed(vo: VariationOrder) {
         viewModelScope.launch {
-            repository.updateVariationOrder(vo.copy(tick = false))
+            repository.updateVariationOrder(vo.copy(tick = false, claimPercent = 0.0, currentValuationId = null))
         }
     }
 
@@ -606,6 +648,47 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun approveVariationToValuation(vo: VariationOrder) {
+        viewModelScope.launch {
+            repository.updateVariationOrderClaimPercent(vo.id, 100.0)
+            if (vo.status != "VO Completed") {
+                repository.updateVariationOrder(vo.copy(status = "VO Completed", claimPercent = 100.0))
+            }
+            val activeDraftValuationId = repository.getActiveDraftValuationId(projectId)
+            if (activeDraftValuationId != null && vo.currentValuationId == null) {
+                repository.linkVariationOrderToValuation(vo.id, activeDraftValuationId)
+            }
+            _lastMatchSummary.value = ScopeMatchSummary(
+                matched = 1,
+                skipped = 0,
+                results = emptyList()
+            )
+        }
+    }
+
+    fun approveAllCompletedVariationsToValuation() {
+        viewModelScope.launch {
+            val completedVos = repository.getCompletedVariationOrdersForProject(projectId)
+                .filter { it.currentValuationId == null }
+            val activeDraftValuationId = repository.getActiveDraftValuationId(projectId)
+
+            var matchedCount = 0
+            for (vo in completedVos) {
+                repository.updateVariationOrderClaimPercent(vo.id, 100.0)
+                if (activeDraftValuationId != null) {
+                    repository.linkVariationOrderToValuation(vo.id, activeDraftValuationId)
+                }
+                matchedCount++
+            }
+
+            _lastMatchSummary.value = ScopeMatchSummary(
+                matched = matchedCount,
+                skipped = 0,
+                results = emptyList()
+            )
+        }
+    }
+
     fun updateValuationStatus(newStatus: String) {
         viewModelScope.launch {
             val currentVal = uiState.value.valuation?.entity
@@ -635,6 +718,58 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 if (newStatus == "Invoiced") {
                     repository.lockInvoicedValuation(matchingVal.id)
                 }
+            }
+        }
+    }
+
+    fun invoiceValuation(valuationId: String) {
+        updateValuationStatusById(valuationId, "Invoiced")
+    }
+
+    fun finaliseValuation(valuationId: String) {
+        updateValuationStatusById(valuationId, "Invoiced")
+    }
+
+    fun generateInvoicePdf(context: Context, targetValuationId: String? = null) {
+        viewModelScope.launch {
+            try {
+                val state = uiState.value
+                val project = state.project ?: repository.getProject(projectId).firstOrNull()
+                    ?: throw IllegalStateException("No active project found.")
+
+                val targetValuation = if (targetValuationId != null) {
+                    state.allValuations.firstOrNull { it.entity.id == targetValuationId }?.entity
+                } else {
+                    state.allValuations.firstOrNull { it.entity.status.equals("Invoiced", ignoreCase = true) }?.entity
+                        ?: state.valuation?.entity
+                } ?: throw IllegalStateException("No finalised or invoiced valuation found.")
+
+                val scopeItems = if (targetValuationId != null) {
+                    val direct = db.mastorDao().getScopeElementsForValuation(targetValuationId).firstOrNull()
+                    if (!direct.isNullOrEmpty()) direct else state.scopeElements
+                } else {
+                    state.scopeElements
+                }
+
+                val variationItems = if (targetValuationId != null) {
+                    val direct = db.mastorDao().getVariationOrdersForValuation(targetValuationId).firstOrNull()
+                    if (!direct.isNullOrEmpty()) direct else state.variationOrders
+                } else {
+                    state.variationOrders
+                }
+
+                val totalUplift = project.uplift1Percent + project.uplift2Percent
+                val file = InvoiceGenerator.generateInvoicePdf(
+                    context = context,
+                    project = project,
+                    valuation = targetValuation,
+                    scopeItems = scopeItems,
+                    variationItems = variationItems,
+                    upliftPercent = totalUplift
+                )
+                _generatedInvoiceFile.value = file
+            } catch (e: Exception) {
+                _invoiceError.value = e.message ?: "Failed to generate PDF invoice"
             }
         }
     }

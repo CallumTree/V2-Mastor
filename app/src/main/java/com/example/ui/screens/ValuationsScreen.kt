@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -46,10 +47,12 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
@@ -58,6 +61,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -71,11 +75,13 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.entity.Project
 import com.example.data.entity.ScopeElement
@@ -111,6 +117,56 @@ import com.example.ui.theme.StatusPendingAmber
 import com.example.ui.theme.StatusPendingBg
 import com.example.ui.viewmodel.Phase1ViewModel
 
+sealed class ValuationLineItem {
+    data class ScopeLineItem(val element: ScopeElement) : ValuationLineItem()
+    data class VariationLineItem(val vo: VariationOrder) : ValuationLineItem()
+
+    val baseCost: Double
+        get() = when (this) {
+            is ScopeLineItem -> MastorCalculationEngine.roundMoney(element.qty * element.rate)
+            is VariationLineItem -> MastorCalculationEngine.roundMoney(vo.qty * vo.rate)
+        }
+
+    val claimPercent: Double
+        get() = when (this) {
+            is ScopeLineItem -> element.claimPercent
+            is VariationLineItem -> if (vo.tick && vo.claimPercent <= 0.0) 100.0 else vo.claimPercent
+        }
+
+    val previouslyCertifiedPercent: Double
+        get() = when (this) {
+            is ScopeLineItem -> element.previouslyCertifiedPercent
+            is VariationLineItem -> vo.previouslyCertifiedPercent
+        }
+
+    val thisClaimPercent: Double
+        get() = (claimPercent - previouslyCertifiedPercent).coerceAtLeast(0.0)
+
+    val thisClaimValue: Double
+        get() = when (this) {
+            is ScopeLineItem -> MastorCalculationEngine.roundMoney(element.qty * element.rate * (thisClaimPercent / 100.0))
+            is VariationLineItem -> MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (thisClaimPercent / 100.0))
+        }
+
+    val previouslyCertifiedValue: Double
+        get() = when (this) {
+            is ScopeLineItem -> MastorCalculationEngine.roundMoney(element.qty * element.rate * (previouslyCertifiedPercent / 100.0))
+            is VariationLineItem -> MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (previouslyCertifiedPercent / 100.0))
+        }
+
+    val cumulativeValue: Double
+        get() = when (this) {
+            is ScopeLineItem -> MastorCalculationEngine.roundMoney(element.qty * element.rate * (element.claimPercent / 100.0))
+            is VariationLineItem -> {
+                val eff = if (vo.tick && vo.claimPercent <= 0.0) 100.0 else vo.claimPercent
+                MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (eff / 100.0))
+            }
+        }
+
+    val claimValue: Double
+        get() = thisClaimValue
+}
+
 @Composable
 fun ValuationsScreen(
     viewModel: Phase1ViewModel,
@@ -120,7 +176,34 @@ fun ValuationsScreen(
     variationOrders: List<VariationOrder>,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val generatedInvoiceFile by viewModel.generatedInvoiceFile.collectAsStateWithLifecycle()
+    val invoiceError by viewModel.invoiceError.collectAsStateWithLifecycle()
+
+    LaunchedEffect(generatedInvoiceFile) {
+        val file = generatedInvoiceFile ?: return@LaunchedEffect
+        try {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "Interim Valuation Certificate - ${file.nameWithoutExtension}")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(shareIntent, "Share Interim Valuation Certificate")
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            // Error handling
+        } finally {
+            viewModel.clearGeneratedInvoiceFile()
+        }
+    }
 
     val valuationsList = when {
         allValuations.isNotEmpty() -> allValuations
@@ -202,13 +285,13 @@ fun ValuationsScreen(
         AlertDialog(
             onDismissRequest = { scopeToDelete = null },
             icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = Color(0xFFDC2626)) },
-            title = { Text("Reset Scope Claim?") },
+            title = { Text("Remove Scope Item?") },
             text = {
-                Text("Reset '${scope.code} - ${scope.description}' to 0% unclaimed.")
+                Text("Remove '${scope.code} - ${scope.description}' from this valuation claim?")
             },
             confirmButton = {
                 MastorButton(
-                    text = "Reset to 0%",
+                    text = "Remove",
                     onClick = {
                         viewModel.revertScopeToUnclaimed(scope.id)
                         scopeToDelete = null
@@ -228,11 +311,11 @@ fun ValuationsScreen(
             icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = Color(0xFFDC2626)) },
             title = { Text("Remove Variation?") },
             text = {
-                Text("Remove '${vo.voNumber} - ${vo.description}' from this valuation claim.")
+                Text("Remove '${vo.voNumber} - ${vo.description}' from this valuation claim?")
             },
             confirmButton = {
                 MastorButton(
-                    text = "Untick Variation",
+                    text = "Remove",
                     onClick = {
                         viewModel.revertVoToUnclaimed(vo)
                         voToDelete = null
@@ -409,6 +492,47 @@ fun ValuationsScreen(
                 }
             }
 
+            invoiceError?.let { err ->
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFEE2E2),
+                    border = BorderStroke(1.dp, Color(0xFFEF4444))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFDC2626),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = err,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF991B1B),
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { viewModel.clearInvoiceError() },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss error",
+                                tint = Color(0xFF991B1B),
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             val tabs = listOf(
@@ -474,6 +598,9 @@ fun ValuationsScreen(
                         }
                     },
                     onExportExcel = { valuationForExcelExport = calcVal },
+                    onGeneratePdfInvoice = {
+                        viewModel.generateInvoicePdf(context, calcVal.entity.id)
+                    },
                     onShowTrace = {
                         viewModel.showTrace(
                             title = "$fullValuationHeader Calculation Audit",
@@ -502,6 +629,7 @@ private fun CollapsibleValuationCard(
     onToggleExpand: () -> Unit,
     onIssueInvoice: () -> Unit,
     onExportExcel: () -> Unit,
+    onGeneratePdfInvoice: () -> Unit = {},
     onShowTrace: () -> Unit,
     onToggleScope: (ScopeElement) -> Unit,
     onUpdateScopePercent: (String, Double) -> Unit,
@@ -818,6 +946,35 @@ private fun CollapsibleValuationCard(
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedButton(
+                            onClick = onGeneratePdfInvoice,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("generate_pdf_invoice_button_${valuation.id}"),
+                            border = BorderStroke(1.5.dp, MastorGold),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MastorGold
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ReceiptLong,
+                                contentDescription = null,
+                                tint = MastorGold,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Generate PDF Invoice",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorGold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -875,7 +1032,30 @@ private fun CollapsibleValuationCard(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Section 1: Scope Elements
+                    // Unified Claim Items mapping
+                    val scopeLineItems = scopeElements.map { ValuationLineItem.ScopeLineItem(it) }
+                    val variationLineItems = variationOrders.map { ValuationLineItem.VariationLineItem(it) }
+                    val allLineItems: List<ValuationLineItem> = scopeLineItems + variationLineItems
+
+                    // Running totals for claim items
+                    val previouslyCertifiedTotal = MastorCalculationEngine.roundMoney(
+                        allLineItems.sumOf { it.previouslyCertifiedValue }
+                    )
+                    val thisPeriodClaimTotal = MastorCalculationEngine.roundMoney(
+                        allLineItems.sumOf { it.thisClaimValue }
+                    )
+                    val cumulativeCertifiedTotal = MastorCalculationEngine.roundMoney(
+                        previouslyCertifiedTotal + thisPeriodClaimTotal
+                    )
+
+                    val (u1Amount, u2Amount, grossInvoiceTotal) = MastorCalculationEngine.calculateProjectUplifts(
+                        baseAmount = thisPeriodClaimTotal,
+                        uplift1Percent = calculatedValuation.uplift1Percent,
+                        uplift2Percent = calculatedValuation.uplift2Percent
+                    )
+                    val upliftsOnThisPeriod = MastorCalculationEngine.roundMoney(u1Amount + u2Amount)
+
+                    // Section 1: CONTRACT SCOPE
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -885,10 +1065,11 @@ private fun CollapsibleValuationCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Scope Elements (${scopeElements.size})",
-                            style = MaterialTheme.typography.titleSmall,
+                            text = "CONTRACT SCOPE (${scopeLineItems.size})",
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorSlateMuted,
+                            letterSpacing = 0.5.sp
                         )
                         Icon(
                             imageVector = if (isSection1Expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -903,14 +1084,15 @@ private fun CollapsibleValuationCard(
                             modifier = Modifier.padding(top = 6.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (scopeElements.isEmpty()) {
+                            if (scopeLineItems.isEmpty()) {
                                 Text(
                                     text = "No contract scope items.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MastorSlateMuted
                                 )
                             } else {
-                                scopeElements.forEach { scope ->
+                                scopeLineItems.forEach { item ->
+                                    val scope = item.element
                                     val calculatedScope = MastorCalculationEngine.calculateScopeElement(scope)
                                     val isClaimed = scope.claimPercent > 0.0
 
@@ -928,9 +1110,9 @@ private fun CollapsibleValuationCard(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Section 2: Variation Orders
+                    // Section 2: VARIATION ORDERS with Amber accent
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -939,12 +1121,21 @@ private fun CollapsibleValuationCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Variation Orders (${variationOrders.count { it.tick }}/${variationOrders.size})",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 3.dp, height = 12.dp)
+                                    .background(StatusPendingAmber, RoundedCornerShape(2.dp))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "VARIATION ORDERS (${variationLineItems.count { it.vo.tick || it.vo.claimPercent > 0.0 }}/${variationLineItems.size})",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = StatusPendingAmber,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
                         Icon(
                             imageVector = if (isSection2Expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = null,
@@ -958,14 +1149,15 @@ private fun CollapsibleValuationCard(
                             modifier = Modifier.padding(top = 6.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (variationOrders.isEmpty()) {
+                            if (variationLineItems.isEmpty()) {
                                 Text(
                                     text = "No variation orders for this project.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MastorSlateMuted
                                 )
                             } else {
-                                variationOrders.forEach { vo ->
+                                variationLineItems.forEach { item ->
+                                    val vo = item.vo
                                     VoValuationItemCard(
                                         vo = vo,
                                         isDisabled = isInvoiced,
@@ -973,6 +1165,67 @@ private fun CollapsibleValuationCard(
                                         onDelete = { onRevertVo(vo) }
                                     )
                                 }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Running Totals Summary Card at bottom of expanded panel
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = MastorBackgroundLight,
+                        border = BorderStroke(1.dp, MastorSlateBorder)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "VALUATION TOTALS",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorSlateMuted,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            ReceiptRow(
+                                label = "Previously Certified Total",
+                                value = MastorCalculationEngine.formatCurrency(previouslyCertifiedTotal),
+                                isMuted = true
+                            )
+                            ReceiptRow(
+                                label = "This Period Claim",
+                                value = MastorCalculationEngine.formatCurrency(thisPeriodClaimTotal),
+                                isBold = true,
+                                valueColor = MastorGold
+                            )
+                            ReceiptRow(
+                                label = "Cumulative Certified",
+                                value = MastorCalculationEngine.formatCurrency(cumulativeCertifiedTotal)
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MastorSlateBorder.copy(alpha = 0.6f))
+                            ReceiptRow(
+                                label = "Uplifts on This Period (+${calculatedValuation.uplift1Percent}% / +${calculatedValuation.uplift2Percent}%)",
+                                value = "+ ${MastorCalculationEngine.formatCurrency(upliftsOnThisPeriod)}"
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = MastorSlateBorder)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Gross Invoice Total",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MastorSlateDark
+                                )
+                                Text(
+                                    text = MastorCalculationEngine.formatCurrency(grossInvoiceTotal),
+                                    style = FinancialLargeNumeralStyle,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MastorGold
+                                )
                             }
                         }
                     }
@@ -996,6 +1249,9 @@ private fun ScopeValuationItemCard(
     onDelete: () -> Unit
 ) {
     val thisClaimPercent = (scope.claimPercent - scope.previouslyCertifiedPercent).coerceAtLeast(0.0)
+    val thisClaimValue = MastorCalculationEngine.roundMoney(scope.qty * scope.rate * (thisClaimPercent / 100.0))
+    val previouslyCertifiedValue = MastorCalculationEngine.roundMoney(scope.qty * scope.rate * (scope.previouslyCertifiedPercent / 100.0))
+    val cumulativeValue = MastorCalculationEngine.roundMoney(scope.qty * scope.rate * (scope.claimPercent / 100.0))
 
     Surface(
         modifier = Modifier
@@ -1086,13 +1342,25 @@ private fun ScopeValuationItemCard(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = MastorCalculationEngine.formatCurrency(calculatedScope.claimedBaseValue),
+                        text = "This Period: ${MastorCalculationEngine.formatCurrency(thisClaimValue)}",
                         style = FinancialMediumNumeralStyle,
                         fontWeight = FontWeight.Bold,
-                        color = if (isClaimed) StatusClaimedGreen else MastorSlateDark
+                        color = MastorGold
                     )
                     Text(
-                        text = "${scope.claimPercent.toInt()}% total (${thisClaimPercent.toInt()}% this claim)",
+                        text = "Previously Certified: ${MastorCalculationEngine.formatCurrency(previouslyCertifiedValue)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 11.sp,
+                        color = MastorSlateMuted
+                    )
+                    Text(
+                        text = "Cumulative: ${MastorCalculationEngine.formatCurrency(cumulativeValue)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 11.sp,
+                        color = MastorSlateDark
+                    )
+                    Text(
+                        text = "${scope.claimPercent.toInt()}% claimed",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isClaimed) StatusClaimedGreen else MastorSlateMuted,
                         fontWeight = FontWeight.SemiBold
@@ -1140,17 +1408,21 @@ private fun ScopeValuationItemCard(
                     }
 
                     if (isClaimed) {
-                        IconButton(
+                        TextButton(
                             onClick = onDelete,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .testTag("revert_scope_${scope.id}")
+                            modifier = Modifier.testTag("revert_scope_${scope.id}")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Reset",
+                                contentDescription = "Remove",
                                 tint = MastorSlateMuted,
                                 modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Remove",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MastorSlateMuted
                             )
                         }
                     }
@@ -1170,7 +1442,11 @@ private fun VoValuationItemCard(
     onToggleTick: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val totalVoBaseValue = MastorCalculationEngine.roundMoney(vo.qty * vo.rate)
+    val effectiveClaimPercent = if (vo.tick && vo.claimPercent <= 0.0) 100.0 else vo.claimPercent
+    val thisClaimPercent = (effectiveClaimPercent - vo.previouslyCertifiedPercent).coerceAtLeast(0.0)
+    val thisClaimValue = MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (thisClaimPercent / 100.0))
+    val previouslyCertifiedValue = MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (vo.previouslyCertifiedPercent / 100.0))
+    val cumulativeValue = MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (effectiveClaimPercent / 100.0))
 
     Surface(
         modifier = Modifier
@@ -1180,7 +1456,7 @@ private fun VoValuationItemCard(
         color = MastorSurfaceLight,
         border = BorderStroke(
             1.dp,
-            if (vo.tick) StatusClaimedGreen.copy(alpha = 0.35f) else MastorSlateBorder
+            if (vo.tick || vo.claimPercent > 0.0) StatusClaimedGreen.copy(alpha = 0.35f) else MastorSlateBorder
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -1194,7 +1470,7 @@ private fun VoValuationItemCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Checkbox(
-                        checked = vo.tick,
+                        checked = vo.tick || vo.claimPercent > 0.0,
                         onCheckedChange = { if (!isDisabled) onToggleTick() },
                         enabled = !isDisabled,
                         colors = CheckboxDefaults.colors(
@@ -1255,17 +1531,59 @@ private fun VoValuationItemCard(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = MastorCalculationEngine.formatCurrency(totalVoBaseValue),
+                        text = "This Period: ${MastorCalculationEngine.formatCurrency(thisClaimValue)}",
                         style = FinancialMediumNumeralStyle,
                         fontWeight = FontWeight.Bold,
-                        color = if (vo.tick) StatusClaimedGreen else MastorSlateDark
+                        color = MastorGold
                     )
                     Text(
-                        text = if (vo.tick) "Included (100%)" else "Unticked (0%)",
+                        text = "Previously Certified: ${MastorCalculationEngine.formatCurrency(previouslyCertifiedValue)}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (vo.tick) StatusClaimedGreen else MastorSlateMuted,
+                        fontSize = 11.sp,
+                        color = MastorSlateMuted
+                    )
+                    Text(
+                        text = "Cumulative: ${MastorCalculationEngine.formatCurrency(cumulativeValue)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 11.sp,
+                        color = MastorSlateDark
+                    )
+                    Text(
+                        text = "${effectiveClaimPercent.toInt()}% claimed",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (vo.claimPercent > 0.0 || vo.tick) StatusClaimedGreen else MastorSlateMuted,
                         fontWeight = FontWeight.SemiBold
                     )
+                }
+            }
+
+            if (!isDisabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = MastorSlateBorder.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = onDelete,
+                        modifier = Modifier.testTag("remove_vo_${vo.id}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Remove",
+                            tint = MastorSlateMuted,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Remove",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MastorSlateMuted
+                        )
+                    }
                 }
             }
         }
@@ -1276,7 +1594,9 @@ private fun VoValuationItemCard(
 private fun ReceiptRow(
     label: String,
     value: String,
-    isBold: Boolean = false
+    isBold: Boolean = false,
+    isMuted: Boolean = false,
+    valueColor: Color = MastorSlateDark
 ) {
     Row(
         modifier = Modifier
@@ -1289,13 +1609,13 @@ private fun ReceiptRow(
             text = label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-            color = MastorSlateText
+            color = if (isMuted) MastorSlateMuted else MastorSlateText
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.SemiBold,
-            color = MastorSlateDark
+            color = if (isMuted) MastorSlateMuted else valueColor
         )
     }
 }

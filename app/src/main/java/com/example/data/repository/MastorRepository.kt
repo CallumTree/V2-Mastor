@@ -270,6 +270,14 @@ class MastorRepository(private val dao: MastorDao) {
         withContext(Dispatchers.IO) {
             dao.lockInvoicedScopeElements(valuationId)
             dao.lockInvoicedVariationOrders(valuationId)
+            dao.unlinkInvoicedScopeElements(valuationId)
+            dao.unlinkInvoicedVariationOrders(valuationId)
+        }
+    }
+
+    suspend fun unlinkScopeElementFromValuation(id: String) {
+        withContext(Dispatchers.IO) {
+            dao.unlinkScopeElementFromValuation(id)
         }
     }
 
@@ -301,6 +309,24 @@ class MastorRepository(private val dao: MastorDao) {
     suspend fun updateVoStatusByNumber(voNumber: String, status: String) {
         withContext(Dispatchers.IO) {
             dao.updateVoStatusByNumber(voNumber, status)
+        }
+    }
+
+    suspend fun updateVariationOrderClaimPercent(id: String, claimPercent: Double) {
+        withContext(Dispatchers.IO) {
+            dao.updateVariationOrderClaimPercent(id, claimPercent.coerceIn(0.0, 100.0))
+        }
+    }
+
+    suspend fun linkVariationOrderToValuation(id: String, valuationId: String) {
+        withContext(Dispatchers.IO) {
+            dao.linkVariationOrderToValuation(id, valuationId)
+        }
+    }
+
+    suspend fun getCompletedVariationOrdersForProject(projectId: String): List<VariationOrder> {
+        return withContext(Dispatchers.IO) {
+            dao.getCompletedVariationOrdersForProject(projectId)
         }
     }
 

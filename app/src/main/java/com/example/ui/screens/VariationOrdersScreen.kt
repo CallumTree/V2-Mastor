@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -38,6 +39,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -49,10 +52,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -130,6 +136,27 @@ fun VariationOrdersScreen(
     // Group variation orders by voNumber (representing one ticket card)
     val groupedTickets = remember(variationOrders) {
         variationOrders.groupBy { it.voNumber }
+    }
+
+    // Auto-dismissing match summary banner state
+    val matchSummary by viewModel.lastMatchSummary.collectAsState()
+    var showMatchBanner by remember { mutableStateOf(false) }
+
+    LaunchedEffect(matchSummary) {
+        if (matchSummary != null) {
+            showMatchBanner = true
+            delay(5000)
+            showMatchBanner = false
+            viewModel.clearMatchSummary()
+        }
+    }
+
+    // Count of completed VOs not yet linked to a draft valuation
+    val unlinkedCompletedVosCount = remember(variationOrders) {
+        variationOrders.filter { it.status == "VO Completed" && it.currentValuationId == null }
+            .map { it.voNumber }
+            .distinct()
+            .size
     }
 
     // Confirmation dialog for deleting a whole ticket
@@ -220,6 +247,64 @@ fun VariationOrdersScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Auto-dismissing 5-second Match Summary Banner
+        if (showMatchBanner && matchSummary != null) {
+            val summary = matchSummary!!
+            val isSuccess = summary.matched > 0
+            val bannerBg = if (isSuccess) StatusClaimedBg else StatusPendingBg
+            val bannerBorder = if (isSuccess) StatusClaimedGreen.copy(alpha = 0.4f) else StatusPendingAmber.copy(alpha = 0.4f)
+            val bannerIconColor = if (isSuccess) StatusClaimedGreen else StatusPendingAmber
+
+            item {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("vo_valuation_match_summary_banner"),
+                    shape = RoundedCornerShape(12.dp),
+                    color = bannerBg,
+                    border = BorderStroke(1.dp, bannerBorder)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = bannerIconColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = if (isSuccess) {
+                                "✓ ${summary.matched} variation orders added to your draft valuation"
+                            } else {
+                                "No variation orders added to valuation"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MastorSlateDark,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = {
+                                showMatchBanner = false
+                                viewModel.clearMatchSummary()
+                            },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = MastorSlateMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // Summary & Pipeline Header
         item {
             val totalBase = variationOrders.sumOf { it.qty * it.rate }
@@ -367,6 +452,36 @@ fun VariationOrdersScreen(
             }
         }
 
+        // Bulk Approve Banner: shows when there are 2 or more completed VOs not yet linked to a valuation
+        if (unlinkedCompletedVosCount >= 2) {
+            item {
+                Button(
+                    onClick = { viewModel.approveAllCompletedVariationsToValuation() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("approve_all_completed_vos_button"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MastorGold,
+                        contentColor = Color(0xFF0F172A)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Approve all $unlinkedCompletedVosCount completed VOs to valuation",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+
         if (groupedTickets.isEmpty()) {
             item {
                 Box(
@@ -410,6 +525,11 @@ fun VariationOrdersScreen(
                     },
                     onDeleteTicket = {
                         voTicketToDelete = voNumber
+                    },
+                    onApproveToValuation = {
+                        lines.forEach { line ->
+                            viewModel.approveVariationToValuation(line)
+                        }
                     }
                 )
             }
@@ -432,7 +552,8 @@ private fun VoTicketCard(
     onToggleLineTick: (VariationOrder) -> Unit,
     onAddLineToTicket: () -> Unit,
     onDeleteLine: (VariationOrder) -> Unit,
-    onDeleteTicket: () -> Unit
+    onDeleteTicket: () -> Unit,
+    onApproveToValuation: () -> Unit = {}
 ) {
     var isExpanded by remember { mutableStateOf(true) }
 
@@ -614,6 +735,71 @@ private fun VoTicketCard(
                         onClick = onAddLineToTicket,
                         modifier = Modifier.testTag("add_line_to_ticket_$voNumber")
                     )
+                }
+            }
+
+            // Valuation Approval Status / Action Row
+            val isVoCompleted = status == "VO Completed" || lines.all { it.status == "VO Completed" }
+            val isLinkedToValuation = lines.any { it.currentValuationId != null }
+
+            if (isVoCompleted) {
+                Spacer(modifier = Modifier.height(14.dp))
+                if (!isLinkedToValuation) {
+                    Button(
+                        onClick = onApproveToValuation,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("approve_vo_to_valuation_$voNumber"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MastorGold,
+                            contentColor = Color(0xFF0F172A)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Approve to Valuation",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("included_in_valuation_badge_$voNumber"),
+                        shape = RoundedCornerShape(10.dp),
+                        color = StatusClaimedBg,
+                        border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = StatusClaimedGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Included in Valuation",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = StatusClaimedGreen
+                            )
+                        }
+                    }
                 }
             }
         }

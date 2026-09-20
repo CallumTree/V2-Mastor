@@ -104,7 +104,7 @@ interface MastorDao {
     @Query("UPDATE scope_elements SET qty = :qty WHERE id = :id")
     suspend fun updateScopeElementQty(id: String, qty: Double)
 
-    @Query("UPDATE scope_elements SET claim_percent = previously_certified_percent WHERE id = :id")
+    @Query("UPDATE scope_elements SET claim_percent = previously_certified_percent, current_valuation_id = NULL WHERE id = :id")
     suspend fun revertScopeElementToUnclaimed(id: String)
 
     @Query("UPDATE scope_elements SET previously_certified_percent = claim_percent WHERE current_valuation_id = :valuationId")
@@ -112,6 +112,15 @@ interface MastorDao {
 
     @Query("UPDATE variation_orders SET previously_certified_percent = claim_percent WHERE current_valuation_id = :valuationId")
     suspend fun lockInvoicedVariationOrders(valuationId: String)
+
+    @Query("UPDATE scope_elements SET current_valuation_id = null WHERE current_valuation_id = :valuationId")
+    suspend fun unlinkInvoicedScopeElements(valuationId: String)
+
+    @Query("UPDATE variation_orders SET current_valuation_id = null WHERE current_valuation_id = :valuationId")
+    suspend fun unlinkInvoicedVariationOrders(valuationId: String)
+
+    @Query("UPDATE scope_elements SET current_valuation_id = NULL WHERE id = :id")
+    suspend fun unlinkScopeElementFromValuation(id: String)
 
 
     // --- Variation Orders ---
@@ -141,6 +150,15 @@ interface MastorDao {
 
     @Query("UPDATE variation_orders SET status = :status WHERE vo_number = :voNumber")
     suspend fun updateVoStatusByNumber(voNumber: String, status: String)
+
+    @Query("UPDATE variation_orders SET claim_percent = :claimPercent WHERE id = :id")
+    suspend fun updateVariationOrderClaimPercent(id: String, claimPercent: Double)
+
+    @Query("UPDATE variation_orders SET current_valuation_id = :valuationId WHERE id = :id")
+    suspend fun linkVariationOrderToValuation(id: String, valuationId: String)
+
+    @Query("SELECT * FROM variation_orders WHERE project_id = :projectId AND status = 'VO Completed'")
+    suspend fun getCompletedVariationOrdersForProject(projectId: String): List<VariationOrder>
 
 
     // --- Valuations ---
