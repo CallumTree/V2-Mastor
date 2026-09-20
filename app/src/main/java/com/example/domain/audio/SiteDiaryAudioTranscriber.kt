@@ -1,5 +1,6 @@
 package com.example.domain.audio
 
+import android.util.Log
 import com.example.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,11 +12,13 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-data class AudioDiaryAnalysis(
+data class SiteDiaryAudioAnalysis(
     val headline: String,
     val suggestedWoRef: String?,
     val suggestedStatus: String,
     val rawTranscription: String,
+    val weatherNotes: String,
+    val laborCount: Int,
     val tasks: List<String>,
     val todos: List<String>,
     val finishedItems: List<String>,
@@ -27,50 +30,76 @@ data class AudioDiaryAnalysis(
     fun finishedItemsAsJson(): String = JSONArray(finishedItems).toString()
 }
 
+// Legacy alias for compatibility
+typealias AudioDiaryAnalysis = SiteDiaryAudioAnalysis
+
 object SiteDiaryAudioTranscriber {
 
     private const val GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(25, TimeUnit.SECONDS)
-        .readTimeout(25, TimeUnit.SECONDS)
-        .writeTimeout(25, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
     private const val SYSTEM_PROMPT = """
-You are an expert UK Quantity Surveyor and Site Construction Manager audio transcription intelligence agent.
-Analyze the site manager or surveyor voice recording transcription.
-Extract structured construction diary insights:
-1. headline: Brief descriptive title of today's trade activities (e.g., 'Plastering & First Fix Chasing').
-2. suggestedWoRef: Suggested Work Order code if discernible (e.g., 'WO-001' or 'WO-002').
-3. suggestedStatus: 'Progress On Track', 'Material Delay', 'Weather Stoppage', or 'Safety Inspection Flag'.
-4. tasks: Array of ongoing physical site tasks mentioned.
-5. todos: Array of immediate action items, subbie follow-ups, or material orders.
-6. finishedItems: Array of completed milestone items ready for QS measurement or payment certification.
-7. valuationNotes: Specific observations relevant to interim valuations, milestone percentages, or £ values.
-8. taskScheduling: Trade sequencing and next trade handover advice.
+You are an expert UK Quantity Surveyor and Site Construction Manager audio transcription and commercial intelligence agent.
+When provided with an audio recording or speech text from a site manager:
+1. Transcribe verbatim what was spoken into 'rawTranscription'.
+2. Extract structured construction diary insights:
+   - headline: Brief descriptive title of today's trade activities (e.g., 'Plastering & First Fix Chasing').
+   - suggestedWoRef: Suggested Work Order code if discernible (e.g., 'WO-001' or 'WO-002').
+   - suggestedStatus: 'Progress On Track', 'Material Delay', 'Weather Stoppage', or 'Safety Inspection Flag'.
+   - weatherNotes: Observed site weather conditions (e.g., 'Overcast, 15°C', 'Light rain, 12°C', 'Dry & sunny, 20°C').
+   - laborCount: Integer number of operatives or tradespeople mentioned on site (default to 4 if unstated).
+   - tasks: Array of ongoing physical site tasks mentioned.
+   - todos: Array of immediate action items, subbie follow-ups, or material orders.
+   - finishedItems: Array of completed milestone items ready for QS measurement or payment certification.
+   - valuationNotes: Specific observations relevant to interim valuations, milestone percentages, or £ values.
+   - taskScheduling: Trade sequencing and next trade handover advice.
 
 Respond strictly in JSON matching the schema.
 """
 
-    suspend fun analyzeVoiceNote(voiceInput: String): AudioDiaryAnalysis = withContext(Dispatchers.IO) {
+    /**
+     * Transcribes audio or analyzes speech text using Gemini multimodal API, with robust local fallback.
+     */
+    suspend fun transcribeAndExtract(
+        audioBase64: String? = null,
+        mimeType: String = "audio/mp4",
+        speechTextFallback: String? = null
+    ): SiteDiaryAudioAnalysis = withContext(Dispatchers.IO) {
         val apiKey = try { BuildConfig.GEMINI_API_KEY } catch (e: Throwable) { "" }
 
         if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY" && apiKey != "null" && apiKey != "DEFAULT_KEY") {
             try {
-                val result = callGemini(voiceInput, apiKey)
+                val result = callGemini(audioBase64, mimeType, speechTextFallback, apiKey)
                 if (result != null) {
                     return@withContext result
                 }
             } catch (e: Throwable) {
-                // Fall back to local analysis
+                Log.w("SiteDiaryAudioTranscriber", "Gemini API call failed, falling back to local extractor: ${e.message}")
             }
         }
 
-        return@withContext fallbackAnalysis(voiceInput)
+        val textToAnalyze = speechTextFallback ?: "Site diary update: daily trade progress and milestone inspection recorded."
+        return@withContext fallbackAnalysis(textToAnalyze)
     }
 
-    private fun callGemini(voiceInput: String, apiKey: String): AudioDiaryAnalysis? {
+    /**
+     * Legacy wrapper for backward compatibility.
+     */
+    suspend fun analyzeVoiceNote(voiceInput: String): SiteDiaryAudioAnalysis {
+        return transcribeAndExtract(audioBase64 = null, mimeType = "audio/mp4", speechTextFallback = voiceInput)
+    }
+
+    private fun callGemini(
+        audioBase64: String?,
+        mimeType: String,
+        speechText: String?,
+        apiKey: String
+    ): SiteDiaryAudioAnalysis? {
         val url = "$GEMINI_URL?key=$apiKey"
 
         val jsonSchema = JSONObject().apply {
@@ -79,6 +108,9 @@ Respond strictly in JSON matching the schema.
                 put("headline", JSONObject().put("type", "STRING"))
                 put("suggestedWoRef", JSONObject().put("type", "STRING"))
                 put("suggestedStatus", JSONObject().put("type", "STRING"))
+                put("rawTranscription", JSONObject().put("type", "STRING"))
+                put("weatherNotes", JSONObject().put("type", "STRING"))
+                put("laborCount", JSONObject().put("type", "INTEGER"))
                 put("tasks", JSONObject().apply {
                     put("type", "ARRAY")
                     put("items", JSONObject().put("type", "STRING"))
@@ -94,14 +126,33 @@ Respond strictly in JSON matching the schema.
                 put("valuationNotes", JSONObject().put("type", "STRING"))
                 put("taskScheduling", JSONObject().put("type", "STRING"))
             })
-            put("required", JSONArray(listOf("headline", "tasks", "todos", "finishedItems", "valuationNotes", "taskScheduling")))
+            put("required", JSONArray(listOf("headline", "rawTranscription", "weatherNotes", "laborCount", "tasks", "todos", "finishedItems", "valuationNotes", "taskScheduling")))
+        }
+
+        val partsArray = JSONArray()
+
+        if (!audioBase64.isNullOrBlank()) {
+            val audioInline = JSONObject().apply {
+                put("inlineData", JSONObject().apply {
+                    put("mimeType", mimeType)
+                    put("data", audioBase64)
+                })
+            }
+            partsArray.put(audioInline)
+            partsArray.put(JSONObject().apply {
+                put("text", "Please transcribe this site manager audio recording and extract all structured construction progress, weather, labor, and valuation insights.")
+            })
+        } else if (!speechText.isNullOrBlank()) {
+            partsArray.put(JSONObject().apply {
+                put("text", "Site Voice Audio Recording Transcription:\n\n\"$speechText\"")
+            })
+        } else {
+            return null
         }
 
         val requestBodyJson = JSONObject().apply {
             put("contents", JSONArray().put(JSONObject().apply {
-                put("parts", JSONArray().put(JSONObject().apply {
-                    put("text", "Site Voice Audio Recording:\n\n\"$voiceInput\"")
-                }))
+                put("parts", partsArray)
             }))
             put("systemInstruction", JSONObject().apply {
                 put("parts", JSONArray().put(JSONObject().apply {
@@ -121,7 +172,10 @@ Respond strictly in JSON matching the schema.
             .build()
 
         val httpResponse = okHttpClient.newCall(httpRequest).execute()
-        if (!httpResponse.isSuccessful) return null
+        if (!httpResponse.isSuccessful) {
+            Log.w("SiteDiaryAudioTranscriber", "HTTP ${httpResponse.code}: ${httpResponse.message}")
+            return null
+        }
 
         val responseString = httpResponse.body?.string() ?: return null
         val rootJson = JSONObject(responseString)
@@ -136,6 +190,9 @@ Respond strictly in JSON matching the schema.
         val headline = obj.optString("headline", "Site Daily Voice Log")
         val woRef = if (obj.has("suggestedWoRef") && !obj.isNull("suggestedWoRef")) obj.getString("suggestedWoRef") else "WO-001"
         val status = obj.optString("suggestedStatus", "Progress On Track")
+        val rawTranscription = obj.optString("rawTranscription", speechText ?: "Site voice audio processed.")
+        val weatherNotes = obj.optString("weatherNotes", "Overcast, 15°C")
+        val laborCount = obj.optInt("laborCount", 4)
 
         val tasks = mutableListOf<String>()
         val tasksArr = obj.optJSONArray("tasks")
@@ -158,11 +215,13 @@ Respond strictly in JSON matching the schema.
         val valNotes = obj.optString("valuationNotes", "Milestone progress recorded for QS valuation claim.")
         val scheduling = obj.optString("taskScheduling", "Sequence next trade upon completion.")
 
-        return AudioDiaryAnalysis(
+        return SiteDiaryAudioAnalysis(
             headline = headline,
             suggestedWoRef = woRef,
             suggestedStatus = status,
-            rawTranscription = voiceInput,
+            rawTranscription = rawTranscription,
+            weatherNotes = weatherNotes,
+            laborCount = if (laborCount <= 0) 4 else laborCount,
             tasks = if (tasks.isEmpty()) listOf("Ongoing site works") else tasks,
             todos = if (todos.isEmpty()) listOf("Monitor site progress") else todos,
             finishedItems = finished,
@@ -171,7 +230,7 @@ Respond strictly in JSON matching the schema.
         )
     }
 
-    fun fallbackAnalysis(voiceInput: String): AudioDiaryAnalysis {
+    fun fallbackAnalysis(voiceInput: String): SiteDiaryAudioAnalysis {
         val lower = voiceInput.lowercase()
         val isDryliningOrPlaster = lower.contains("plaster") || lower.contains("drylining") || lower.contains("board") || lower.contains("skim")
         val isMAndE = lower.contains("m&e") || lower.contains("pipe") || lower.contains("wire") || lower.contains("electric") || lower.contains("chasing")
@@ -215,11 +274,26 @@ Respond strictly in JSON matching the schema.
         val valNotes = "50% milestone achieved on internal partitions (£1,250 claim ready for next interim valuation certificate)."
         val scheduling = "Handover to 2nd fix carpentry once plaster drying time completes in 48 hours."
 
-        return AudioDiaryAnalysis(
+        val labor = when {
+            lower.contains("4 joiners") || lower.contains("4 ") -> 4
+            lower.contains("6 ") -> 6
+            lower.contains("plasterers") -> 3
+            else -> 4
+        }
+
+        val weather = when {
+            lower.contains("rain") -> "Light rain, 12°C"
+            lower.contains("sunny") || lower.contains("clear") -> "Sunny & clear, 18°C"
+            else -> "Overcast, 15°C"
+        }
+
+        return SiteDiaryAudioAnalysis(
             headline = headline,
             suggestedWoRef = "WO-001",
             suggestedStatus = "Progress On Track",
             rawTranscription = voiceInput,
+            weatherNotes = weather,
+            laborCount = labor,
             tasks = tasks,
             todos = todos,
             finishedItems = finished,

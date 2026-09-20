@@ -190,7 +190,7 @@ class SiteDiaryTest {
         assertTrue("Should have realistic preset voice notes available", samples.size >= 3)
         samples.forEach { sample ->
             assertTrue("Sample title should not be blank", sample.title.isNotBlank())
-            assertTrue("Sample speech text should not be blank", sample.transcript.length > 20)
+            assertTrue("Sample speech text should not be blank", sample.sampleSpeechText.length > 20)
             assertTrue("Sample trade category should be populated", sample.trade.isNotBlank())
         }
     }

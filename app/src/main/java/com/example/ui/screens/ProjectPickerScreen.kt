@@ -1,5 +1,12 @@
 package com.example.ui.screens
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,9 +33,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
@@ -42,6 +53,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -59,6 +71,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,6 +79,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.example.data.entity.Project
 import com.example.domain.calculation.MastorCalculationEngine
@@ -81,34 +96,7 @@ import com.example.ui.theme.MastorSlateMuted
 import com.example.ui.theme.MastorSurfaceLight
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
-
-data class PropertyImagePreset(
-    val title: String,
-    val url: String
-)
-
-val DEFAULT_PROPERTY_PRESETS = listOf(
-    PropertyImagePreset(
-        "Townhouse Refurb",
-        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop"
-    ),
-    PropertyImagePreset(
-        "Commercial Skyscraper",
-        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop"
-    ),
-    PropertyImagePreset(
-        "Luxury Extension",
-        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=800&auto=format&fit=crop"
-    ),
-    PropertyImagePreset(
-        "Modern Office Fitout",
-        "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=800&auto=format&fit=crop"
-    ),
-    PropertyImagePreset(
-        "Civil Infrastructure",
-        "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?q=80&w=800&auto=format&fit=crop"
-    )
-)
+import java.io.File
 
 @Composable
 fun ProjectPickerScreen(
@@ -253,6 +241,33 @@ fun ProjectPickerCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // Site Picture Preview (if available)
+            if (project.imageUrl.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(130.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                ) {
+                    AsyncImage(
+                        model = project.imageUrl,
+                        contentDescription = "Site photo for ${project.name}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f))
+                                )
+                            )
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             // Top Row: Status Badge & Work Type Tag
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -437,6 +452,7 @@ fun NewJobDialog(
         uplift2: Double
     ) -> Unit
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf("") }
     var client by remember { mutableStateOf("") }
     var contractRef by remember { mutableStateOf("") }
@@ -445,10 +461,54 @@ fun NewJobDialog(
     var surveyor by remember { mutableStateOf("Eleanor Vance") }
     var contractValueStr by remember { mutableStateOf("350000") }
     var workType by remember { mutableStateOf("Commercial Fitout") }
-    var selectedPresetUrl by remember { mutableStateOf(DEFAULT_PROPERTY_PRESETS.first().url) }
-    var customImageUrl by remember { mutableStateOf("") }
+    var siteImageUriString by remember { mutableStateOf("") }
+    var uploadError by remember { mutableStateOf<String?>(null) }
+    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
     var uplift1Str by remember { mutableStateOf("15.0") }
     var uplift2Str by remember { mutableStateOf("5.0") }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            uploadError = null
+            siteImageUriString = copyUriToInternalStorage(context, uri)
+        }
+    }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempCameraUri != null) {
+            uploadError = null
+            siteImageUriString = tempCameraUri.toString()
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            uploadError = null
+            launchCameraForSite(context, { tempCameraUri = it }, takePictureLauncher, { uploadError = it })
+        } else {
+            uploadError = "Camera permission is required to capture site photo."
+        }
+    }
+
+    fun openCamera() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            uploadError = null
+            launchCameraForSite(context, { tempCameraUri = it }, takePictureLauncher, { uploadError = it })
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -494,82 +554,49 @@ fun NewJobDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Property Snapshot Image Selector
-                Text(
-                    text = "Property Picture Snapshot",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
-                )
-                Text(
-                    text = "Select a property visual style for the job card & banner:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
+                // Site Picture Upload Area
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(DEFAULT_PROPERTY_PRESETS) { preset ->
-                        val isSelected = selectedPresetUrl == preset.url && customImageUrl.isBlank()
+                    Column {
+                        Text(
+                            text = "Site Picture",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MastorSlateDark
+                        )
+                        Text(
+                            text = "Upload a photo of the project or site location",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MastorSlateMuted
+                        )
+                    }
+                    if (siteImageUriString.isNotBlank()) {
                         Surface(
-                            modifier = Modifier
-                                .width(120.dp)
-                                .height(80.dp)
-                                .clickable {
-                                    selectedPresetUrl = preset.url
-                                    customImageUrl = ""
-                                },
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) MastorAccentBlue else MastorSlateBorder
-                            )
+                            color = StatusClaimedBg,
+                            shape = RoundedCornerShape(100.dp),
+                            border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.3f))
                         ) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                AsyncImage(
-                                    model = preset.url,
-                                    contentDescription = preset.title,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = StatusClaimedGreen,
+                                    modifier = Modifier.size(12.dp)
                                 )
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.4f))
-                                )
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = preset.title,
+                                    text = "PHOTO READY",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 10.sp,
-                                    color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .padding(6.dp)
+                                    color = StatusClaimedGreen
                                 )
-                                if (isSelected) {
-                                    Surface(
-                                        color = MastorAccentBlue,
-                                        shape = CircleShape,
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .padding(4.dp)
-                                            .size(20.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                Icons.Default.Check,
-                                                contentDescription = null,
-                                                tint = Color.White,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                        }
-                                    }
-                                }
                             }
                         }
                     }
@@ -577,19 +604,175 @@ fun NewJobDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                OutlinedTextField(
-                    value = customImageUrl,
-                    onValueChange = { customImageUrl = it },
-                    label = { Text("Or Custom Property Image URL") },
-                    placeholder = { Text("https://example.com/property.jpg") },
-                    leadingIcon = { Icon(Icons.Default.Image, contentDescription = null, tint = MastorSlateMuted) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MastorAccentBlue,
-                        unfocusedBorderColor = MastorSlateBorder
-                    )
-                )
+                if (uploadError != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Text(
+                            text = uploadError ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
+
+                if (siteImageUriString.isBlank()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                            .testTag("upload_site_picture_area"),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MastorAccentBlue.copy(alpha = 0.03f),
+                        border = BorderStroke(1.5.dp, MastorAccentBlue.copy(alpha = 0.3f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 20.dp, horizontal = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Surface(
+                                color = MastorAccentBlue.copy(alpha = 0.12f),
+                                shape = CircleShape,
+                                modifier = Modifier.size(50.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudUpload,
+                                        contentDescription = "Upload site picture",
+                                        tint = MastorAccentBlue,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = "Upload Site Picture",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorSlateDark
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Tap anywhere to select photo from device gallery or camera",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MastorSlateMuted
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Button(
+                                    onClick = {
+                                        photoPickerLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.testTag("choose_site_photo_btn")
+                                ) {
+                                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Choose Photo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                }
+
+                                OutlinedButton(
+                                    onClick = { openCamera() },
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, MastorSlateBorder),
+                                    modifier = Modifier.testTag("take_site_photo_btn")
+                                ) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MastorSlateDark, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Take Photo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MastorSlateDark)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("site_picture_preview_card"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
+                        border = BorderStroke(1.dp, MastorSlateBorder)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(160.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                            ) {
+                                AsyncImage(
+                                    model = siteImageUriString,
+                                    contentDescription = "Uploaded Site Picture",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            photoPickerLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, MastorSlateBorder)
+                                    ) {
+                                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = MastorAccentBlue, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Change", fontSize = 12.sp, color = MastorAccentBlue)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { openCamera() },
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, MastorSlateBorder)
+                                    ) {
+                                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MastorSlateDark, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Take New", fontSize = 12.sp, color = MastorSlateDark)
+                                    }
+                                }
+
+                                TextButton(
+                                    onClick = { siteImageUriString = "" }
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Remove", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -760,7 +943,7 @@ fun NewJobDialog(
                             val valDbl = contractValueStr.toDoubleOrNull() ?: 250000.0
                             val up1 = uplift1Str.toDoubleOrNull() ?: 15.0
                             val up2 = uplift2Str.toDoubleOrNull() ?: 5.0
-                            val finalImgUrl = customImageUrl.ifBlank { selectedPresetUrl }
+                            val finalImgUrl = siteImageUriString
 
                             onCreate(
                                 name,
@@ -787,5 +970,41 @@ fun NewJobDialog(
                 }
             }
         }
+    }
+}
+
+private fun copyUriToInternalStorage(context: Context, sourceUri: Uri): String {
+    return try {
+        val dir = File(context.filesDir, "site_photos").apply { mkdirs() }
+        val file = File(dir, "site_${System.currentTimeMillis()}.jpg")
+        context.contentResolver.openInputStream(sourceUri)?.use { input ->
+            file.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        Uri.fromFile(file).toString()
+    } catch (e: Exception) {
+        sourceUri.toString()
+    }
+}
+
+private fun launchCameraForSite(
+    context: Context,
+    onUriCreated: (Uri) -> Unit,
+    launcher: androidx.activity.result.ActivityResultLauncher<Uri>,
+    onError: (String) -> Unit
+) {
+    try {
+        val imagesDir = File(context.cacheDir, "images").apply { mkdirs() }
+        val imageFile = File.createTempFile("site_snap_${System.currentTimeMillis()}_", ".jpg", imagesDir)
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            imageFile
+        )
+        onUriCreated(uri)
+        launcher.launch(uri)
+    } catch (e: Exception) {
+        onError("Camera unavailable: ${e.message}")
     }
 }

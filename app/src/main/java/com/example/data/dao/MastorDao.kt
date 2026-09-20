@@ -89,6 +89,18 @@ interface MastorDao {
     @Query("UPDATE scope_elements SET claim_percent = :claimPercent WHERE id = :id")
     suspend fun updateScopeElementClaimPercent(id: String, claimPercent: Double)
 
+    @Query("UPDATE scope_elements SET current_valuation_id = :valuationId WHERE id = :id")
+    suspend fun linkScopeElementToValuation(id: String, valuationId: String)
+
+    @Query("SELECT id FROM valuations WHERE project_id = :projectId AND status = 'Draft' ORDER BY date DESC LIMIT 1")
+    suspend fun getActiveDraftValuationId(projectId: String): String?
+
+    @Query("SELECT se.* FROM scope_elements se INNER JOIN work_orders wo ON se.wo_ref = wo.wo_ref WHERE wo.project_id = :projectId")
+    suspend fun getScopeElementsForProjectDirect(projectId: String): List<ScopeElement>
+
+    @Query("UPDATE scope_elements SET claim_percent = :newPercent WHERE id = :id AND claim_percent < :newPercent")
+    suspend fun updateScopeClaimPercentIfGreater(id: String, newPercent: Double): Int
+
     @Query("UPDATE scope_elements SET qty = :qty WHERE id = :id")
     suspend fun updateScopeElementQty(id: String, qty: Double)
 

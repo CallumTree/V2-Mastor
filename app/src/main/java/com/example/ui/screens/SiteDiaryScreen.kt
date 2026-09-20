@@ -59,6 +59,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -80,14 +81,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import java.io.File
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.example.data.entity.Project
 import com.example.data.entity.SiteDiaryEntry
-import com.example.domain.audio.AudioDiaryAnalysis
-import com.example.domain.audio.SampleVoiceNote
+import com.example.domain.audio.AudioRecordingState
 import com.example.domain.audio.SiteAudioRecorder
+import com.example.domain.audio.SiteDiaryAudioAnalysis
 import com.example.domain.audio.SiteDiaryAudioTranscriber
+import com.example.domain.audio.VoiceNoteSample
 import com.example.domain.calculation.CalculatedWorkOrder
 import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.components.MastorButton
@@ -148,11 +157,20 @@ fun SiteDiaryScreen(
     onMenuClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val lastMatchSummary by viewModel.lastMatchSummary.collectAsState()
     var showAudioModal by remember { mutableStateOf(false) }
     var showPhotoModal by remember { mutableStateOf(false) }
     var showVideoModal by remember { mutableStateOf(false) }
     var permissionDeniedMessage by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
+
+    // 5-second auto-dismissing timer for scope match summary banner
+    LaunchedEffect(lastMatchSummary) {
+        if (lastMatchSummary != null) {
+            delay(5000L)
+            viewModel.clearMatchSummary()
+        }
+    }
 
     val micPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -285,6 +303,62 @@ fun SiteDiaryScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // Auto-dismissing Scope Match Banner (shows after voice diary entry saved)
+            if (lastMatchSummary != null) {
+                item {
+                    val summary = lastMatchSummary!!
+                    val isSuccess = summary.matched > 0
+                    val bannerBg = if (isSuccess) StatusClaimedBg else StatusPendingBg
+                    val bannerBorder = if (isSuccess) StatusClaimedGreen.copy(alpha = 0.4f) else StatusPendingAmber.copy(alpha = 0.4f)
+                    val bannerIconColor = if (isSuccess) StatusClaimedGreen else StatusPendingAmber
+                    val bannerTextColor = if (isSuccess) MastorSlateDark else MastorSlateDark
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("scope_match_summary_banner"),
+                        shape = RoundedCornerShape(12.dp),
+                        color = bannerBg,
+                        border = BorderStroke(1.dp, bannerBorder)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.AssignmentTurnedIn,
+                                contentDescription = null,
+                                tint = bannerIconColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = if (isSuccess) {
+                                    "✓ ${summary.matched} scope items updated from your site diary — check Valuations tab"
+                                } else {
+                                    "No scope items matched automatically — update manually in Scope tab"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = bannerTextColor,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { viewModel.clearMatchSummary() },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Dismiss",
+                                    tint = MastorSlateMuted,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Top Spacing
             item {
                 Spacer(modifier = Modifier.height(2.dp))
@@ -1025,14 +1099,15 @@ fun AudioSiteLogModal(
     var isRecording by remember { mutableStateOf(true) }
     var recordingSeconds by remember { mutableIntStateOf(0) }
     var isProcessing by remember { mutableStateOf(false) }
-    var analysisResult by remember { mutableStateOf<AudioDiaryAnalysis?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var analysisResult by remember { mutableStateOf<SiteDiaryAudioAnalysis?>(null) }
     var transcriptText by remember { mutableStateOf("") }
     var editableHeadline by remember { mutableStateOf("") }
     var selectedWoRef by remember { mutableStateOf<String?>(null) }
     var selectedWoTitle by remember { mutableStateOf<String?>(null) }
     var author by remember { mutableStateOf("Dave Jenkins (Site Manager)") }
     var selectedStatus by remember { mutableStateOf("Progress On Track") }
-    var selectedPhotoUrl by remember { mutableStateOf(SAMPLE_SITE_PHOTOS.first().first) }
+    var selectedPhotoUrl by remember { mutableStateOf("") }
 
     LaunchedEffect(isRecording) {
         if (isRecording) {
@@ -1043,26 +1118,84 @@ fun AudioSiteLogModal(
         }
     }
 
-    fun processAudioText(rawVoiceText: String, sampleNote: SampleVoiceNote? = null) {
-        isProcessing = true
+    fun stopLiveRecording() {
         isRecording = false
-        transcriptText = rawVoiceText
-        if (sampleNote != null) {
-            author = sampleNote.author
+        val audioFile = SiteAudioRecorder.stopRecording()
+        if (audioFile == null || !audioFile.exists() || audioFile.length() == 0L) {
+            errorMessage = "Audio recording was too short or failed. Please try speaking again."
+            return
         }
+
+        val base64Data = when (val state = SiteAudioRecorder.recordingState) {
+            is AudioRecordingState.Recorded -> state.base64Data
+            else -> {
+                try {
+                    android.util.Base64.encodeToString(audioFile.readBytes(), android.util.Base64.NO_WRAP)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+        }
+
+        if (base64Data.isNullOrBlank()) {
+            errorMessage = "Could not read audio file data. Please try recording again."
+            return
+        }
+
+        isProcessing = true
+        errorMessage = null
         coroutineScope.launch {
-            val analysis = SiteDiaryAudioTranscriber.analyzeVoiceNote(rawVoiceText)
-            analysisResult = analysis
-            editableHeadline = analysis.headline
-            isProcessing = false
+            try {
+                val analysis = SiteDiaryAudioTranscriber.transcribeAndExtract(
+                    audioBase64 = base64Data,
+                    mimeType = "audio/mp4",
+                    speechTextFallback = null
+                )
+                analysisResult = analysis
+                transcriptText = analysis.rawTranscription
+                editableHeadline = analysis.headline
+                selectedStatus = analysis.suggestedStatus
+                if (!analysis.suggestedWoRef.isNullOrBlank()) {
+                    selectedWoRef = analysis.suggestedWoRef
+                    val matched = workOrders.find { it.entity.woRef.equals(analysis.suggestedWoRef, ignoreCase = true) }
+                    if (matched != null) selectedWoTitle = matched.entity.description
+                }
+            } catch (e: Exception) {
+                errorMessage = "Audio processing error: ${e.message}"
+            } finally {
+                isProcessing = false
+            }
         }
     }
 
-    fun stopLiveRecording() {
-        SiteAudioRecorder.stopRecording()
+    fun processSamplePreset(sample: VoiceNoteSample) {
         isRecording = false
-        val simulatedLiveAudio = "Completed first fix structural timber and partition framing in bedroom 2. 4 joiners on site. Dry lining inspection scheduled for tomorrow."
-        processAudioText(simulatedLiveAudio)
+        SiteAudioRecorder.stopRecording()
+        isProcessing = true
+        errorMessage = null
+        transcriptText = sample.sampleSpeechText
+        coroutineScope.launch {
+            try {
+                val analysis = SiteDiaryAudioTranscriber.transcribeAndExtract(
+                    audioBase64 = null,
+                    mimeType = "audio/mp4",
+                    speechTextFallback = sample.sampleSpeechText
+                )
+                analysisResult = analysis
+                transcriptText = analysis.rawTranscription
+                editableHeadline = analysis.headline
+                selectedStatus = analysis.suggestedStatus
+                if (!analysis.suggestedWoRef.isNullOrBlank()) {
+                    selectedWoRef = analysis.suggestedWoRef
+                    val matched = workOrders.find { it.entity.woRef.equals(analysis.suggestedWoRef, ignoreCase = true) }
+                    if (matched != null) selectedWoTitle = matched.entity.description
+                }
+            } catch (e: Exception) {
+                errorMessage = "Sample processing error: ${e.message}"
+            } finally {
+                isProcessing = false
+            }
+        }
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -1110,6 +1243,37 @@ fun AudioSiteLogModal(
                         }
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                        }
+                    }
+                }
+
+                // Error Message Banner
+                if (errorMessage != null) {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = StatusFlaggedBg,
+                            border = BorderStroke(1.dp, StatusFlaggedRed.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = null,
+                                    tint = StatusFlaggedRed,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = errorMessage ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = StatusFlaggedRed,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
                     }
                 }
@@ -1165,7 +1329,7 @@ fun AudioSiteLogModal(
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Text(
-                                    text = "Analyzing audio with Gemini 2.0 Flash...",
+                                    text = "Transcribing audio with Gemini 2.0 Flash...",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MastorGold,
                                     fontWeight = FontWeight.Medium
@@ -1213,7 +1377,7 @@ fun AudioSiteLogModal(
                                 color = MastorSurfaceLight,
                                 border = BorderStroke(1.dp, MastorSlateBorder),
                                 modifier = Modifier.clickable {
-                                    processAudioText(sample.transcript, sample)
+                                    processSamplePreset(sample)
                                 }
                             ) {
                                 Row(
@@ -1332,22 +1496,19 @@ fun AudioSiteLogModal(
                             MastorButton(
                                 text = "Save to Site Diary",
                                 onClick = {
-                                    val tasksJson = "[" + analysis.tasks.joinToString(",") { "\"$it\"" } + "]"
-                                    val todosJson = "[" + analysis.todos.joinToString(",") { "\"$it\"" } + "]"
-                                    val finishedJson = "[" + analysis.finishedItems.joinToString(",") { "\"$it\"" } + "]"
                                     onSaveVoiceEntry(
                                         selectedWoRef,
                                         selectedWoTitle,
                                         author,
                                         selectedStatus,
-                                        "Overcast, 16°C",
-                                        4,
+                                        analysis.weatherNotes,
+                                        analysis.laborCount,
                                         editableHeadline.ifBlank { transcriptText },
                                         selectedPhotoUrl,
                                         transcriptText,
-                                        tasksJson,
-                                        todosJson,
-                                        finishedJson,
+                                        analysis.tasksAsJson(),
+                                        analysis.todosAsJson(),
+                                        analysis.finishedItemsAsJson(),
                                         analysis.valuationNotes,
                                         analysis.taskScheduling
                                     )
@@ -1364,7 +1525,7 @@ fun AudioSiteLogModal(
 }
 
 // =========================================================================
-// 4. PHOTO LOG MODAL (ONE-TAP SITE PHOTO CAPTURE)
+// 4. PHOTO LOG MODAL (REAL CAMERA CAPTURE WITH INTENT)
 // =========================================================================
 @Composable
 fun PhotoLogModal(
@@ -1372,12 +1533,51 @@ fun PhotoLogModal(
     onDismiss: () -> Unit,
     onSubmit: (woId: String?, woTitle: String?, author: String, status: String, weather: String?, labor: Int, notes: String, photoUrl: String) -> Unit
 ) {
+    val context = LocalContext.current
     var author by remember { mutableStateOf("Marcus Vance (Site Manager)") }
     var selectedStatus by remember { mutableStateOf(SITE_LOG_STATUSES[0]) }
     var weatherNotes by remember { mutableStateOf("18°C, Dry") }
     var laborCountText by remember { mutableStateOf("6") }
     var notes by remember { mutableStateOf("") }
-    var selectedPhotoUrl by remember { mutableStateOf(SAMPLE_SITE_PHOTOS[0].first) }
+    var capturedPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var cameraError by remember { mutableStateOf<String?>(null) }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempPhotoUri != null) {
+            capturedPhotoUri = tempPhotoUri
+            cameraError = null
+        } else {
+            cameraError = "Photo capture was cancelled or failed."
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            cameraError = null
+            launchCamera(context, { tempPhotoUri = it }, takePictureLauncher, { cameraError = it })
+        } else {
+            cameraError = "Camera permission is required to take site photos."
+        }
+    }
+
+    fun openCamera() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            cameraError = null
+            launchCamera(context, { tempPhotoUri = it }, takePictureLauncher, { cameraError = it })
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1389,120 +1589,221 @@ fun PhotoLogModal(
                 .padding(vertical = 12.dp)
                 .testTag("photo_log_dialog")
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .padding(20.dp)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MastorAccentBlue.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = null,
-                                tint = MastorAccentBlue,
-                                modifier = Modifier.size(20.dp)
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MastorAccentBlue.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = null,
+                                    tint = MastorAccentBlue,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Site Photo Log",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorSlateDark
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Site Photo Log",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                        }
+                    }
+                }
+
+                // Camera Error Banner
+                if (cameraError != null) {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            color = StatusFlaggedBg,
+                            border = BorderStroke(1.dp, StatusFlaggedRed.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = null,
+                                    tint = StatusFlaggedRed,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = cameraError ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = StatusFlaggedRed,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Real Camera Capture / Photo Preview Area
+                item {
+                    if (capturedPhotoUri != null) {
+                        Column {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(1.dp, MastorSlateBorder, RoundedCornerShape(12.dp))
+                                    .background(MastorBackgroundLight)
+                            ) {
+                                AsyncImage(
+                                    model = capturedPhotoUri,
+                                    contentDescription = "Captured Site Photo",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = StatusClaimedGreen,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Photo captured from device camera",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = StatusClaimedGreen,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                MastorOutlinedButton(
+                                    text = "Retake",
+                                    onClick = { openCamera() }
+                                )
+                            }
+                        }
+                    } else {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(130.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .border(
+                                    BorderStroke(1.5.dp, MastorAccentBlue.copy(alpha = 0.5f)),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .background(MastorAccentBlueLight.copy(alpha = 0.3f))
+                                .clickable { openCamera() }
+                                .testTag("open_camera_capture_btn"),
+                            color = Color.Transparent
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .clip(CircleShape)
+                                        .background(MastorAccentBlue.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = "Open Camera",
+                                        tint = MastorAccentBlue,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Tap to Open Camera & Take Site Photo",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MastorAccentBlue
+                                )
+                                Text(
+                                    text = "Uses Android device camera intent",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 11.sp,
+                                    color = MastorSlateMuted
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Text("Photo Notes & Observations", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        placeholder = { Text("What progress, delivery or defect does this photo show?") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(84.dp)
+                            .testTag("site_log_notes_input"),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MastorOutlinedButton(
+                            text = "Cancel",
+                            onClick = onDismiss
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        MastorButton(
+                            text = "Save Photo Log",
+                            onClick = {
+                                val finalNotes = notes.ifBlank { "Site photographic inspection logged." }
+                                onSubmit(
+                                    null,
+                                    "General Site",
+                                    author,
+                                    selectedStatus,
+                                    weatherNotes,
+                                    laborCountText.toIntOrNull() ?: 4,
+                                    finalNotes,
+                                    capturedPhotoUri?.toString() ?: ""
+                                )
+                            },
+                            icon = Icons.Default.CameraAlt,
+                            testTag = "submit_photo_log_button"
                         )
                     }
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text("Select Captured Photo", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
-                Spacer(modifier = Modifier.height(6.dp))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(SAMPLE_SITE_PHOTOS) { (url, label) ->
-                        val isSelected = selectedPhotoUrl == url
-                        Box(
-                            modifier = Modifier
-                                .size(70.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .border(
-                                    width = if (isSelected) 3.dp else 1.dp,
-                                    color = if (isSelected) MastorAccentBlue else MastorSlateBorder,
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .clickable { selectedPhotoUrl = url }
-                        ) {
-                            AsyncImage(
-                                model = url,
-                                contentDescription = label,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text("Photo Notes & Observations", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    placeholder = { Text("What progress or defect does this photo show?") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(84.dp)
-                        .testTag("site_log_notes_input"),
-                    shape = RoundedCornerShape(10.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    MastorOutlinedButton(
-                        text = "Cancel",
-                        onClick = onDismiss
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    MastorButton(
-                        text = "Save Photo Log",
-                        onClick = {
-                            val finalNotes = notes.ifBlank { "Site photographic inspection logged." }
-                            onSubmit(
-                                null,
-                                "General Site",
-                                author,
-                                selectedStatus,
-                                weatherNotes,
-                                laborCountText.toIntOrNull() ?: 4,
-                                finalNotes,
-                                selectedPhotoUrl
-                            )
-                        },
-                        icon = Icons.Default.CameraAlt,
-                        testTag = "submit_photo_log_button"
-                    )
                 }
             }
         }
@@ -1510,7 +1811,7 @@ fun PhotoLogModal(
 }
 
 // =========================================================================
-// 5. VIDEO LOG MODAL (SITE WALKTHROUGH & VIDEO DIARY)
+// 5. VIDEO LOG MODAL (REAL ANDROID VIDEO CAPTURE WITH INTENT)
 // =========================================================================
 @Composable
 fun VideoLogModal(
@@ -1518,9 +1819,63 @@ fun VideoLogModal(
     onDismiss: () -> Unit,
     onSubmit: (woId: String?, woTitle: String?, author: String, status: String, weather: String?, labor: Int, notes: String, photoUrl: String) -> Unit
 ) {
+    val context = LocalContext.current
     var author by remember { mutableStateOf("Marcus Vance (Site Manager)") }
     var notes by remember { mutableStateOf("") }
-    var selectedPhotoUrl by remember { mutableStateOf(SAMPLE_SITE_PHOTOS[2].first) }
+    var weatherNotes by remember { mutableStateOf("18°C, Dry") }
+    var laborCountText by remember { mutableStateOf("6") }
+    var capturedVideoUri by remember { mutableStateOf<Uri?>(null) }
+    var tempVideoUri by remember { mutableStateOf<Uri?>(null) }
+    var videoError by remember { mutableStateOf<String?>(null) }
+    var videoDurationSeconds by remember { mutableIntStateOf(0) }
+    var videoThumbnailBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    val captureVideoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CaptureVideo()
+    ) { success ->
+        if (success && tempVideoUri != null) {
+            capturedVideoUri = tempVideoUri
+            videoError = null
+            try {
+                val retriever = MediaMetadataRetriever()
+                retriever.setDataSource(context, tempVideoUri!!)
+                val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                val durationMs = durationStr?.toLongOrNull() ?: 0L
+                videoDurationSeconds = (durationMs / 1000).toInt()
+                videoThumbnailBitmap = retriever.frameAtTime
+                retriever.release()
+            } catch (e: Exception) {
+                // Non-fatal error retrieving video metadata
+            }
+        } else {
+            videoError = "Video recording was cancelled or failed."
+        }
+    }
+
+    val videoPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            videoError = null
+            launchVideoCamera(context, { tempVideoUri = it }, captureVideoLauncher, { videoError = it })
+        } else {
+            videoError = "Camera permission is required to record site videos."
+        }
+    }
+
+    fun openVideoCamera() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            videoError = null
+            launchVideoCamera(context, { tempVideoUri = it }, captureVideoLauncher, { videoError = it })
+        } else {
+            videoPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1532,126 +1887,275 @@ fun VideoLogModal(
                 .padding(vertical = 12.dp)
                 .testTag("video_log_dialog")
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .padding(20.dp)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(StatusPendingAmber.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Videocam,
-                                contentDescription = null,
-                                tint = StatusPendingAmber,
-                                modifier = Modifier.size(20.dp)
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(StatusPendingAmber.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Videocam,
+                                    contentDescription = null,
+                                    tint = StatusPendingAmber,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Site Video Diary",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MastorSlateDark
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Site Video Diary",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
-                        )
-                    }
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                // Video Error Banner
+                if (videoError != null) {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            color = StatusFlaggedBg,
+                            border = BorderStroke(1.dp, StatusFlaggedRed.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = null,
+                                    tint = StatusFlaggedRed,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = videoError ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = StatusFlaggedRed,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MastorBackgroundLight,
-                    border = BorderStroke(1.dp, MastorSlateBorder)
-                ) {
-                    Column(
+                // Video Capture / Video Thumbnail Area
+                item {
+                    if (capturedVideoUri != null) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MastorBackgroundLight,
+                            border = BorderStroke(1.dp, MastorSlateBorder)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                if (videoThumbnailBitmap != null) {
+                                    Image(
+                                        bitmap = videoThumbnailBitmap!!.asImageBitmap(),
+                                        contentDescription = "Video Thumbnail",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(140.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Videocam,
+                                        contentDescription = null,
+                                        tint = StatusClaimedGreen,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
+
+                                val durationFormatted = "${videoDurationSeconds / 60}:${(videoDurationSeconds % 60).toString().padStart(2, '0')}"
+                                Text(
+                                    text = "Site Video Recorded ($durationFormatted)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MastorSlateDark
+                                )
+                                Text(
+                                    text = "Ready to attach to daily site diary entry",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MastorSlateMuted
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                MastorOutlinedButton(
+                                    text = "Retake Video",
+                                    onClick = { openVideoCamera() }
+                                )
+                            }
+                        }
+                    } else {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(130.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .border(
+                                    BorderStroke(1.5.dp, StatusPendingAmber.copy(alpha = 0.5f)),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .background(StatusPendingAmber.copy(alpha = 0.08f))
+                                .clickable { openVideoCamera() }
+                                .testTag("open_video_capture_btn"),
+                            color = Color.Transparent
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .clip(CircleShape)
+                                        .background(StatusPendingAmber.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Videocam,
+                                        contentDescription = "Record Video",
+                                        tint = StatusPendingAmber,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Tap to Record Site Video Diary",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MastorSlateDark
+                                )
+                                Text(
+                                    text = "Uses Android video capture intent",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 11.sp,
+                                    color = MastorSlateMuted
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Text("Walkthrough Notes & Key Focus Areas", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        placeholder = { Text("e.g. Structural steel alignments and ceiling service voids inspection...") },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Videocam,
-                            contentDescription = null,
-                            tint = StatusPendingAmber,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Site Walkthrough Video Ready (00:45)",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
-                        )
-                        Text(
-                            text = "1080p HD • Site walk recorded",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateMuted
-                        )
-                    }
+                            .height(84.dp)
+                            .testTag("video_log_notes_input"),
+                        shape = RoundedCornerShape(10.dp)
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text("Walkthrough Notes & Key Focus Areas", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    placeholder = { Text("e.g. Structural steel alignments and ceiling service voids inspection...") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(84.dp)
-                        .testTag("video_log_notes_input"),
-                    shape = RoundedCornerShape(10.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    MastorOutlinedButton(
-                        text = "Cancel",
-                        onClick = onDismiss
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    MastorButton(
-                        text = "Save Video Diary",
-                        onClick = {
-                            val finalNotes = notes.ifBlank { "Video site walkthrough recorded: Structural inspections and progress overview." }
-                            onSubmit(
-                                null,
-                                "General Site",
-                                author,
-                                "Progress On Track",
-                                "18°C, Dry",
-                                6,
-                                finalNotes,
-                                selectedPhotoUrl
-                            )
-                        },
-                        icon = Icons.Default.Videocam,
-                        testTag = "submit_video_log_button"
-                    )
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MastorOutlinedButton(
+                            text = "Cancel",
+                            onClick = onDismiss
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        MastorButton(
+                            text = "Save Video Diary",
+                            onClick = {
+                                val finalNotes = notes.ifBlank { "Video site walkthrough recorded: Structural inspections and progress overview." }
+                                onSubmit(
+                                    null,
+                                    "General Site",
+                                    author,
+                                    "Progress On Track",
+                                    weatherNotes,
+                                    laborCountText.toIntOrNull() ?: 6,
+                                    finalNotes,
+                                    capturedVideoUri?.toString() ?: ""
+                                )
+                            },
+                            icon = Icons.Default.Videocam,
+                            testTag = "submit_video_log_button"
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+private fun launchCamera(
+    context: android.content.Context,
+    onUriCreated: (Uri) -> Unit,
+    launcher: androidx.activity.result.ActivityResultLauncher<Uri>,
+    onError: (String) -> Unit
+) {
+    try {
+        val imagesDir = File(context.cacheDir, "images").apply { mkdirs() }
+        val imageFile = File.createTempFile("site_photo_${System.currentTimeMillis()}_", ".jpg", imagesDir)
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            imageFile
+        )
+        onUriCreated(uri)
+        launcher.launch(uri)
+    } catch (e: Exception) {
+        onError("Camera unavailable: ${e.message}")
+    }
+}
+
+private fun launchVideoCamera(
+    context: android.content.Context,
+    onUriCreated: (Uri) -> Unit,
+    launcher: androidx.activity.result.ActivityResultLauncher<Uri>,
+    onError: (String) -> Unit
+) {
+    try {
+        val videosDir = File(context.cacheDir, "videos").apply { mkdirs() }
+        val videoFile = File.createTempFile("site_video_${System.currentTimeMillis()}_", ".mp4", videosDir)
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            videoFile
+        )
+        onUriCreated(uri)
+        launcher.launch(uri)
+    } catch (e: Exception) {
+        onError("Video camera unavailable: ${e.message}")
+    }
+}
+

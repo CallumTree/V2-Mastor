@@ -16,6 +16,9 @@ import com.example.data.entity.SubcontractorQuote
 import com.example.data.entity.VariationOrder
 import com.example.data.remote.GeminiClient
 import com.example.data.repository.MastorRepository
+import com.example.domain.audio.MatchConfidence
+import com.example.domain.audio.ScopeMatchResult
+import com.example.domain.audio.ScopeMatcher
 import com.example.domain.calculation.CalculatedValuation
 import com.example.domain.calculation.CalculatedWorkOrder
 import com.example.domain.calculation.CalculationTraceStep
@@ -69,6 +72,19 @@ data class TraceState(
     val steps: List<CalculationTraceStep>? = null
 )
 
+/**
+ * Summary of automatic scope matching from voice diary finished items.
+ */
+data class ScopeMatchSummary(
+    val matched: Int = 0,
+    val skipped: Int = 0,
+    val results: List<ScopeMatchResult> = emptyList(),
+    val finishedItemsCount: Int = matched + skipped,
+    val matchedElementsCount: Int = matched,
+    val appliedCount: Int = matched,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 class Phase1ViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = MastorDatabase.getDatabase(application)
@@ -78,6 +94,9 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
     private val _traceState = MutableStateFlow(TraceState())
     private val _isAnalyzingDiary = MutableStateFlow(false)
     private val _isOfflineMode = MutableStateFlow(false)
+    private val _lastMatchSummary = MutableStateFlow<ScopeMatchSummary?>(null)
+
+    val lastMatchSummary: StateFlow<ScopeMatchSummary?> = _lastMatchSummary
 
     val isOfflineMode: StateFlow<Boolean> = _isOfflineMode
     val allProjects: Flow<List<Project>> = repository.allProjects
@@ -796,8 +815,110 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
             )
 
             repository.insertSiteDiaryEntry(entry)
+
+            // Auto-match finished items to scope elements
+            val finishedList = try {
+                val arr = org.json.JSONArray(audioFinishedItemsJson)
+                (0 until arr.length()).map { arr.getString(it) }
+            } catch (e: Exception) { emptyList() }
+
+            if (finishedList.isNotEmpty()) {
+                val scopeElements = repository.getScopeElementsForProject(projectId)
+                val matchResults = ScopeMatcher.matchFinishedItems(finishedList, scopeElements)
+
+                val activeDraftValuationId = repository.getActiveDraftValuationId(projectId)
+
+                var matchedCount = 0
+                var skippedCount = 0
+
+                for (result in matchResults) {
+                    if (result.confidence == MatchConfidence.LOW) {
+                        skippedCount++
+                        continue
+                    }
+                    val existing = result.scopeElement
+                    if (result.suggestedClaimPercent > existing.claimPercent) {
+                        repository.updateScopeElementClaimPercent(
+                            existing.id,
+                            result.suggestedClaimPercent
+                        )
+                        if (existing.currentValuationId == null && activeDraftValuationId != null) {
+                            repository.linkScopeElementToValuation(existing.id, activeDraftValuationId)
+                        }
+                        matchedCount++
+                    } else {
+                        skippedCount++
+                    }
+                }
+
+                _lastMatchSummary.value = ScopeMatchSummary(
+                    matched = matchedCount,
+                    skipped = skippedCount,
+                    results = matchResults
+                )
+            }
+
             _isAnalyzingDiary.value = false
         }
+    }
+
+    fun triggerScopeMatchingForFinishedItems(finishedItemsJson: String, autoApplyHighConfidence: Boolean = false) {
+        viewModelScope.launch {
+            try {
+                val jsonArr = org.json.JSONArray(finishedItemsJson)
+                val finishedItems = mutableListOf<String>()
+                for (i in 0 until jsonArr.length()) {
+                    val item = jsonArr.getString(i).trim()
+                    if (item.isNotEmpty()) finishedItems.add(item)
+                }
+                if (finishedItems.isEmpty()) return@launch
+
+                val elements = repository.getScopeElementsForProjectDirect(projectId)
+                val matchResults = ScopeMatcher.matchFinishedItems(finishedItems, elements)
+
+                var applied = 0
+                if (autoApplyHighConfidence) {
+                    for (result in matchResults) {
+                        if (result.confidence == MatchConfidence.HIGH) {
+                            repository.updateScopeClaimPercentIfGreater(
+                                result.scopeElement.id,
+                                result.suggestedClaimPercent
+                            )
+                            applied++
+                        }
+                    }
+                }
+
+                _lastMatchSummary.value = ScopeMatchSummary(
+                    finishedItemsCount = finishedItems.size,
+                    matchedElementsCount = matchResults.size,
+                    results = matchResults,
+                    appliedCount = applied
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("Phase1ViewModel", "Scope matching error: ${e.message}", e)
+            }
+        }
+    }
+
+    fun applyScopeMatchResult(result: ScopeMatchResult) {
+        viewModelScope.launch {
+            repository.updateScopeElementClaimPercent(
+                result.scopeElement.id,
+                result.suggestedClaimPercent
+            )
+            _lastMatchSummary.value = _lastMatchSummary.value?.let { current ->
+                current.copy(appliedCount = current.appliedCount + 1)
+            }
+        }
+    }
+
+    fun clearScopeMatchSummary() {
+        _lastMatchSummary.value = null
+    }
+
+    fun clearMatchSummary() {
+        _lastMatchSummary.value = null
     }
 
     fun generateGeminiSummaryForEntry(entry: SiteDiaryEntry) {

@@ -238,6 +238,34 @@ class MastorRepository(private val dao: MastorDao) {
         }
     }
 
+    suspend fun getScopeElementsForProjectDirect(projectId: String): List<ScopeElement> {
+        return withContext(Dispatchers.IO) {
+            dao.getScopeElementsForProjectDirect(projectId)
+        }
+    }
+
+    suspend fun getScopeElementsForProject(projectId: String): List<ScopeElement> {
+        return withContext(Dispatchers.IO) {
+            dao.getScopeElementsForProjectDirect(projectId)
+        }
+    }
+
+    suspend fun linkScopeElementToValuation(id: String, valuationId: String) {
+        withContext(Dispatchers.IO) {
+            dao.linkScopeElementToValuation(id, valuationId)
+        }
+    }
+
+    suspend fun getActiveDraftValuationId(projectId: String): String? = withContext(Dispatchers.IO) {
+        dao.getActiveDraftValuationId(projectId)
+    }
+
+    suspend fun updateScopeClaimPercentIfGreater(id: String, newPercent: Double): Int {
+        return withContext(Dispatchers.IO) {
+            dao.updateScopeClaimPercentIfGreater(id, newPercent.coerceIn(0.0, 100.0))
+        }
+    }
+
     suspend fun lockInvoicedValuation(valuationId: String) {
         withContext(Dispatchers.IO) {
             dao.lockInvoicedScopeElements(valuationId)
