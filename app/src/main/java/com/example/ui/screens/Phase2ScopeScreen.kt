@@ -121,6 +121,7 @@ import com.example.ui.components.MastorTopBar
 import com.example.ui.components.MastorWordmark
 import com.example.ui.components.ProjectDashboardOverviewScreen
 import com.example.ui.components.ProjectSetupForm
+import com.example.ui.illustrations.MastorDashboardHero
 import com.example.ui.components.WorkOrderCard
 import com.example.domain.cloud.CloudFileItem
 import com.example.domain.cloud.CloudStorageService
@@ -476,11 +477,14 @@ fun Phase2ScopeScreen(
                     }
                 }
 
-                // Property Snapshot Hero Banner inside Job
-                JobBannerHeader(
-                    project = proj,
-                    onSwitchProject = { viewModel.selectProject(null) }
-                )
+                // In DASHBOARD tab, ProjectDashboardOverviewScreen renders its own full-bleed MastorDashboardHero.
+                // In other tabs (Scope, Site Diary, Vals, VOs, BoQ, Setup), display MastorDashboardHero at top.
+                if (selectedTab != Phase2Tab.DASHBOARD) {
+                    MastorDashboardHero(
+                        project = proj,
+                        onBackClick = { viewModel.selectProject(null) }
+                    )
+                }
 
                 // Body Content per Selected Tab
                 Crossfade(
@@ -498,7 +502,8 @@ fun Phase2ScopeScreen(
                                 allValuations = uiState.allValuations,
                                 siteDiaryEntries = uiState.siteDiaryEntries,
                                 linkedDocuments = uiState.linkedDocuments,
-                                procurementPackages = uiState.procurementPackages
+                                procurementPackages = uiState.procurementPackages,
+                                onBackClick = { viewModel.selectProject(null) }
                             )
                         }
 
@@ -1213,165 +1218,4 @@ fun CompanyAccountPreferencesModal(
         containerColor = Color.White,
         shape = RoundedCornerShape(16.dp)
     )
-}
-
-@Composable
-fun JobBannerHeader(
-    project: Project,
-    onSwitchProject: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val photoUrl = project.imageUrl.ifBlank {
-        "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?w=800&auto=format&fit=crop&q=80"
-    }
-
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .height(130.dp)
-            .testTag("job_banner_header"),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MastorCreamBorder)
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Project Photo Background
-            AsyncImage(
-                model = photoUrl,
-                contentDescription = "Project Header Photo",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // High-contrast dark gradient scrim for readability
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.55f),
-                                Color.Black.copy(alpha = 0.75f)
-                            )
-                        )
-                    )
-            )
-
-            // Header Content Layout
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Top Row: Ref, Status, and All Jobs Button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Surface(
-                            color = MastorCopper.copy(alpha = 0.90f),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(
-                                text = project.contractRef,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-
-                        Surface(
-                            color = StatusClaimedGreen.copy(alpha = 0.90f),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(
-                                text = project.status.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.55f),
-                        shape = RoundedCornerShape(6.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable { onSwitchProject() }
-                            .testTag("switch_job_btn")
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Switch Job",
-                                tint = Color.White,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "All Jobs",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-
-                // Bottom Row: Project Name, Location, and Value
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = project.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "${project.client} • ${project.address}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Surface(
-                        color = Color.White.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(6.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
-                    ) {
-                        Text(
-                            text = MastorCalculationEngine.formatCurrency(project.contractValue),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
 }

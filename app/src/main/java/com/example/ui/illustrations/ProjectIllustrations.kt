@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -30,7 +32,12 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.platform.testTag
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import com.example.data.entity.Project
+import com.example.ui.theme.MastorBracketLabel
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1369,3 +1376,194 @@ fun MastorProjectHeroCard(
         }
     }
 }
+
+/**
+ * MastorDashboardHero
+ * Full-bleed hero panel using the ProjectIllustration system for the project dashboard header.
+ *
+ * Full width, 220dp height:
+ * - Background: MastorCharcoal
+ * - Illustration: ProjectIllustrationPicker.resolveIllustration(project.id, project.workType) scaled to fill entire panel
+ * - Bottom gradient overlay: transparent -> MastorCharcoal 70% opacity over bottom 65% (143dp)
+ * - Top gradient overlay: MastorCharcoal 50% opacity -> transparent over top 40% (88dp)
+ * - Top row:
+ *     Left: back arrow icon button, MastorCreamText tint
+ *     Centre: BracketLabel(project.contractRef, color = MastorCreamMuted)
+ *     Right: MastorStatusBadge(project.status)
+ * - Bottom section:
+ *     Row 1: Project name in MastorDisplayMedium style, 22sp, MastorCreamText, max 2 lines, bold
+ *     Row 2: Client name in MastorBody, MastorCreamMuted
+ *     Row 3: Three metric pills in a horizontal row:
+ *            [ £XXX,XXX CONTRACT ]
+ *            [ XX% COMPLETE ]
+ *            [ ACTIVE ] or current status
+ */
+@Composable
+fun MastorDashboardHero(
+    project: Project,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    percentComplete: Double = 0.0,
+    contractSumOverride: Double? = null
+) {
+    val illustration = ProjectIllustrationPicker.resolveIllustration(
+        projectId = project.id,
+        projectType = project.workType
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .background(MastorCharcoal)
+    ) {
+        // 1. Vector Illustration backdrop scaled to fill entire panel
+        Box(modifier = Modifier.fillMaxSize()) {
+            illustration()
+        }
+
+        // 2. Top gradient overlay: MastorCharcoal 50% opacity over top 40% (88dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(88.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MastorCharcoal.copy(alpha = 0.50f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // 3. Bottom gradient overlay: transparent -> MastorCharcoal 70% opacity over bottom 65% (143dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(143.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            MastorCharcoal.copy(alpha = 0.35f),
+                            MastorCharcoal.copy(alpha = 0.70f)
+                        )
+                    )
+                )
+        )
+
+        // 4. Foreground Content Layer
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Top Row: Back arrow, BracketLabel in centre, MastorStatusBadge at right
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MastorCreamText,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                BracketLabel(
+                    text = project.contractRef.ifBlank { "PROJ-${project.id}" },
+                    color = MastorCreamMuted
+                )
+
+                MastorStatusBadge(status = project.status)
+            }
+
+            // Bottom Section:
+            // Row 1: Project name in MastorDisplayMedium style, 22sp, MastorCreamText, max 2 lines, bold
+            // Row 2: Client name in MastorBody, MastorCreamMuted
+            // Row 3: Three metric pills: [ £XXX,XXX CONTRACT ], [ XX% COMPLETE ], [ ACTIVE ]
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = project.name,
+                    style = MastorDisplayMedium.copy(
+                        fontSize = 22.sp,
+                        lineHeight = 26.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    ),
+                    color = MastorCreamText,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = project.client.ifBlank { "Client Unspecified" },
+                    style = MastorBody,
+                    color = MastorCreamMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Row 3: Three metric pills
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Pill 1: [ £XXX,XXX CONTRACT ]
+                    val effectiveContractValue = contractSumOverride ?: project.contractValue
+                    val formattedValue = MastorCalculationEngine.formatCurrency(effectiveContractValue)
+                    DashboardMetricPill(text = "$formattedValue CONTRACT")
+
+                    // Pill 2: [ XX% COMPLETE ]
+                    val formattedPercent = "%.0f".format(percentComplete)
+                    DashboardMetricPill(text = "$formattedPercent% COMPLETE")
+
+                    // Pill 3: [ ACTIVE ] or current status
+                    val statusText = project.status.ifBlank { "ACTIVE" }.uppercase()
+                    DashboardMetricPill(text = statusText)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Metric Pill for MastorDashboardHero:
+ * MastorCharcoal 60% opacity background, MastorCreamText, MastorBracketLabel typography,
+ * 6dp radius, 8dp horizontal padding, 4dp vertical padding.
+ */
+@Composable
+private fun DashboardMetricPill(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(MastorCharcoal.copy(alpha = 0.60f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MastorBracketLabel,
+            color = MastorCreamText
+        )
+    }
+}
+

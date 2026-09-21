@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import com.example.ui.illustrations.MastorDashboardHero
+import com.example.ui.theme.MastorFinancialSmall
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,6 +54,7 @@ import com.example.data.entity.WorkOrder
 import com.example.domain.calculation.CalculatedValuation
 import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.theme.BracketLabel
+import com.example.ui.theme.MastorBracketLabel
 import com.example.ui.theme.MastorCard
 import com.example.ui.theme.MastorCharcoal
 import com.example.ui.theme.MastorCopper
@@ -88,6 +93,7 @@ fun ProjectDashboardOverviewScreen(
     siteDiaryEntries: List<SiteDiaryEntry> = emptyList(),
     linkedDocuments: List<LinkedDocument> = emptyList(),
     procurementPackages: List<ProcurementPackage> = emptyList(),
+    onBackClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // 1. Calculations for Financial Figures
@@ -106,6 +112,16 @@ fun ProjectDashboardOverviewScreen(
 
     // Remaining figure color: green if > 10% remaining, amber if <= 10%
     val remainingColor = if (percentRemaining > 10.0) StatusGreen else StatusAmber
+
+    // Quick Stats items for horizontal row below hero
+    val quickStatItems = listOf(
+        QuickStatItem("SCOPE", MastorCalculationEngine.formatCurrency(baseScopeTotal)),
+        QuickStatItem("CLAIMED", MastorCalculationEngine.formatCurrency(grandValuationTotal)),
+        QuickStatItem("REMAINING", MastorCalculationEngine.formatCurrency(remainingValue)),
+        QuickStatItem("VOS", "${variationOrders.size}"),
+        QuickStatItem("DIARY", "${siteDiaryEntries.size}"),
+        QuickStatItem("INVOICED", "${allValuations.size}")
+    )
 
     // Prepare real valuation bars
     val valuationBarItems = remember(allValuations, calculatedValuation, grandValuationTotal) {
@@ -136,157 +152,184 @@ fun ProjectDashboardOverviewScreen(
     }
 
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(MastorSpacing.ScreenEdgePadding),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(SpaceMD)
     ) {
-        // Project Header: Wrapped in MastorDarkCard with MastorCharcoal background
+        // Full-Bleed Hero Header: 220dp height using deterministic ProjectIllustration system
         item {
-            MastorDarkCard(
-                modifier = Modifier.fillMaxWidth()
+            MastorDashboardHero(
+                project = project,
+                onBackClick = onBackClick,
+                percentComplete = percentClaimed,
+                contractSumOverride = revisedContractSum
+            )
+        }
+
+        // Horizontal Quick Stats Chips: 80dp x 64dp chips in MastorDarkCard
+        item {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = SpaceLG),
+                horizontalArrangement = Arrangement.spacedBy(SpaceSM)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    BracketLabel(
-                        text = "COMMERCIAL DASHBOARD",
-                        color = MastorCreamMuted
-                    )
-                    MastorStatusBadge(status = project.status)
+                items(quickStatItems) { stat ->
+                    MastorDarkCard(
+                        modifier = Modifier.size(width = 80.dp, height = 64.dp),
+                        internalPadding = SpaceXS
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = stat.label,
+                                style = MastorBracketLabel.copy(
+                                    fontSize = 9.sp,
+                                    lineHeight = 11.sp,
+                                    color = MastorCreamMuted
+                                ),
+                                maxLines = 1
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = stat.value,
+                                style = MastorFinancialSmall,
+                                color = MastorCreamText,
+                                maxLines = 1
+                            )
+                        }
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(SpaceSM))
-
-                Text(
-                    text = project.name,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MastorCreamText,
-                    fontSize = 22.sp
-                )
-
-                Spacer(modifier = Modifier.height(SpaceXS))
-
-                Text(
-                    text = "Client: ${project.client}  •  Contract Ref: ${project.contractRef}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MastorCreamMuted,
-                    fontSize = 14.sp
-                )
             }
         }
 
-        // 3 Full-Width Financial Metric Cards
+        // 3 Full-Width Financial Metric Cards (with 16dp horizontal padding)
         // Card 1: Contract Value
         item {
-            MastorCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("metric_card_contract_value")
-            ) {
-                BracketLabel(text = "CONTRACT VALUE")
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = MastorCalculationEngine.formatCurrency(revisedContractSum),
-                    style = MastorFinancialLarge.copy(color = MastorCopper)
-                )
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = "Base Scope + Central Markups (${project.uplift1Percent.toInt()}% / ${project.uplift2Percent.toInt()}%)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MastorInkMuted,
-                    fontSize = 13.sp
-                )
+            Box(modifier = Modifier.padding(horizontal = SpaceLG)) {
+                MastorCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("metric_card_contract_value")
+                ) {
+                    BracketLabel(text = "CONTRACT VALUE")
+                    Spacer(modifier = Modifier.height(SpaceXS))
+                    Text(
+                        text = MastorCalculationEngine.formatCurrency(revisedContractSum),
+                        style = MastorFinancialLarge.copy(color = MastorCopper)
+                    )
+                    Spacer(modifier = Modifier.height(SpaceXS))
+                    Text(
+                        text = "Base Scope + Central Markups (${project.uplift1Percent.toInt()}% / ${project.uplift2Percent.toInt()}%)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MastorInkMuted,
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
+
 
         // Card 2: Claimed To Date
         item {
-            MastorCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("metric_card_claimed_to_date")
-            ) {
-                BracketLabel(text = "CLAIMED TO DATE")
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = MastorCalculationEngine.formatCurrency(grandValuationTotal),
-                    style = MastorFinancialLarge.copy(color = MastorCopper)
-                )
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = "${"%.1f".format(percentClaimed)}% of total revised contract sum certified/claimed",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MastorInkMuted,
-                    fontSize = 13.sp
-                )
+            Box(modifier = Modifier.padding(horizontal = SpaceLG)) {
+                MastorCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("metric_card_claimed_to_date")
+                ) {
+                    BracketLabel(text = "CLAIMED TO DATE")
+                    Spacer(modifier = Modifier.height(SpaceXS))
+                    Text(
+                        text = MastorCalculationEngine.formatCurrency(grandValuationTotal),
+                        style = MastorFinancialLarge.copy(color = MastorCopper)
+                    )
+                    Spacer(modifier = Modifier.height(SpaceXS))
+                    Text(
+                        text = "${"%.1f".format(percentClaimed)}% of total revised contract sum certified/claimed",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MastorInkMuted,
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
 
         // Card 3: Remaining Value (Green if > 10%, Amber if under 10%)
         item {
-            MastorCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("metric_card_remaining")
-            ) {
-                BracketLabel(text = "REMAINING BALANCE")
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = MastorCalculationEngine.formatCurrency(remainingValue),
-                    style = MastorFinancialLarge.copy(color = remainingColor)
-                )
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = "${"%.1f".format(percentRemaining)}% remaining budget uncommitted",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MastorInkMuted,
-                    fontSize = 13.sp
-                )
+            Box(modifier = Modifier.padding(horizontal = SpaceLG)) {
+                MastorCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("metric_card_remaining")
+                ) {
+                    BracketLabel(text = "REMAINING BALANCE")
+                    Spacer(modifier = Modifier.height(SpaceXS))
+                    Text(
+                        text = MastorCalculationEngine.formatCurrency(remainingValue),
+                        style = MastorFinancialLarge.copy(color = remainingColor)
+                    )
+                    Spacer(modifier = Modifier.height(SpaceXS))
+                    Text(
+                        text = "${"%.1f".format(percentRemaining)}% remaining budget uncommitted",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MastorInkMuted,
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
 
         // Horizontal Progress Bar: Claimed vs Remaining
         item {
-            MastorCard(modifier = Modifier.fillMaxWidth()) {
-                BracketLabel(text = "CONTRACT PROGRESSION")
-                Spacer(modifier = Modifier.height(SpaceSM))
-                DashboardContractProgressBar(
-                    claimedValue = grandValuationTotal,
-                    remainingValue = remainingValue,
-                    contractValue = revisedContractSum
-                )
+            Box(modifier = Modifier.padding(horizontal = SpaceLG)) {
+                MastorCard(modifier = Modifier.fillMaxWidth()) {
+                    BracketLabel(text = "CONTRACT PROGRESSION")
+                    Spacer(modifier = Modifier.height(SpaceSM))
+                    DashboardContractProgressBar(
+                        claimedValue = grandValuationTotal,
+                        remainingValue = remainingValue,
+                        contractValue = revisedContractSum
+                    )
+                }
             }
         }
 
         // Donut / Ring Chart: Commercial Breakdown
         item {
-            MastorCard(modifier = Modifier.fillMaxWidth()) {
-                BracketLabel(text = "COMMERCIAL BREAKDOWN")
-                Spacer(modifier = Modifier.height(SpaceMD))
-                DashboardCommercialDonutChart(
-                    baseScopeValue = baseScopeTotal,
-                    variationsValue = totalVosValue,
-                    upliftsValue = uplift1Val + uplift2Val
-                )
+            Box(modifier = Modifier.padding(horizontal = SpaceLG)) {
+                MastorCard(modifier = Modifier.fillMaxWidth()) {
+                    BracketLabel(text = "COMMERCIAL BREAKDOWN")
+                    Spacer(modifier = Modifier.height(SpaceMD))
+                    DashboardCommercialDonutChart(
+                        baseScopeValue = baseScopeTotal,
+                        variationsValue = totalVosValue,
+                        upliftsValue = uplift1Val + uplift2Val
+                    )
+                }
             }
         }
 
         // Valuation History Bar Chart
         item {
-            MastorCard(modifier = Modifier.fillMaxWidth()) {
-                BracketLabel(text = "VALUATION CYCLE HISTORY")
-                Spacer(modifier = Modifier.height(SpaceMD))
-                DashboardValuationHistoryBarChart(
-                    valuations = valuationBarItems
-                )
+            Box(modifier = Modifier.padding(horizontal = SpaceLG)) {
+                MastorCard(modifier = Modifier.fillMaxWidth()) {
+                    BracketLabel(text = "VALUATION CYCLE HISTORY")
+                    Spacer(modifier = Modifier.height(SpaceMD))
+                    DashboardValuationHistoryBarChart(
+                        valuations = valuationBarItems
+                    )
+                }
             }
         }
     }
 }
+
+private data class QuickStatItem(
+    val label: String,
+    val value: String
+)
 
 /**
  * Donut / Ring Chart Canvas for Commercial Breakdown.
