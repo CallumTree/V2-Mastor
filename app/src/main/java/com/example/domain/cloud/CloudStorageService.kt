@@ -423,6 +423,7 @@ object CloudStorageService {
             isPrimaryBoq = isPrimaryBoq,
             cloudPath = cloudFile.cloudPath,
             contentSnippet = cloudFile.sampleContent ?: GeminiBoqParser.SAMPLE_BOQ_1_TEXT,
+            fullContent = cloudFile.sampleContent ?: GeminiBoqParser.SAMPLE_BOQ_1_TEXT,
             workOrderRef = workOrderRef,
             docCategory = docCategory
         )

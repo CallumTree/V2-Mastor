@@ -29,7 +29,7 @@ import com.example.data.entity.WorkOrder
         com.example.data.entity.SubcontractorQuote::class,
         com.example.data.entity.SubcontractorClaim::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class MastorDatabase : RoomDatabase() {

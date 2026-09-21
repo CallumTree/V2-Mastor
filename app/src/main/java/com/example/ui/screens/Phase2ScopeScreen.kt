@@ -124,6 +124,8 @@ import com.example.ui.components.ProjectSetupForm
 import com.example.ui.components.WorkOrderCard
 import com.example.domain.cloud.CloudFileItem
 import com.example.domain.cloud.CloudStorageService
+import com.example.ui.theme.MastorBottomNavBar
+import com.example.ui.theme.MastorNavItem
 import com.example.ui.theme.FinancialLargeNumeralStyle
 import com.example.ui.theme.MastorAccentBlue
 import com.example.ui.theme.MastorBackgroundLight
@@ -134,7 +136,10 @@ import com.example.ui.theme.MastorSurfaceLight
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.viewmodel.Phase1ViewModel
 
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
+import com.example.domain.boq.BoqTextExtractor
 import com.example.domain.boq.GeminiBoqParser
 import com.example.domain.boq.ParsedBoqResult
 import com.example.ui.components.BoqUnifiedUploadAndConfirmScreen
@@ -176,9 +181,12 @@ fun Phase2ScopeScreen(
     var jobToolsSubIndex by remember { mutableStateOf(0) }
 
     // Phase 3 Gemini BoQ Parsing Pipeline state
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var boqUiState by remember { mutableStateOf(BoqParsingUiState.IDLE) }
     var parsedBoqData by remember { mutableStateOf<ParsedBoqResult?>(null) }
+    var isBoqFileExtracting by remember { mutableStateOf(false) }
+    var boqFileExtractionError by remember { mutableStateOf<String?>(null) }
 
     // Phase 7 & Google Drive State
     var showCloudPickerModal by remember { mutableStateOf(false) }
@@ -389,45 +397,22 @@ fun Phase2ScopeScreen(
             modifier = modifier.fillMaxSize(),
             containerColor = MastorBackgroundLight,
             bottomBar = {
-                NavigationBar(
-                    containerColor = MastorSurfaceLight,
-                    tonalElevation = 0.dp,
-                    modifier = Modifier.border(BorderStroke(1.dp, MastorSlateBorder))
-                ) {
-                    val primaryTabs = listOf(
-                        Triple("Dash", Icons.Default.Dashboard, Phase2Tab.DASHBOARD),
-                        Triple("Scope", Icons.AutoMirrored.Filled.ListAlt, Phase2Tab.SCOPE),
-                        Triple("Diary", Icons.Default.CameraAlt, Phase2Tab.SITE_DIARY),
-                        Triple("Vals", Icons.AutoMirrored.Filled.ReceiptLong, Phase2Tab.VALUATIONS),
-                        Triple("VOs", Icons.Default.Receipt, Phase2Tab.VARIATIONS),
-                        Triple("BoQ", Icons.Default.CloudUpload, Phase2Tab.BOQ_IMPORT),
-                        Triple("Setup", Icons.Default.Settings, Phase2Tab.PROJECT_SETUP)
+                val primaryNavItems = remember {
+                    listOf(
+                        MastorNavItem(Phase2Tab.DASHBOARD, "Dash", Icons.Default.Dashboard),
+                        MastorNavItem(Phase2Tab.SCOPE, "Scope", Icons.AutoMirrored.Filled.ListAlt),
+                        MastorNavItem(Phase2Tab.SITE_DIARY, "Diary", Icons.Default.CameraAlt),
+                        MastorNavItem(Phase2Tab.VALUATIONS, "Vals", Icons.AutoMirrored.Filled.ReceiptLong),
+                        MastorNavItem(Phase2Tab.VARIATIONS, "VOs", Icons.Default.Receipt),
+                        MastorNavItem(Phase2Tab.BOQ_IMPORT, "BoQ", Icons.Default.CloudUpload),
+                        MastorNavItem(Phase2Tab.PROJECT_SETUP, "Setup", Icons.Default.Settings)
                     )
-
-                    primaryTabs.forEach { (label, icon, tab) ->
-                        val isSelected = selectedTab == tab
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = { selectedTab = tab },
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = {
-                                Text(
-                                    text = label,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    fontSize = 11.sp,
-                                    maxLines = 1
-                                )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MastorAccentBlue,
-                                selectedTextColor = MastorAccentBlue,
-                                indicatorColor = MastorAccentBlue.copy(alpha = 0.14f),
-                                unselectedIconColor = MastorSlateMuted,
-                                unselectedTextColor = MastorSlateMuted
-                            )
-                        )
-                    }
                 }
+                MastorBottomNavBar(
+                    items = primaryNavItems,
+                    selectedItem = selectedTab,
+                    onItemSelected = { selectedTab = it }
+                )
             }
         ) { paddingValues ->
             Column(
@@ -547,8 +532,31 @@ fun Phase2ScopeScreen(
                                 linkedDocument = primaryDoc,
                                 onOpenCloudPicker = { showCloudPickerModal = true },
                                 onUnlinkDocument = { doc -> viewModel.unlinkCloudDocument(doc.id) },
+                                onPickFile = { uri ->
+                                    isBoqFileExtracting = true
+                                    boqFileExtractionError = null
+                                    coroutineScope.launch {
+                                        try {
+                                            val extracted = BoqTextExtractor.extractText(context, uri)
+                                            if (extracted.isBlank()) {
+                                                boqFileExtractionError = "No readable text could be extracted from the selected file."
+                                            } else {
+                                                val parsed = GeminiBoqParser.parseBoqText(extracted)
+                                                parsedBoqData = parsed
+                                            }
+                                        } catch (e: Exception) {
+                                            boqFileExtractionError = "Failed to extract/parse file: ${e.message}"
+                                        } finally {
+                                            isBoqFileExtracting = false
+                                        }
+                                    }
+                                },
+                                externalParsedResult = parsedBoqData,
+                                isExternalParsing = isBoqFileExtracting,
+                                externalErrorMessage = boqFileExtractionError,
                                 onConfirmAndImport = { confirmedResult ->
                                     viewModel.importParsedBoq(confirmedResult) {
+                                        parsedBoqData = null
                                         selectedTab = Phase2Tab.SCOPE
                                     }
                                 }

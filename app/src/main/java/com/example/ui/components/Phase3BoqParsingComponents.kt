@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -31,6 +34,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -45,6 +50,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,12 +60,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.entity.LinkedDocument
+import com.example.domain.boq.BoqTextExtractor
 import com.example.domain.boq.GeminiBoqParser
 import com.example.domain.boq.ParsedBoqResult
 import com.example.domain.boq.ParsedScopeElement
@@ -92,13 +100,62 @@ fun BoqUnifiedUploadAndConfirmScreen(
     linkedDocument: LinkedDocument? = null,
     onOpenCloudPicker: (() -> Unit)? = null,
     onUnlinkDocument: ((LinkedDocument) -> Unit)? = null,
+    onPickFile: ((Uri) -> Unit)? = null,
+    externalParsedResult: ParsedBoqResult? = null,
+    isExternalParsing: Boolean = false,
+    externalErrorMessage: String? = null,
     onConfirmAndImport: (ParsedBoqResult) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     var pastedText by remember { mutableStateOf("") }
-    var isParsing by remember { mutableStateOf(false) }
+    var localIsParsing by remember { mutableStateOf(false) }
+    var localParsedResult by remember { mutableStateOf<ParsedBoqResult?>(null) }
+    var localErrorMessage by remember { mutableStateOf<String?>(null) }
+    var cloudDocErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            if (onPickFile != null) {
+                onPickFile.invoke(uri)
+            } else {
+                localIsParsing = true
+                localErrorMessage = null
+                coroutineScope.launch {
+                    try {
+                        val extracted = BoqTextExtractor.extractText(context, uri)
+                        if (extracted.isBlank()) {
+                            localErrorMessage = "No readable text could be extracted from the selected file."
+                        } else {
+                            val res = GeminiBoqParser.parseBoqText(extracted)
+                            localParsedResult = res
+                        }
+                    } catch (e: Exception) {
+                        localErrorMessage = "Failed to parse file: ${e.message}"
+                    } finally {
+                        localIsParsing = false
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(externalParsedResult) {
+        if (externalParsedResult != null) {
+            localParsedResult = externalParsedResult
+        }
+    }
+
     var parsedResult by remember { mutableStateOf<ParsedBoqResult?>(null) }
+    LaunchedEffect(localParsedResult) {
+        parsedResult = localParsedResult
+    }
+
+    val isParsing = isExternalParsing || localIsParsing
+    val activeGeneralError = externalErrorMessage ?: localErrorMessage
 
     val totalWorkOrders = parsedResult?.workOrders?.size ?: 0
     val totalScopeElements = parsedResult?.workOrders?.sumOf { it.scopeElements.size } ?: 0
@@ -143,13 +200,23 @@ fun BoqUnifiedUploadAndConfirmScreen(
                 LinkedCloudBoqSourceSection(
                     linkedDocument = linkedDocument,
                     onOpenPicker = { onOpenCloudPicker?.invoke() },
+                    errorMessage = cloudDocErrorMessage,
                     onParseLinkedDocument = { doc ->
-                        isParsing = true
-                        val snippet = doc.contentSnippet ?: GeminiBoqParser.SAMPLE_BOQ_1_TEXT
-                        coroutineScope.launch {
-                            val res = GeminiBoqParser.parseBoqText(snippet)
-                            parsedResult = res
-                            isParsing = false
+                        val contentToParse = when {
+                            !doc.fullContent.isNullOrBlank() -> doc.fullContent
+                            !doc.contentSnippet.isNullOrBlank() -> doc.contentSnippet
+                            else -> null
+                        }
+                        if (contentToParse.isNullOrBlank()) {
+                            cloudDocErrorMessage = "Document content not available — please re-sync from cloud or use the file upload option instead."
+                        } else {
+                            cloudDocErrorMessage = null
+                            localIsParsing = true
+                            coroutineScope.launch {
+                                val res = GeminiBoqParser.parseBoqText(contentToParse)
+                                localParsedResult = res
+                                localIsParsing = false
+                            }
                         }
                     },
                     onUnlinkDocument = onUnlinkDocument
@@ -173,7 +240,82 @@ fun BoqUnifiedUploadAndConfirmScreen(
                         color = MastorSlateDark
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Real File Picker Button
+                    Button(
+                        onClick = {
+                            filePickerLauncher.launch(
+                                arrayOf(
+                                    "application/pdf",
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                    "text/plain",
+                                    "text/csv"
+                                )
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("upload_file_button"),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MastorAccentBlue,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.UploadFile,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Upload File",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    if (activeGeneralError != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            color = Color(0xFFFEE2E2),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("boq_parsing_error_banner")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFDC2626),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = activeGeneralError,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF991B1B)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Or choose sample demo BoQ data:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MastorSlateMuted
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -181,10 +323,10 @@ fun BoqUnifiedUploadAndConfirmScreen(
                     ) {
                         OutlinedButton(
                             onClick = {
-                                isParsing = true
+                                localIsParsing = true
                                 val res = GeminiBoqParser.getSampleBoqResult1()
-                                parsedResult = res
-                                isParsing = false
+                                localParsedResult = res
+                                localIsParsing = false
                             },
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier
@@ -196,10 +338,10 @@ fun BoqUnifiedUploadAndConfirmScreen(
 
                         OutlinedButton(
                             onClick = {
-                                isParsing = true
+                                localIsParsing = true
                                 val res = GeminiBoqParser.getSampleBoqResult2()
-                                parsedResult = res
-                                isParsing = false
+                                localParsedResult = res
+                                localIsParsing = false
                             },
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier
@@ -227,11 +369,11 @@ fun BoqUnifiedUploadAndConfirmScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = {
-                                isParsing = true
+                                localIsParsing = true
                                 coroutineScope.launch {
                                     val res = GeminiBoqParser.parseBoqText(pastedText)
-                                    parsedResult = res
-                                    isParsing = false
+                                    localParsedResult = res
+                                    localIsParsing = false
                                 }
                             },
                             modifier = Modifier
@@ -363,7 +505,10 @@ fun BoqUnifiedUploadAndConfirmScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedButton(
-                            onClick = { parsedResult = null },
+                            onClick = {
+                                localParsedResult = null
+                                parsedResult = null
+                            },
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text("Reset")

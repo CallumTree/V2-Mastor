@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -2174,9 +2175,11 @@ fun LinkedCloudBoqSourceSection(
     onOpenPicker: () -> Unit,
     onParseLinkedDocument: (LinkedDocument) -> Unit,
     onUnlinkDocument: ((LinkedDocument) -> Unit)? = null,
+    errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
     var showUnlinkConfirmDialog by remember { mutableStateOf(false) }
+    var localErrorMessage by remember { mutableStateOf<String?>(null) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -2265,7 +2268,19 @@ fun LinkedCloudBoqSourceSection(
                         }
 
                         Button(
-                            onClick = { onParseLinkedDocument(linkedDocument) },
+                            onClick = {
+                                val content = when {
+                                    !linkedDocument.fullContent.isNullOrBlank() -> linkedDocument.fullContent
+                                    !linkedDocument.contentSnippet.isNullOrBlank() -> linkedDocument.contentSnippet
+                                    else -> null
+                                }
+                                if (content.isNullOrBlank()) {
+                                    localErrorMessage = "Document content not available — please re-sync from cloud or use the file upload option instead."
+                                } else {
+                                    localErrorMessage = null
+                                    onParseLinkedDocument(linkedDocument)
+                                }
+                            },
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
                             modifier = Modifier.testTag("parse_linked_cloud_doc_btn")
@@ -2277,6 +2292,37 @@ fun LinkedCloudBoqSourceSection(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Parse Directly")
+                        }
+                    }
+                }
+
+                val activeError = errorMessage ?: localErrorMessage
+                if (activeError != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Surface(
+                        color = Color(0xFFFEE2E2),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("cloud_doc_parse_error")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFDC2626),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = activeError,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF991B1B)
+                            )
                         }
                     }
                 }

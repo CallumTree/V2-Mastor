@@ -56,6 +56,9 @@ data class LinkedDocument(
     @ColumnInfo(name = "content_snippet")
     val contentSnippet: String? = null,
 
+    @ColumnInfo(name = "full_content")
+    val fullContent: String? = null,
+
     @ColumnInfo(name = "work_order_ref")
     val workOrderRef: String? = null,
 

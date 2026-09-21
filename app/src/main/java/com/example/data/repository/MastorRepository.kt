@@ -812,6 +812,7 @@ class MastorRepository(private val dao: MastorDao) {
                         isPrimaryBoq = true,
                         cloudPath = "/Contracts/142_Park_Lane/BoQ/",
                         contentSnippet = GeminiBoqParser.SAMPLE_BOQ_1_TEXT,
+                        fullContent = GeminiBoqParser.SAMPLE_BOQ_1_TEXT,
                         workOrderRef = null,
                         docCategory = "BoQ / Specification"
                     ),
@@ -842,6 +843,7 @@ class MastorRepository(private val dao: MastorDao) {
                         isPrimaryBoq = false,
                         cloudPath = "My Drive/Mastor/142 Park Lane/M&E/",
                         contentSnippet = GeminiBoqParser.SAMPLE_BOQ_2_TEXT,
+                        fullContent = GeminiBoqParser.SAMPLE_BOQ_2_TEXT,
                         workOrderRef = "WO-002",
                         docCategory = "Subcontract Schedule"
                     ),

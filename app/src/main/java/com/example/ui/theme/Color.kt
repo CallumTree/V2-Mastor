@@ -2,33 +2,85 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Mastor Design System v2 Tokens - Confident Deep Indigo Primary & Clean Neutrals
+// ========================================================================
+// MASTOR DESIGN SYSTEM v3 FOUNDATION TOKENS
+// ========================================================================
 
-val MastorSlateDark = Color(0xFF0F172A)     // High-contrast deep slate for primary headings & financial figures
-val MastorSlateText = Color(0xFF334155)     // Primary body text
-val MastorSlateMuted = Color(0xFF64748B)    // Secondary metadata text & subtle icons
-val MastorSlateBorder = Color(0xFFE2E8F0)   // Subtle container & card divider border
+// ------------------------------------------------------------------------
+// Primary Palette
+// ------------------------------------------------------------------------
+val MastorCopper = Color(0xFFC97B3F)        // Primary accent — CTAs, active states, money figures
+val MastorCopperLight = Color(0xFFE8A868)   // Hover/pressed states on copper
+val MastorCopperDark = Color(0xFFA85E28)    // Deep copper for text on light backgrounds
+val MastorCopperSubtle = Color(0xFFF5E6D3)  // Copper tint background for highlighted cards
 
-val MastorAccentBlue = Color(0xFF1E293B)    // Confident deep slate-indigo brand primary
-val MastorAccentBlueLight = Color(0xFFF1F5F9)// Soft primary container fill
+// ------------------------------------------------------------------------
+// Structural Surfaces
+// ------------------------------------------------------------------------
+val MastorCharcoal = Color(0xFF1A1A2E)      // Primary dark surface — nav bar, headers, dark cards
+val MastorCharcoalMid = Color(0xFF252540)   // Secondary dark surface — elevated dark cards
+val MastorCharcoalLight = Color(0xFF2E2E4A) // Tertiary — borders on dark surfaces
 
-val MastorBackgroundLight = Color(0xFFF8FAFC) // Clean near-white background canvas
-val MastorSurfaceLight = Color(0xFFFFFFFF)    // Crisp white surface cards
-val MastorSurfaceVariant = Color(0xFFF1F5F9)  // Soft tinted secondary card surface
+// ------------------------------------------------------------------------
+// Content Backgrounds
+// ------------------------------------------------------------------------
+val MastorCream = Color(0xFFF5F0E8)         // Primary content background — replaces white
+val MastorCreamDark = Color(0xFFEDE6D8)     // Cards on cream background
+val MastorCreamBorder = Color(0xFFD4C9B5)   // Borders on cream surfaces
 
-// Semantic Status Tokens - Fixed 3-5 Status Color Set Only
-val StatusClaimedGreen = Color(0xFF166534)   // Semantic status green: claimed / complete only
-val StatusClaimedBg = Color(0xFFDCFCE7)
+// ------------------------------------------------------------------------
+// Text Tokens
+// ------------------------------------------------------------------------
+val MastorInk = Color(0xFF1A1A2E)           // Primary text on light backgrounds
+val MastorInkMuted = Color(0xFF5A5A7A)      // Secondary/label text
+val MastorInkSubtle = Color(0xFF8A8AAA)     // Placeholder, disabled text
+val MastorCreamText = Color(0xFFF5F0E8)     // Primary text on dark surfaces
+val MastorCreamMuted = Color(0xFFB0A898)    // Secondary text on dark surfaces
 
-val StatusPendingAmber = Color(0xFFD97706)   // Semantic status amber: pending / draft only
-val StatusPendingBg = Color(0xFFFEF3C7)
+// ------------------------------------------------------------------------
+// Teal — strictly for AI/live features only
+// ------------------------------------------------------------------------
+val MastorTeal = Color(0xFF2DD4BF)          // AI transcription active, AI match results
+val MastorTealSubtle = Color(0xFFE0FAF7)    // Teal tint background
 
-val StatusFlaggedRed = Color(0xFFDC2626)     // Semantic status red: flagged / review / overdue only
-val StatusFlaggedBg = Color(0xFFFEE2E2)
+// ------------------------------------------------------------------------
+// Status Colours
+// ------------------------------------------------------------------------
+val StatusGreen = Color(0xFF22C55E)         // Claimed, complete, paid
+val StatusGreenBg = Color(0xFFF0FDF4)
+val StatusAmber = Color(0xFFF59E0B)         // In progress, pending, draft
+val StatusAmberBg = Color(0xFFFFFBEB)
+val StatusRed = Color(0xFFEF4444)           // Rejected, error, overdue
+val StatusRedBg = Color(0xFFFEF2F2)
+val StatusSlate = Color(0xFF64748B)         // Not started, inactive
+val StatusSlateBg = Color(0xFFF8FAFC)
 
-val StatusIdentifiedSky = Color(0xFF0284C7)  // Semantic status sky: info / identified only
-val StatusIdentifiedBg = Color(0xFFE0F2FE)
+// ------------------------------------------------------------------------
+// Compatibility & Semantic Aliases (Preserves existing codebase components)
+// ------------------------------------------------------------------------
+val MastorSlateDark = MastorCharcoal
+val MastorSlateText = MastorInk
+val MastorSlateMuted = MastorInkMuted
+val MastorSlateBorder = MastorCreamBorder
 
-val MastorGold = Color(0xFFD97706)          // Valuation accent gold
-val MastorGoldBg = Color(0xFFFEF3C7)
+val MastorAccentBlue = MastorCopper
+val MastorAccentBlueLight = MastorCopperSubtle
 
+val MastorBackgroundLight = MastorCream
+val MastorSurfaceLight = MastorCreamDark
+val MastorSurfaceVariant = MastorCream
+
+val StatusClaimedGreen = StatusGreen
+val StatusClaimedBg = StatusGreenBg
+
+val StatusPendingAmber = StatusAmber
+val StatusPendingBg = StatusAmberBg
+
+val StatusFlaggedRed = StatusRed
+val StatusFlaggedBg = StatusRedBg
+
+val StatusIdentifiedSky = MastorTeal
+val StatusIdentifiedBg = MastorTealSubtle
+
+val MastorGold = MastorCopper
+val MastorGoldBg = MastorCopperSubtle
