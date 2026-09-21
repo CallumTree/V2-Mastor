@@ -85,12 +85,12 @@ import com.example.data.entity.Project
 import com.example.data.entity.ScopeElement
 import com.example.data.entity.VariationOrder
 import com.example.data.entity.WorkOrder
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusFlaggedBg
@@ -243,7 +243,7 @@ fun ProjectCostBreakdownChartComponent(
                     text = "Spent: ${formatChartCurrency(totalActual)} of ${formatChartCurrency(totalEstimated)}",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -289,8 +289,8 @@ fun ProjectCostBreakdownChartComponent(
                 .fillMaxWidth()
                 .height(6.dp)
                 .clip(RoundedCornerShape(3.dp)),
-            color = if (totalPercentSpent <= 100.0) MastorAccentBlue else StatusFlaggedRed,
-            trackColor = MastorSlateBorder
+            color = if (totalPercentSpent <= 100.0) MastorCopper else StatusFlaggedRed,
+            trackColor = MastorCreamBorder
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -331,8 +331,8 @@ fun ProjectCostBreakdownChartComponent(
 
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = if (showOnlyVariances) MastorAccentBlue.copy(alpha = 0.12f) else MastorBackgroundLight,
-                border = BorderStroke(1.dp, if (showOnlyVariances) MastorAccentBlue else MastorSlateBorder),
+                color = if (showOnlyVariances) MastorCopper.copy(alpha = 0.12f) else MastorCream,
+                border = BorderStroke(1.dp, if (showOnlyVariances) MastorCopper else MastorCreamBorder),
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
                     .clickable { showOnlyVariances = !showOnlyVariances }
@@ -344,7 +344,7 @@ fun ProjectCostBreakdownChartComponent(
                     Icon(
                         imageVector = Icons.Default.FilterList,
                         contentDescription = null,
-                        tint = if (showOnlyVariances) MastorAccentBlue else MastorSlateDark,
+                        tint = if (showOnlyVariances) MastorCopper else MastorInk,
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -352,7 +352,7 @@ fun ProjectCostBreakdownChartComponent(
                         text = "Variances",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (showOnlyVariances) FontWeight.Bold else FontWeight.Medium,
-                        color = if (showOnlyVariances) MastorAccentBlue else MastorSlateDark
+                        color = if (showOnlyVariances) MastorCopper else MastorInk
                     )
                 }
             }
@@ -364,7 +364,7 @@ fun ProjectCostBreakdownChartComponent(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MastorSlateDark.copy(alpha = 0.04f), RoundedCornerShape(8.dp))
+                            .background(MastorInk.copy(alpha = 0.04f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -375,13 +375,13 @@ fun ProjectCostBreakdownChartComponent(
                                     modifier = Modifier
                                         .size(12.dp, 12.dp)
                                         .clip(RoundedCornerShape(2.dp))
-                                        .background(MastorAccentBlue)
+                                        .background(MastorCopper)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "Estimated Cost",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateDark,
+                                    color = MastorInk,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1
                                 )
@@ -398,7 +398,7 @@ fun ProjectCostBreakdownChartComponent(
                                 Text(
                                     text = "Actual Expenditure",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateDark,
+                                    color = MastorInk,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1
                                 )
@@ -408,7 +408,7 @@ fun ProjectCostBreakdownChartComponent(
                         Text(
                             text = "${displayCategories.size} Categories",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MastorSlateMuted,
+                            color = MastorInkMuted,
                             maxLines = 1
                         )
                     }
@@ -437,7 +437,7 @@ fun ProjectCostBreakdownChartComponent(
                             Text(
                                 text = "No cost categories available for selected dimension.",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MastorSlateMuted,
+                                color = MastorInkMuted,
                                 maxLines = 1
                             )
                         }
@@ -449,26 +449,26 @@ fun ProjectCostBreakdownChartComponent(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        color = MastorSlateDark.copy(alpha = 0.03f),
-                        border = BorderStroke(1.dp, MastorSlateBorder)
+                        color = MastorInk.copy(alpha = 0.03f),
+                        border = BorderStroke(1.dp, MastorCreamBorder)
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
-                                Text("Total Estimated", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted, maxLines = 1)
+                                Text("Total Estimated", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted, maxLines = 1)
                                 Text(
                                     text = formatChartCurrency(totalEstimated),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = MastorSlateDark,
+                                    color = MastorInk,
                                     maxLines = 1
                                 )
                             }
 
                             Column {
-                                Text("Total Actual", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted, maxLines = 1)
+                                Text("Total Actual", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted, maxLines = 1)
                                 Text(
                                     text = formatChartCurrency(totalActual),
                                     style = MaterialTheme.typography.titleMedium,
@@ -479,7 +479,7 @@ fun ProjectCostBreakdownChartComponent(
                             }
 
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("Total Progress", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted, maxLines = 1)
+                                Text("Total Progress", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted, maxLines = 1)
                                 Text(
                                     text = "%.1f%% Spent".format(totalPercentSpent),
                                     style = MaterialTheme.typography.titleMedium,
@@ -498,7 +498,7 @@ fun ProjectCostBreakdownChartComponent(
                         text = "CATEGORY BREAKDOWN LEDGER",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorAccentBlue,
+                        color = MastorCopper,
                         letterSpacing = 1.sp,
                         maxLines = 1
                     )
@@ -536,11 +536,11 @@ private fun RechartsGroupedBarCanvas(
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
-    val estBarColor = MastorAccentBlue
+    val estBarColor = MastorCopper
     val actBarColor = StatusPendingAmber
     val overBarColor = StatusFlaggedRed
-    val gridColor = MastorSlateBorder.copy(alpha = 0.6f)
-    val labelColor = MastorSlateMuted
+    val gridColor = MastorCreamBorder.copy(alpha = 0.6f)
+    val labelColor = MastorInkMuted
 
     val maxVal = remember(categories) {
         val highest = categories.maxOfOrNull { maxOf(it.estimatedCost, it.actualExpenditure) } ?: 1000.0
@@ -631,7 +631,7 @@ private fun RechartsGroupedBarCanvas(
                 // Draw background highlight column if selected
                 if (isSelected) {
                     drawRoundRect(
-                        color = MastorAccentBlue.copy(alpha = 0.08f),
+                        color = MastorCopper.copy(alpha = 0.08f),
                         topLeft = Offset(leftPadding + index * groupWidth, topPadding),
                         size = Size(groupWidth, chartHeight),
                         cornerRadius = CornerRadius(8f, 8f)
@@ -671,7 +671,7 @@ private fun RechartsGroupedBarCanvas(
                     text = AnnotatedString(shortName),
                     style = TextStyle(
                         fontSize = 10.sp,
-                        color = if (isSelected) MastorSlateDark else labelColor,
+                        color = if (isSelected) MastorInk else labelColor,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                 )
@@ -702,11 +702,11 @@ private fun CategoryBreakdownRowCard(
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MastorAccentBlue.copy(alpha = 0.05f) else Color.White
+            containerColor = if (isSelected) MastorCopper.copy(alpha = 0.05f) else Color.White
         ),
         border = BorderStroke(
             1.dp,
-            if (isSelected) MastorAccentBlue else MastorSlateBorder
+            if (isSelected) MastorCopper else MastorCreamBorder
         )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -723,26 +723,26 @@ private fun CategoryBreakdownRowCard(
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(if (category.isOverBudget) StatusFlaggedRed else MastorAccentBlue)
+                            .background(if (category.isOverBudget) StatusFlaggedRed else MastorCopper)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = category.categoryName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark,
+                        color = MastorInk,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = MastorSlateDark.copy(alpha = 0.08f)
+                        color = MastorInk.copy(alpha = 0.08f)
                     ) {
                         Text(
                             text = "${category.itemCount} items",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MastorSlateMuted,
+                            color = MastorInkMuted,
                             fontSize = 10.sp,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
@@ -755,12 +755,12 @@ private fun CategoryBreakdownRowCard(
                             text = formatChartCurrency(category.actualExpenditure),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Text(
                             text = "Est: ${formatChartCurrency(category.estimatedCost)}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
 
@@ -769,7 +769,7 @@ private fun CategoryBreakdownRowCard(
                     Icon(
                         imageVector = if (isSelected) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = null,
-                        tint = MastorSlateMuted
+                        tint = MastorInkMuted
                     )
                 }
             }
@@ -788,7 +788,7 @@ private fun CategoryBreakdownRowCard(
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
                     color = if (category.isOverBudget) StatusFlaggedRed else StatusClaimedGreen,
-                    trackColor = MastorSlateBorder
+                    trackColor = MastorCreamBorder
                 )
 
                 Spacer(modifier = Modifier.width(10.dp))
@@ -797,7 +797,7 @@ private fun CategoryBreakdownRowCard(
                     text = "%.1f%%".format(category.percentSpent),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (category.isOverBudget) StatusFlaggedRed else MastorSlateDark
+                    color = if (category.isOverBudget) StatusFlaggedRed else MastorInk
                 )
             }
 
@@ -808,14 +808,14 @@ private fun CategoryBreakdownRowCard(
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    Divider(color = MastorSlateBorder)
+                    Divider(color = MastorCreamBorder)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = "Itemized BoQ Lines in Category",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -834,14 +834,14 @@ private fun CategoryBreakdownRowCard(
                                         text = "[${sc.locationRoom}] ${sc.code} - ${sc.description}",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.Medium,
-                                        color = MastorSlateDark,
+                                        color = MastorInk,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = "${sc.qty} ${sc.units} @ ${formatChartCurrency(sc.rate)} (${sc.claimPercent.toInt()}% claimed)",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MastorSlateMuted
+                                        color = MastorInkMuted
                                     )
                                 }
 
@@ -849,7 +849,7 @@ private fun CategoryBreakdownRowCard(
                                     text = formatChartCurrency(sc.qty * sc.rate),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                             }
                         }
@@ -857,7 +857,7 @@ private fun CategoryBreakdownRowCard(
                         Text(
                             text = "Variation Orders or external package lines.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }

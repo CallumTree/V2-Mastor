@@ -71,14 +71,14 @@ import com.example.data.entity.ScopeElement
 import com.example.data.entity.WorkOrder
 import com.example.domain.calculation.CalculatedWorkOrder
 import com.example.domain.calculation.MastorCalculationEngine
-import com.example.ui.theme.FinancialLargeNumeralStyle
-import com.example.ui.theme.FinancialMediumNumeralStyle
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorFinancialLarge
+import com.example.ui.theme.MastorFinancialMed
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusFlaggedRed
@@ -102,8 +102,8 @@ fun TickAndPercentControl(
 
     val containerBg = when {
         isFullyClaimed -> StatusClaimedBg
-        isPartiallyClaimed -> MastorAccentBlue.copy(alpha = 0.08f)
-        else -> MastorBackgroundLight
+        isPartiallyClaimed -> MastorCopper.copy(alpha = 0.08f)
+        else -> MastorCream
     }
 
     Surface(
@@ -112,8 +112,8 @@ fun TickAndPercentControl(
                 1.dp,
                 when {
                     isFullyClaimed -> StatusClaimedGreen.copy(alpha = 0.5f)
-                    isPartiallyClaimed -> MastorAccentBlue.copy(alpha = 0.4f)
-                    else -> MastorSlateBorder
+                    isPartiallyClaimed -> MastorCopper.copy(alpha = 0.4f)
+                    else -> MastorCreamBorder
                 },
                 RoundedCornerShape(100.dp)
             )
@@ -132,7 +132,7 @@ fun TickAndPercentControl(
                     .background(
                         when {
                             isFullyClaimed -> StatusClaimedGreen
-                            isPartiallyClaimed -> MastorAccentBlue
+                            isPartiallyClaimed -> MastorCopper
                             else -> Color.White
                         }
                     )
@@ -140,8 +140,8 @@ fun TickAndPercentControl(
                         1.dp,
                         when {
                             isFullyClaimed -> StatusClaimedGreen
-                            isPartiallyClaimed -> MastorAccentBlue
-                            else -> MastorSlateBorder
+                            isPartiallyClaimed -> MastorCopper
+                            else -> MastorCreamBorder
                         },
                         CircleShape
                     )
@@ -195,7 +195,7 @@ fun TickAndPercentControl(
                         },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
 
                 OutlinedTextField(
@@ -217,12 +217,12 @@ fun TickAndPercentControl(
                         fontWeight = FontWeight.Bold,
                         color = when {
                             isFullyClaimed -> StatusClaimedGreen
-                            isPartiallyClaimed -> MastorAccentBlue
-                            else -> MastorSlateDark
+                            isPartiallyClaimed -> MastorCopper
+                            else -> MastorInk
                         }
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MastorAccentBlue,
+                        focusedBorderColor = MastorCopper,
                         unfocusedBorderColor = Color.Transparent,
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent
@@ -233,7 +233,7 @@ fun TickAndPercentControl(
                     text = "%",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
 
                 // Increment 10%
@@ -247,14 +247,14 @@ fun TickAndPercentControl(
                         },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
             }
 
             if (thisValuationIncrement > 0 && previouslyCertifiedPercent > 0) {
                 Spacer(modifier = Modifier.width(6.dp))
                 Surface(
-                    color = MastorAccentBlue.copy(alpha = 0.15f),
+                    color = MastorCopper.copy(alpha = 0.15f),
                     shape = RoundedCornerShape(4.dp)
                 ) {
                     Text(
@@ -262,7 +262,7 @@ fun TickAndPercentControl(
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MastorAccentBlue,
+                        color = MastorCopper,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                     )
                 }
@@ -291,10 +291,10 @@ fun ScopeElementListItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(14.dp),
-        color = MastorSurfaceLight,
+        color = MastorCreamDark,
         border = BorderStroke(
             1.dp,
-            if (element.claimPercent >= 100.0) StatusClaimedGreen.copy(alpha = 0.4f) else MastorSlateBorder
+            if (element.claimPercent >= 100.0) StatusClaimedGreen.copy(alpha = 0.4f) else MastorCreamBorder
         )
     ) {
         Column(
@@ -309,7 +309,7 @@ fun ScopeElementListItem(
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
-                            color = MastorBackgroundLight,
+                            color = MastorCream,
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
@@ -317,14 +317,14 @@ fun ScopeElementListItem(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorAccentBlue
+                                color = MastorCopper
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = element.locationRoom,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
 
@@ -335,7 +335,7 @@ fun ScopeElementListItem(
                         text = element.description,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
 
                     Spacer(modifier = Modifier.height(2.dp))
@@ -344,7 +344,7 @@ fun ScopeElementListItem(
                     Text(
                         text = "${element.qty} ${element.units} @ Base Rate ${MastorCalculationEngine.formatCurrency(element.rate)}/${element.units}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                 }
 
@@ -354,18 +354,18 @@ fun ScopeElementListItem(
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = MastorCalculationEngine.formatCurrency(claimedBase),
-                        style = FinancialMediumNumeralStyle,
-                        color = if (element.claimPercent > 0) StatusClaimedGreen else MastorSlateDark
+                        style = MastorFinancialMed,
+                        color = if (element.claimPercent > 0) StatusClaimedGreen else MastorInk
                     )
                     Text(
                         text = "Base Total: ${MastorCalculationEngine.formatCurrency(baseCost)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                     Text(
                         text = "${element.claimPercent.toInt()}% Claimed",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (element.claimPercent > 0) StatusClaimedGreen else MastorSlateMuted,
+                        color = if (element.claimPercent > 0) StatusClaimedGreen else MastorInkMuted,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -391,7 +391,7 @@ fun ScopeElementListItem(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Scope Element",
-                            tint = MastorSlateMuted,
+                            tint = MastorInkMuted,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -438,8 +438,8 @@ fun WorkOrderCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column {
             // Realistic Photographic Placeholder Header
@@ -492,7 +492,7 @@ fun WorkOrderCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(12.dp),
-                    color = if (calcWorkOrder.percentComplete >= 100.0) StatusClaimedGreen else MastorAccentBlue,
+                    color = if (calcWorkOrder.percentComplete >= 100.0) StatusClaimedGreen else MastorCopper,
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(
@@ -519,7 +519,7 @@ fun WorkOrderCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MastorBackgroundLight)
+                    .background(MastorCream)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -528,13 +528,13 @@ fun WorkOrderCard(
                     Text(
                         text = "TOTAL BASE VALUE",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = MastorCalculationEngine.formatCurrency(calcWorkOrder.totalBaseCost),
-                        style = FinancialLargeNumeralStyle,
-                        color = MastorSlateDark
+                        style = MastorFinancialLarge,
+                        color = MastorInk
                     )
                 }
 
@@ -548,7 +548,7 @@ fun WorkOrderCard(
                     Text(
                         text = "$completedCount/${calcWorkOrder.scopeElementsCount} Items Completed",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                 }
             }
@@ -566,15 +566,15 @@ fun WorkOrderCard(
                         shape = RoundedCornerShape(100.dp),
                         color = when (calcWorkOrder.entity.status) {
                             "COMPLETE" -> StatusClaimedBg
-                            "IN_PROGRESS" -> MastorAccentBlue.copy(alpha = 0.12f)
-                            else -> MastorBackgroundLight
+                            "IN_PROGRESS" -> MastorCopper.copy(alpha = 0.12f)
+                            else -> MastorCream
                         },
                         border = BorderStroke(
                             1.dp,
                             when (calcWorkOrder.entity.status) {
                                 "COMPLETE" -> StatusClaimedGreen.copy(alpha = 0.4f)
-                                "IN_PROGRESS" -> MastorAccentBlue.copy(alpha = 0.4f)
-                                else -> MastorSlateBorder
+                                "IN_PROGRESS" -> MastorCopper.copy(alpha = 0.4f)
+                                else -> MastorCreamBorder
                             }
                         )
                     ) {
@@ -585,8 +585,8 @@ fun WorkOrderCard(
                             fontWeight = FontWeight.Bold,
                             color = when (calcWorkOrder.entity.status) {
                                 "COMPLETE" -> StatusClaimedGreen
-                                "IN_PROGRESS" -> MastorAccentBlue
-                                else -> MastorSlateDark
+                                "IN_PROGRESS" -> MastorCopper
+                                else -> MastorInk
                             }
                         )
                     }
@@ -594,7 +594,7 @@ fun WorkOrderCard(
                     Text(
                         text = "•  ${calcWorkOrder.entity.responsibleParty}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                 }
 
@@ -603,7 +603,7 @@ fun WorkOrderCard(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Work Order",
-                            tint = MastorSlateMuted,
+                            tint = MastorInkMuted,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -619,7 +619,7 @@ fun WorkOrderCard(
                         Icon(
                             imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = "Toggle scope list",
-                            tint = MastorAccentBlue
+                            tint = MastorCopper
                         )
                     }
                 }
@@ -641,13 +641,13 @@ fun WorkOrderCard(
                             text = "SCOPE ELEMENTS (${scopeElements.size})",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
 
                         OutlinedButton(
                             onClick = onAddScopeElement,
                             shape = RoundedCornerShape(100.dp),
-                            border = BorderStroke(1.dp, MastorAccentBlue),
+                            border = BorderStroke(1.dp, MastorCopper),
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                 horizontal = 12.dp,
                                 vertical = 4.dp
@@ -656,14 +656,14 @@ fun WorkOrderCard(
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = null,
-                                tint = MastorAccentBlue,
+                                tint = MastorCopper,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Add Item",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MastorAccentBlue
+                                color = MastorCopper
                             )
                         }
                     }
@@ -680,7 +680,7 @@ fun WorkOrderCard(
                             Text(
                                 text = "No scope elements added yet. Click 'Add Item' above to build scope.",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                         }
                     } else {
@@ -715,7 +715,7 @@ fun WorkOrderCard(
                                     Icon(
                                         imageVector = Icons.Default.AttachFile,
                                         contentDescription = null,
-                                        tint = MastorAccentBlue,
+                                        tint = MastorCopper,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -723,14 +723,14 @@ fun WorkOrderCard(
                                         text = "ATTACHED DOCUMENTS (${attachedDocuments.size})",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = MastorSlateDark
+                                        color = MastorInk
                                     )
                                 }
 
                                 OutlinedButton(
                                     onClick = onAttachDocument,
                                     shape = RoundedCornerShape(100.dp),
-                                    border = BorderStroke(1.dp, MastorAccentBlue),
+                                    border = BorderStroke(1.dp, MastorCopper),
                                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                         horizontal = 10.dp,
                                         vertical = 2.dp
@@ -740,14 +740,14 @@ fun WorkOrderCard(
                                     Icon(
                                         imageVector = Icons.Default.Cloud,
                                         contentDescription = null,
-                                        tint = MastorAccentBlue,
+                                        tint = MastorCopper,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "+ Google Drive",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MastorAccentBlue,
+                                        color = MastorCopper,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -758,7 +758,7 @@ fun WorkOrderCard(
                                 Text(
                                     text = "No project documentation attached. Tap '+ Google Drive' to link architectural drawings, structural calculations, or schedules.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateMuted,
+                                    color = MastorInkMuted,
                                     fontSize = 12.sp
                                 )
                             } else {
@@ -787,7 +787,7 @@ fun WorkOrderCard(
                                                     tint = when {
                                                         doc.mimeType.contains("pdf") -> Color(0xFFD93025)
                                                         doc.mimeType.contains("spreadsheet") || doc.mimeType.contains("csv") -> Color(0xFF1E8E3E)
-                                                        else -> MastorAccentBlue
+                                                        else -> MastorCopper
                                                     },
                                                     modifier = Modifier.size(18.dp)
                                                 )
@@ -797,7 +797,7 @@ fun WorkOrderCard(
                                                         text = doc.fileName,
                                                         style = MaterialTheme.typography.labelMedium,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = MastorSlateDark,
+                                                        color = MastorInk,
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis
                                                     )
@@ -806,7 +806,7 @@ fun WorkOrderCard(
                                                             text = "${doc.storageProvider} • ${doc.fileSizeDisplay} • ${doc.docCategory}",
                                                             style = MaterialTheme.typography.labelSmall,
                                                             fontSize = 10.sp,
-                                                            color = MastorSlateMuted
+                                                            color = MastorInkMuted
                                                         )
                                                     }
                                                 }
@@ -818,7 +818,7 @@ fun WorkOrderCard(
                                                     Icon(
                                                         imageVector = Icons.Default.OpenInNew,
                                                         contentDescription = "Preview",
-                                                        tint = MastorAccentBlue,
+                                                        tint = MastorCopper,
                                                         modifier = Modifier.size(14.dp)
                                                     )
                                                 }
@@ -872,7 +872,7 @@ fun CreateEditWorkOrderDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = MastorSurfaceLight,
+            color = MastorCreamDark,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
@@ -880,7 +880,7 @@ fun CreateEditWorkOrderDialog(
                     text = if (initialWorkOrder == null) "Create Work Order" else "Edit Work Order",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -911,7 +911,7 @@ fun CreateEditWorkOrderDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     enabled = initialWorkOrder == null, // WO Ref is immutable once created
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorAccentBlue)
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -923,7 +923,7 @@ fun CreateEditWorkOrderDialog(
                     label = { Text("Property / Room Description") },
                     placeholder = { Text("e.g. Flat 3 - Living Room & Hallway") },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorAccentBlue)
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -967,7 +967,7 @@ fun CreateEditWorkOrderDialog(
                     onValueChange = { responsibleParty = it },
                     label = { Text("Subcontractor / Responsible Party") },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorAccentBlue)
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -978,7 +978,7 @@ fun CreateEditWorkOrderDialog(
                     onValueChange = { notes = it },
                     label = { Text("Notes (Optional)") },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorAccentBlue)
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -1008,7 +1008,7 @@ fun CreateEditWorkOrderDialog(
                             }
                         },
                         shape = RoundedCornerShape(100.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue)
+                        colors = ButtonDefaults.buttonColors(containerColor = MastorCopper)
                     ) {
                         Text("Save Work Order")
                     }
@@ -1041,7 +1041,7 @@ fun CreateEditScopeElementDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = MastorSurfaceLight,
+            color = MastorCreamDark,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
@@ -1049,7 +1049,7 @@ fun CreateEditScopeElementDialog(
                     text = if (initialElement == null) "Add Scope Element to $woRef" else "Edit Scope Element",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1175,7 +1175,7 @@ fun CreateEditScopeElementDialog(
                             }
                         },
                         shape = RoundedCornerShape(100.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue)
+                        colors = ButtonDefaults.buttonColors(containerColor = MastorCopper)
                     ) {
                         Text("Save Scope Element")
                     }
@@ -1214,14 +1214,14 @@ fun ProjectSetupForm(
             text = "PROJECT SETUP & CONFIGURATION",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = MastorSlateMuted,
+            color = MastorInkMuted,
             letterSpacing = 1.sp
         )
         Text(
             text = "Master Contract & Central Uplift Settings",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = MastorSlateDark
+            color = MastorInk
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -1247,13 +1247,13 @@ fun ProjectSetupForm(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-            border = BorderStroke(1.5.dp, MastorAccentBlue.copy(alpha = 0.5f))
+            colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+            border = BorderStroke(1.5.dp, MastorCopper.copy(alpha = 0.5f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        color = MastorAccentBlue.copy(alpha = 0.15f),
+                        color = MastorCopper.copy(alpha = 0.15f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
@@ -1261,7 +1261,7 @@ fun ProjectSetupForm(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorAccentBlue
+                            color = MastorCopper
                         )
                     }
                 }
@@ -1270,12 +1270,12 @@ fun ProjectSetupForm(
                     text = "Project Uplift Percentages",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
                 Text(
                     text = "Rule 2: Base rate only on scope lines; uplift applied once, centrally, at the project level.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -1289,7 +1289,7 @@ fun ProjectSetupForm(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorAccentBlue)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
                     )
 
                     Spacer(modifier = Modifier.width(12.dp))
@@ -1302,7 +1302,7 @@ fun ProjectSetupForm(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorAccentBlue)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
                     )
                 }
             }
@@ -1314,15 +1314,15 @@ fun ProjectSetupForm(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-            border = BorderStroke(1.dp, MastorSlateBorder)
+            colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+            border = BorderStroke(1.dp, MastorCreamBorder)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Contract & Location Details",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -1423,7 +1423,7 @@ fun ProjectSetupForm(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(100.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = MastorCopper)
                 ) {
                     Text("Save Project Settings")
                 }

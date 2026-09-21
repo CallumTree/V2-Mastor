@@ -31,12 +31,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 
 data class MastorTabItem(
     val label: String,
@@ -46,7 +46,7 @@ data class MastorTabItem(
 
 /**
  * Reusable segmented tab control with consistent styling across the application.
- * Uses MastorAccentBlue for selected state and clean low-contrast borders.
+ * Uses MastorCopper for selected state and clean low-contrast borders.
  */
 @Composable
 fun MastorSegmentedTabs(
@@ -58,8 +58,8 @@ fun MastorSegmentedTabs(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MastorBackgroundLight,
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        color = MastorCream,
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Row(
             modifier = Modifier
@@ -72,13 +72,13 @@ fun MastorSegmentedTabs(
                 val isSelected = index == selectedIndex
 
                 val animatedBgColor by animateColorAsState(
-                    targetValue = if (isSelected) MastorAccentBlue else Color.Transparent,
+                    targetValue = if (isSelected) MastorCopper else Color.Transparent,
                     animationSpec = tween(durationMillis = 180),
                     label = "tab_bg_$index"
                 )
 
                 val animatedContentColor by animateColorAsState(
-                    targetValue = if (isSelected) Color.White else MastorSlateDark,
+                    targetValue = if (isSelected) Color.White else MastorInk,
                     animationSpec = tween(durationMillis = 180),
                     label = "tab_content_$index"
                 )
@@ -128,14 +128,14 @@ fun MastorSegmentedTabs(
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = CircleShape,
-                                color = if (isSelected) Color.White.copy(alpha = 0.25f) else MastorSlateBorder
+                                color = if (isSelected) Color.White.copy(alpha = 0.25f) else MastorCreamBorder
                             ) {
                                 Text(
                                     text = tab.badgeCount.toString(),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) Color.White else MastorSlateDark,
+                                    color = if (isSelected) Color.White else MastorInk,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -161,8 +161,8 @@ fun MastorScrollableSegmentedTabs(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MastorBackgroundLight,
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        color = MastorCream,
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Row(
             modifier = Modifier
@@ -176,13 +176,13 @@ fun MastorScrollableSegmentedTabs(
                 val isSelected = index == selectedIndex
 
                 val animatedBgColor by animateColorAsState(
-                    targetValue = if (isSelected) MastorAccentBlue else Color.Transparent,
+                    targetValue = if (isSelected) MastorCopper else Color.Transparent,
                     animationSpec = tween(durationMillis = 180),
                     label = "tab_scroll_bg_$index"
                 )
 
                 val animatedContentColor by animateColorAsState(
-                    targetValue = if (isSelected) Color.White else MastorSlateDark,
+                    targetValue = if (isSelected) Color.White else MastorInk,
                     animationSpec = tween(durationMillis = 180),
                     label = "tab_scroll_content_$index"
                 )
@@ -196,7 +196,7 @@ fun MastorScrollableSegmentedTabs(
                         .testTag(tabTag),
                     shape = RoundedCornerShape(9.dp),
                     color = animatedBgColor,
-                    border = if (!isSelected) BorderStroke(1.dp, MastorSlateBorder.copy(alpha = 0.5f)) else null
+                    border = if (!isSelected) BorderStroke(1.dp, MastorCreamBorder.copy(alpha = 0.5f)) else null
                 ) {
                     Row(
                         modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
@@ -229,14 +229,14 @@ fun MastorScrollableSegmentedTabs(
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = CircleShape,
-                                color = if (isSelected) Color.White.copy(alpha = 0.25f) else MastorSlateBorder
+                                color = if (isSelected) Color.White.copy(alpha = 0.25f) else MastorCreamBorder
                             ) {
                                 Text(
                                     text = tab.badgeCount.toString(),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) Color.White else MastorSlateDark,
+                                    color = if (isSelected) Color.White else MastorInk,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }

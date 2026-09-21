@@ -16,12 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -54,22 +49,33 @@ import com.example.data.entity.VariationOrder
 import com.example.data.entity.WorkOrder
 import com.example.domain.calculation.CalculatedValuation
 import com.example.domain.calculation.MastorCalculationEngine
-import com.example.ui.components.DashboardCommercialDonutChart
-import com.example.ui.components.DashboardContractProgressBar
-import com.example.ui.components.DashboardValuationHistoryBarChart
-import com.example.ui.components.ValuationBarItem
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorGold
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
-import com.example.ui.theme.StatusClaimedGreen
-import com.example.ui.theme.StatusPendingAmber
+import com.example.ui.theme.BracketLabel
+import com.example.ui.theme.MastorCard
+import com.example.ui.theme.MastorCharcoal
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorCreamDark
+import com.example.ui.theme.MastorCreamMuted
+import com.example.ui.theme.MastorCreamText
+import com.example.ui.theme.MastorDarkCard
+import com.example.ui.theme.MastorFinancialLarge
+import com.example.ui.theme.MastorFinancialMed
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorSpacing
+import com.example.ui.theme.MastorStatusBadge
+import com.example.ui.theme.SpaceLG
+import com.example.ui.theme.SpaceMD
+import com.example.ui.theme.SpaceSM
+import com.example.ui.theme.SpaceXL
+import com.example.ui.theme.SpaceXS
+import com.example.ui.theme.StatusAmber
+import com.example.ui.theme.StatusGreen
 
 /**
  * Phase 9: Commercial Dashboard & Project Overview Screen
- * Meets all Global Typography, Spacing, Card, and Compose Canvas Chart rules.
+ * Meets all Global Typography, Spacing, Card, and Mastor Design System v3 rules.
  */
 @Composable
 fun ProjectDashboardOverviewScreen(
@@ -99,7 +105,7 @@ fun ProjectDashboardOverviewScreen(
     val percentRemaining = if (revisedContractSum > 0) (remainingValue / revisedContractSum) * 100.0 else 0.0
 
     // Remaining figure color: green if > 10% remaining, amber if <= 10%
-    val remainingColor = if (percentRemaining > 10.0) StatusClaimedGreen else StatusPendingAmber
+    val remainingColor = if (percentRemaining > 10.0) StatusGreen else StatusAmber
 
     // Prepare real valuation bars
     val valuationBarItems = remember(allValuations, calculatedValuation, grandValuationTotal) {
@@ -132,261 +138,151 @@ fun ProjectDashboardOverviewScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(MastorSpacing.ScreenEdgePadding),
+        verticalArrangement = Arrangement.spacedBy(SpaceMD)
     ) {
-        // Project Header: Full Project Name & Client/Contract Ref (No image banner)
+        // Project Header: Wrapped in MastorDarkCard with MastorCharcoal background
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                border = BorderStroke(1.dp, MastorSlateBorder)
+            MastorDarkCard(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "COMMERCIAL DASHBOARD",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted,
-                            letterSpacing = 1.sp
-                        )
-                        Surface(
-                            color = StatusClaimedGreen.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(100.dp),
-                            border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.3f))
-                        ) {
-                            Text(
-                                text = project.status.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = StatusClaimedGreen,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = project.name,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark,
-                        fontSize = 22.sp
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BracketLabel(
+                        text = "COMMERCIAL DASHBOARD",
+                        color = MastorCreamMuted
                     )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Client: ${project.client}  •  Contract Ref: ${project.contractRef}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MastorSlateMuted,
-                        fontSize = 14.sp
-                    )
+                    MastorStatusBadge(status = project.status)
                 }
+
+                Spacer(modifier = Modifier.height(SpaceSM))
+
+                Text(
+                    text = project.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MastorCreamText,
+                    fontSize = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(SpaceXS))
+
+                Text(
+                    text = "Client: ${project.client}  •  Contract Ref: ${project.contractRef}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MastorCreamMuted,
+                    fontSize = 14.sp
+                )
             }
         }
 
         // 3 Full-Width Financial Metric Cards
         // Card 1: Contract Value
         item {
-            Card(
+            MastorCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("metric_card_contract_value"),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                border = BorderStroke(1.dp, MastorSlateBorder)
+                    .testTag("metric_card_contract_value")
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "CONTRACT VALUE",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted,
-                        letterSpacing = 0.8.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = MastorCalculationEngine.formatCurrency(revisedContractSum),
-                        style = TextStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp,
-                            color = MastorSlateDark
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Base Scope + Central Markups (${project.uplift1Percent.toInt()}% / ${project.uplift2Percent.toInt()}%)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted,
-                        fontSize = 13.sp
-                    )
-                }
+                BracketLabel(text = "CONTRACT VALUE")
+                Spacer(modifier = Modifier.height(SpaceXS))
+                Text(
+                    text = MastorCalculationEngine.formatCurrency(revisedContractSum),
+                    style = MastorFinancialLarge.copy(color = MastorCopper)
+                )
+                Spacer(modifier = Modifier.height(SpaceXS))
+                Text(
+                    text = "Base Scope + Central Markups (${project.uplift1Percent.toInt()}% / ${project.uplift2Percent.toInt()}%)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MastorInkMuted,
+                    fontSize = 13.sp
+                )
             }
         }
 
-        // Card 2: Claimed To Date (Gold Accent)
+        // Card 2: Claimed To Date
         item {
-            Card(
+            MastorCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("metric_card_claimed_to_date"),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                border = BorderStroke(1.dp, MastorGold.copy(alpha = 0.4f))
+                    .testTag("metric_card_claimed_to_date")
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "CLAIMED TO DATE",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted,
-                        letterSpacing = 0.8.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = MastorCalculationEngine.formatCurrency(grandValuationTotal),
-                        style = TextStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp,
-                            color = MastorGold
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${"%.1f".format(percentClaimed)}% of total revised contract sum certified/claimed",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted,
-                        fontSize = 13.sp
-                    )
-                }
+                BracketLabel(text = "CLAIMED TO DATE")
+                Spacer(modifier = Modifier.height(SpaceXS))
+                Text(
+                    text = MastorCalculationEngine.formatCurrency(grandValuationTotal),
+                    style = MastorFinancialLarge.copy(color = MastorCopper)
+                )
+                Spacer(modifier = Modifier.height(SpaceXS))
+                Text(
+                    text = "${"%.1f".format(percentClaimed)}% of total revised contract sum certified/claimed",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MastorInkMuted,
+                    fontSize = 13.sp
+                )
             }
         }
 
         // Card 3: Remaining Value (Green if > 10%, Amber if under 10%)
         item {
-            Card(
+            MastorCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("metric_card_remaining"),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                border = BorderStroke(1.dp, remainingColor.copy(alpha = 0.3f))
+                    .testTag("metric_card_remaining")
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "REMAINING BALANCE",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted,
-                        letterSpacing = 0.8.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = MastorCalculationEngine.formatCurrency(remainingValue),
-                        style = TextStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp,
-                            color = remainingColor
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${"%.1f".format(percentRemaining)}% remaining budget uncommitted",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted,
-                        fontSize = 13.sp
-                    )
-                }
+                BracketLabel(text = "REMAINING BALANCE")
+                Spacer(modifier = Modifier.height(SpaceXS))
+                Text(
+                    text = MastorCalculationEngine.formatCurrency(remainingValue),
+                    style = MastorFinancialLarge.copy(color = remainingColor)
+                )
+                Spacer(modifier = Modifier.height(SpaceXS))
+                Text(
+                    text = "${"%.1f".format(percentRemaining)}% remaining budget uncommitted",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MastorInkMuted,
+                    fontSize = 13.sp
+                )
             }
         }
 
-        // Horizontal Progress Bar: Claimed vs Remaining (Canvas Drawn)
+        // Horizontal Progress Bar: Claimed vs Remaining
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                border = BorderStroke(1.dp, MastorSlateBorder)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    DashboardContractProgressBar(
-                        claimedValue = grandValuationTotal,
-                        remainingValue = remainingValue,
-                        contractValue = revisedContractSum
-                    )
-                }
+            MastorCard(modifier = Modifier.fillMaxWidth()) {
+                BracketLabel(text = "CONTRACT PROGRESSION")
+                Spacer(modifier = Modifier.height(SpaceSM))
+                DashboardContractProgressBar(
+                    claimedValue = grandValuationTotal,
+                    remainingValue = remainingValue,
+                    contractValue = revisedContractSum
+                )
             }
         }
 
-        // Donut / Ring Chart (Compose Canvas): Commercial Breakdown
+        // Donut / Ring Chart: Commercial Breakdown
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                border = BorderStroke(1.dp, MastorSlateBorder)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "COMMERCIAL BREAKDOWN",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted,
-                        letterSpacing = 0.8.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    DashboardCommercialDonutChart(
-                        baseScopeValue = baseScopeTotal,
-                        variationsValue = totalVosValue,
-                        upliftsValue = uplift1Val + uplift2Val
-                    )
-                }
+            MastorCard(modifier = Modifier.fillMaxWidth()) {
+                BracketLabel(text = "COMMERCIAL BREAKDOWN")
+                Spacer(modifier = Modifier.height(SpaceMD))
+                DashboardCommercialDonutChart(
+                    baseScopeValue = baseScopeTotal,
+                    variationsValue = totalVosValue,
+                    upliftsValue = uplift1Val + uplift2Val
+                )
             }
         }
 
-        // Valuation History Bar Chart (Compose Canvas)
+        // Valuation History Bar Chart
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                border = BorderStroke(1.dp, MastorSlateBorder)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "VALUATION CYCLE HISTORY",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted,
-                        letterSpacing = 0.8.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    DashboardValuationHistoryBarChart(
-                        valuations = valuationBarItems
-                    )
-                }
+            MastorCard(modifier = Modifier.fillMaxWidth()) {
+                BracketLabel(text = "VALUATION CYCLE HISTORY")
+                Spacer(modifier = Modifier.height(SpaceMD))
+                DashboardValuationHistoryBarChart(
+                    valuations = valuationBarItems
+                )
             }
         }
     }
@@ -418,7 +314,7 @@ private fun CommercialDonutChartCanvas(
         // Draw Base Scope Arc
         if (baseAngle > 0f) {
             drawArc(
-                color = MastorAccentBlue,
+                color = MastorCopper,
                 startAngle = currentStartAngle,
                 sweepAngle = baseAngle,
                 useCenter = false,
@@ -432,7 +328,7 @@ private fun CommercialDonutChartCanvas(
         // Draw Variations Arc
         if (varAngle > 0f) {
             drawArc(
-                color = StatusPendingAmber,
+                color = StatusAmber,
                 startAngle = currentStartAngle,
                 sweepAngle = varAngle,
                 useCenter = false,
@@ -446,7 +342,7 @@ private fun CommercialDonutChartCanvas(
         // Draw Uplifts Arc
         if (upliftAngle > 0f) {
             drawArc(
-                color = MastorGold,
+                color = MastorCopper.copy(alpha = 0.5f),
                 startAngle = currentStartAngle,
                 sweepAngle = upliftAngle,
                 useCenter = false,
@@ -483,7 +379,7 @@ private fun LegendRowItem(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MastorSlateDark,
+                color = MastorInk,
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp
             )
@@ -492,7 +388,7 @@ private fun LegendRowItem(
             text = value,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
-            color = MastorSlateDark,
+            color = MastorInk,
             fontSize = 13.sp
         )
     }
@@ -533,7 +429,7 @@ private fun ValuationMiniBarChartCanvas(
             val barHeight = ((item.amount / maxVal) * chartHeight).toFloat().coerceAtLeast(4f)
             val barLeft = centerX - barWidth / 2f
             val barTop = topPadding + (chartHeight - barHeight)
-            val barColor = if (item.isCurrentDraft) MastorGold else MastorAccentBlue
+            val barColor = if (item.isCurrentDraft) MastorCopper else MastorCopper.copy(alpha = 0.5f)
 
             // Draw Bar
             drawRoundRect(
@@ -551,7 +447,7 @@ private fun ValuationMiniBarChartCanvas(
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    color = if (item.isCurrentDraft) MastorGold else MastorSlateDark
+                    color = if (item.isCurrentDraft) MastorCopper else MastorInk
                 )
             )
             drawText(
@@ -568,7 +464,7 @@ private fun ValuationMiniBarChartCanvas(
                 style = TextStyle(
                     fontSize = 11.sp,
                     fontWeight = if (item.isCurrentDraft) FontWeight.Bold else FontWeight.Medium,
-                    color = if (item.isCurrentDraft) MastorGold else MastorSlateMuted
+                    color = if (item.isCurrentDraft) MastorCopper else MastorInkMuted
                 )
             )
             drawText(

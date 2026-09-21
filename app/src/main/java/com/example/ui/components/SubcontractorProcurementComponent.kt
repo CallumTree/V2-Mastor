@@ -94,9 +94,9 @@ import com.example.data.entity.Subcontractor
 import com.example.data.entity.SubcontractorClaim
 import com.example.domain.procurement.TradePackageClassifier
 import com.example.ui.components.MastorTopBar
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusFlaggedRed
 import com.example.ui.theme.StatusPendingAmber
@@ -105,9 +105,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val MastorNavy = MastorSlateDark
+private val MastorNavy = MastorInk
 private val MastorGreen = StatusClaimedGreen
-private val MastorGold = StatusPendingAmber
+private val MastorCopper = StatusPendingAmber
 private val MastorRed = StatusFlaggedRed
 
 private fun formatCurrency(amount: Double): String {
@@ -265,13 +265,13 @@ fun SubcontractorProcurementComponent(
                         text = "PROCUREMENT VARIANCE",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         letterSpacing = 0.5.sp
                     )
                     Text(
                         text = "Independent Subcontractor Ledger",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         fontSize = 11.sp
                     )
                 }
@@ -283,7 +283,7 @@ fun SubcontractorProcurementComponent(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Allowed", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                        Text("Allowed", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                         Text(
                             text = formatCurrency(totalAllowedBudget),
                             style = MaterialTheme.typography.titleSmall,
@@ -293,7 +293,7 @@ fun SubcontractorProcurementComponent(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Quoted", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                        Text("Quoted", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                         Text(
                             text = if (totalQuoted > 0) formatCurrency(totalQuoted) else "—",
                             style = MaterialTheme.typography.titleSmall,
@@ -303,7 +303,7 @@ fun SubcontractorProcurementComponent(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Claimed", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                        Text("Claimed", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                         Text(
                             text = formatCurrency(totalClaimedToDate),
                             style = MaterialTheme.typography.titleSmall,
@@ -313,7 +313,7 @@ fun SubcontractorProcurementComponent(
                     }
 
                     Column(modifier = Modifier.weight(1.1f), horizontalAlignment = Alignment.End) {
-                        Text("Variance", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                        Text("Variance", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                         Text(
                             text = "${if (totalVariance >= 0) "+" else ""}${formatCurrency(totalVariance)} ${if (totalVariance >= 0) "Saving" else "Over"}",
                             style = MaterialTheme.typography.titleSmall,
@@ -352,7 +352,7 @@ fun SubcontractorProcurementComponent(
                     Text(
                         text = "$countReviewed reviewed • $countNotReviewed pending • ${unclassifiedScopes.size} unassigned",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                 }
 
@@ -361,7 +361,7 @@ fun SubcontractorProcurementComponent(
                     shape = RoundedCornerShape(6.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MastorNavy)
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(13.dp), tint = MastorGold)
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(13.dp), tint = MastorCopper)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Auto-Generate", fontSize = 11.sp)
                 }
@@ -375,8 +375,8 @@ fun SubcontractorProcurementComponent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorAccentBlue.copy(alpha = 0.06f)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MastorAccentBlue.copy(alpha = 0.3f))
+                colors = CardDefaults.cardColors(containerColor = MastorCopper.copy(alpha = 0.06f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MastorCopper.copy(alpha = 0.3f))
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(
@@ -387,7 +387,7 @@ fun SubcontractorProcurementComponent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = MastorAccentBlue, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = MastorCopper, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Unclassified Scope Lines (${unclassifiedScopes.size} unassigned)",
@@ -401,13 +401,13 @@ fun SubcontractorProcurementComponent(
                             Text(
                                 text = if (showUnclassifiedSection) "Hide" else "Expand Pool",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MastorAccentBlue,
+                                color = MastorCopper,
                                 fontWeight = FontWeight.Bold
                             )
                             Icon(
                                 imageVector = if (showUnclassifiedSection) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = null,
-                                tint = MastorAccentBlue
+                                tint = MastorCopper
                             )
                         }
                     }
@@ -417,7 +417,7 @@ fun SubcontractorProcurementComponent(
                             Text(
                                 text = "These scope lines have not been assigned to a trade package yet. Click 'Assign to Package' or use Auto-Generate above.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                             Spacer(modifier = Modifier.height(8.dp))
 
@@ -452,13 +452,13 @@ fun SubcontractorProcurementComponent(
                                                     )
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Surface(
-                                                        color = MastorAccentBlue.copy(alpha = 0.12f),
+                                                        color = MastorCopper.copy(alpha = 0.12f),
                                                         shape = RoundedCornerShape(4.dp)
                                                     ) {
                                                         Text(
                                                             text = "Suggested: $suggestedTrade",
                                                             style = MaterialTheme.typography.labelSmall,
-                                                            color = MastorAccentBlue,
+                                                            color = MastorCopper,
                                                             fontSize = 10.sp,
                                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                         )
@@ -474,7 +474,7 @@ fun SubcontractorProcurementComponent(
                                                 Text(
                                                     text = "Qty: ${scope.qty} ${scope.units} • Allowed Rate: ${formatCurrency(scope.rate)}",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = MastorSlateMuted
+                                                    color = MastorInkMuted
                                                 )
                                             }
 
@@ -617,14 +617,14 @@ fun SubcontractorProcurementComponent(
                         .padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Default.Description, contentDescription = null, tint = MastorSlateMuted, modifier = Modifier.size(40.dp))
+                    Icon(Icons.Default.Description, contentDescription = null, tint = MastorInkMuted, modifier = Modifier.size(40.dp))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("No Procurement Packages Found", style = MaterialTheme.typography.titleMedium, color = MastorNavy)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         "Click 'Auto-Generate Packages' above to automatically parse scope lines into trade packages, or build one manually.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -632,7 +632,7 @@ fun SubcontractorProcurementComponent(
                         onClick = onAutoGeneratePackages,
                         colors = ButtonDefaults.buttonColors(containerColor = MastorNavy)
                     ) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp), tint = MastorGold)
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp), tint = MastorCopper)
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Auto-Generate Trade Packages")
                     }
@@ -782,19 +782,19 @@ fun ProcurementPackageCard(
     var expanded by remember { mutableStateOf(false) }
 
     val statusColor = when (pkg.status) {
-        "Scope Sent" -> MastorAccentBlue
-        "Quote Received" -> MastorGold
+        "Scope Sent" -> MastorCopper
+        "Quote Received" -> MastorCopper
         "Awarded" -> MastorGreen
-        "In Progress" -> MastorAccentBlue
-        "Complete" -> MastorSlateDark
+        "In Progress" -> MastorCopper
+        "Complete" -> MastorInk
         "Declined" -> MastorRed
-        else -> MastorSlateMuted
+        else -> MastorInkMuted
     }
 
     val (reviewBadgeText, reviewBadgeBg, reviewBadgeFg) = when (pkg.reviewStatus) {
         "Reviewed" -> Triple("Reviewed by QS", MastorGreen.copy(alpha = 0.15f), MastorGreen)
-        "Approved for Issue" -> Triple("Approved for Issue", MastorAccentBlue.copy(alpha = 0.15f), MastorAccentBlue)
-        else -> Triple("Not Reviewed", MastorGold.copy(alpha = 0.2f), MastorNavy)
+        "Approved for Issue" -> Triple("Approved for Issue", MastorCopper.copy(alpha = 0.15f), MastorCopper)
+        else -> Triple("Not Reviewed", MastorCopper.copy(alpha = 0.2f), MastorNavy)
     }
 
     val quotedAmount = pkg.quoteAmount
@@ -878,7 +878,7 @@ fun ProcurementPackageCard(
                     }
 
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MastorSlateMuted, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MastorInkMuted, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -891,20 +891,20 @@ fun ProcurementPackageCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Business, contentDescription = null, tint = MastorSlateMuted, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Business, contentDescription = null, tint = MastorInkMuted, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = subcontractor?.companyName ?: "Unassigned / Tender Package",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = if (subcontractor != null) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (subcontractor != null) MastorNavy else MastorSlateMuted
+                        color = if (subcontractor != null) MastorNavy else MastorInkMuted
                     )
                 }
 
                 Text(
                     text = "Sent: ${pkg.dateSent}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
             }
 
@@ -922,7 +922,7 @@ fun ProcurementPackageCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Allowed Cost", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                        Text("Allowed Cost", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                         Text(
                             text = formatCurrency(allowedCost),
                             style = MaterialTheme.typography.bodyMedium,
@@ -932,17 +932,17 @@ fun ProcurementPackageCard(
                     }
 
                     Column {
-                        Text("Quoted", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                        Text("Quoted", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                         Text(
                             text = if (quotedAmount != null) formatCurrency(quotedAmount) else "Awaiting Quote",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (quotedAmount != null) MastorNavy else MastorSlateMuted
+                            color = if (quotedAmount != null) MastorNavy else MastorInkMuted
                         )
                     }
 
                     Column {
-                        Text("Claimed to Date", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                        Text("Claimed to Date", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                         Text(
                             text = formatCurrency(totalClaimed),
                             style = MaterialTheme.typography.bodyMedium,
@@ -952,7 +952,7 @@ fun ProcurementPackageCard(
                     }
 
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("Cost Variance", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                        Text("Cost Variance", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                         if (variance != null) {
                             Text(
                                 text = "${if (variance >= 0) "+" else ""}${formatCurrency(variance)}",
@@ -961,7 +961,7 @@ fun ProcurementPackageCard(
                                 color = if (variance >= 0) MastorGreen else MastorRed
                             )
                         } else {
-                            Text("—", style = MaterialTheme.typography.bodyMedium, color = MastorSlateMuted)
+                            Text("—", style = MaterialTheme.typography.bodyMedium, color = MastorInkMuted)
                         }
                     }
                 }
@@ -1015,7 +1015,7 @@ fun ProcurementPackageCard(
                             Text(
                                 text = "${sc.qty} ${sc.units}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted,
+                                color = MastorInkMuted,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -1146,8 +1146,8 @@ fun PackageDetailEditorModal(
                     Surface(
                         color = when (pkg.reviewStatus) {
                             "Reviewed" -> MastorGreen.copy(alpha = 0.15f)
-                            "Approved for Issue" -> MastorAccentBlue.copy(alpha = 0.15f)
-                            else -> MastorGold.copy(alpha = 0.2f)
+                            "Approved for Issue" -> MastorCopper.copy(alpha = 0.15f)
+                            else -> MastorCopper.copy(alpha = 0.2f)
                         },
                         shape = RoundedCornerShape(6.dp)
                     ) {
@@ -1157,7 +1157,7 @@ fun PackageDetailEditorModal(
                             fontWeight = FontWeight.Bold,
                             color = when (pkg.reviewStatus) {
                                 "Reviewed" -> MastorGreen
-                                "Approved for Issue" -> MastorAccentBlue
+                                "Approved for Issue" -> MastorCopper
                                 else -> MastorNavy
                             },
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -1167,7 +1167,7 @@ fun PackageDetailEditorModal(
                 Text(
                     text = "Trade: ${pkg.trade} • ${linkedScopes.size} Scope Lines • Total Allowed: ${formatCurrency(linkedScopes.sumOf { it.qty * it.rate })}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
             }
         },
@@ -1207,7 +1207,7 @@ fun PackageDetailEditorModal(
                                 Button(
                                     onClick = { onUpdateReviewStatus("Approved for Issue") },
                                     shape = RoundedCornerShape(6.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue)
+                                    colors = ButtonDefaults.buttonColors(containerColor = MastorCopper)
                                 ) {
                                     Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null, modifier = Modifier.size(12.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -1262,7 +1262,7 @@ fun PackageDetailEditorModal(
                                     .padding(32.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("No lines in this package. Click 'Add Scope Line' or move lines from Unclassified Pool.", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
+                                Text("No lines in this package. Click 'Add Scope Line' or move lines from Unclassified Pool.", style = MaterialTheme.typography.bodySmall, color = MastorInkMuted)
                             }
                         }
                     } else {
@@ -1329,7 +1329,7 @@ fun PackageDetailEditorModal(
                                                         onClick = { showMoveMenu = true },
                                                         modifier = Modifier.size(28.dp)
                                                     ) {
-                                                        Icon(Icons.Default.DriveFileMove, contentDescription = "Move Line", tint = MastorAccentBlue, modifier = Modifier.size(16.dp))
+                                                        Icon(Icons.Default.DriveFileMove, contentDescription = "Move Line", tint = MastorCopper, modifier = Modifier.size(16.dp))
                                                     }
 
                                                     DropdownMenu(
@@ -1374,7 +1374,7 @@ fun PackageDetailEditorModal(
                                             Text(
                                                 text = "Allowed Office Rate: ${formatCurrency(scope.rate)} | Allowed Total: ${formatCurrency(scope.qty * scope.rate)}",
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = MastorSlateMuted
+                                                color = MastorInkMuted
                                             )
                                         }
                                     }
@@ -1606,14 +1606,14 @@ fun NoCostEnquiryExportDialog(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text("No-Cost Enquiry Package Export", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MastorNavy)
-                    Text("Tree & Sons Construction Internal Standard", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                    Text("Tree & Sons Construction Internal Standard", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                 }
             }
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Surface(
-                    color = MastorGold.copy(alpha = 0.15f),
+                    color = MastorCopper.copy(alpha = 0.15f),
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1639,7 +1639,7 @@ fun NoCostEnquiryExportDialog(
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("ENQUIRY REF: ${pkg.packageRef}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MastorNavy)
                         Text("Trade Specialism: ${pkg.trade}", style = MaterialTheme.typography.bodySmall, color = MastorNavy)
-                        Text("Date Issued: ${pkg.dateSent}", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted)
+                        Text("Date Issued: ${pkg.dateSent}", style = MaterialTheme.typography.bodySmall, color = MastorInkMuted)
                         if (subcontractor != null) {
                             Text("Recipient Subcontractor: ${subcontractor.companyName} (${subcontractor.contactName})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MastorNavy)
                         }
@@ -1698,7 +1698,7 @@ fun NoCostEnquiryExportDialog(
                                 Text(sc.code, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MastorNavy, modifier = Modifier.weight(0.8f))
                                 Text(sc.description, style = MaterialTheme.typography.bodySmall, color = MastorNavy, modifier = Modifier.weight(2f))
                                 Text("${sc.qty} ${sc.units}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
-                                Text("_______", style = MaterialTheme.typography.bodySmall, color = MastorSlateMuted, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+                                Text("_______", style = MaterialTheme.typography.bodySmall, color = MastorInkMuted, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
                             }
                             Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
@@ -1762,7 +1762,7 @@ fun BuildPackageDialog(
                 Text(
                     text = "Select a trade to auto-suggest relevant scope lines or manually check elements. Internal office rates will be excluded from subcontractor enquiry documents.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -1804,7 +1804,7 @@ fun BuildPackageDialog(
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MastorNavy.copy(alpha = 0.1f), contentColor = MastorNavy)
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp), tint = MastorGold)
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp), tint = MastorCopper)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Auto-Match Trade Keywords")
                 }
@@ -1875,7 +1875,7 @@ fun BuildPackageDialog(
                                 Text(
                                     text = "Qty: ${sc.qty} ${sc.units}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                             }
                         }
@@ -2030,7 +2030,7 @@ fun ClaimsLogDialog(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text("Subcontractor Claims Ledger (${pkg.packageRef})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MastorNavy)
-                    Text(subcontractor?.companyName ?: "Subcontractor Package", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                    Text(subcontractor?.companyName ?: "Subcontractor Package", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                 }
             }
         },
@@ -2047,15 +2047,15 @@ fun ClaimsLogDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text("Quoted Value", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                            Text("Quoted Value", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                             Text(formatCurrency(quotedAmount), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MastorNavy)
                         }
                         Column {
-                            Text("Total Certified", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                            Text("Total Certified", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                             Text(formatCurrency(totalClaimed), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MastorNavy)
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("Remaining Balance", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                            Text("Remaining Balance", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                             Text(formatCurrency((quotedAmount - totalClaimed).coerceAtLeast(0.0)), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MastorNavy)
                         }
                     }
@@ -2099,7 +2099,7 @@ fun ClaimsLogDialog(
                                 Column {
                                     Text("Claim #${cl.claimNumber} • ${cl.claimDate}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MastorNavy)
                                     if (!cl.notes.isNullOrEmpty()) {
-                                        Text(cl.notes, style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                                        Text(cl.notes, style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                                     }
                                 }
                                 Text(formatCurrency(cl.claimAmount), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MastorNavy)
@@ -2228,10 +2228,10 @@ fun SubcontractorDirectoryDialog(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(sub.companyName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MastorNavy)
                                     Text("Contact: ${sub.contactName} • Specialism: ${sub.tradeSpecialism}", style = MaterialTheme.typography.labelSmall, color = MastorNavy)
-                                    Text("Tel: ${sub.phone} | ${sub.email}", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                                    Text("Tel: ${sub.phone} | ${sub.email}", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                                 }
                                 IconButton(onClick = { onDeleteSubcontractor(sub.id) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MastorSlateMuted, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MastorInkMuted, modifier = Modifier.size(18.dp))
                                 }
                             }
                             Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))

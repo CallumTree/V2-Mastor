@@ -21,9 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.MastorGold
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
 
 /**
  * Mastor Brand Icon: A Canvas-drawn brand mark featuring a rounded-rect slate background
@@ -34,8 +34,8 @@ import com.example.ui.theme.MastorSlateMuted
 fun MastorIcon(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
-    backgroundColor: Color = MastorSlateDark,
-    glyphColor: Color = MastorGold,
+    backgroundColor: Color = MastorInk,
+    glyphColor: Color = MastorCopper,
     cornerRadius: Dp = size * 0.28f
 ) {
     Canvas(modifier = modifier.size(size)) {
@@ -120,14 +120,14 @@ fun MastorWordmark(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 3.sp,
                 fontSize = (iconSize.value * 0.48f).sp,
-                color = MastorSlateDark
+                color = MastorInk
             )
             if (tagline != null) {
                 Text(
                     text = tagline.uppercase(),
                     fontFamily = FontFamily.Serif,
                     fontSize = (iconSize.value * 0.28f).sp,
-                    color = MastorSlateMuted,
+                    color = MastorInkMuted,
                     letterSpacing = 1.sp
                 )
             }

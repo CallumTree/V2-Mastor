@@ -46,14 +46,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorGold
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSlateText
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusPendingAmber
@@ -149,7 +149,7 @@ fun OfflineCacheStatusBar(
                             else
                                 "All site diary entries & cloud file lists cached locally for offline use",
                             fontSize = 11.sp,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }
@@ -163,7 +163,7 @@ fun OfflineCacheStatusBar(
                         text = "Simulate Offline",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
                     Switch(
                         checked = isOfflineMode,
@@ -173,7 +173,7 @@ fun OfflineCacheStatusBar(
                             checkedThumbColor = Color.White,
                             checkedTrackColor = StatusPendingAmber,
                             uncheckedThumbColor = Color.White,
-                            uncheckedTrackColor = MastorSlateBorder
+                            uncheckedTrackColor = MastorCreamBorder
                         )
                     )
                 }
@@ -189,7 +189,7 @@ fun OfflineCacheStatusBar(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = Color.White.copy(alpha = 0.8f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MastorSlateBorder.copy(alpha = 0.5f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MastorCreamBorder.copy(alpha = 0.5f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Row(
@@ -200,7 +200,7 @@ fun OfflineCacheStatusBar(
                         Icon(
                             imageVector = Icons.Default.MenuBook,
                             contentDescription = null,
-                            tint = MastorAccentBlue,
+                            tint = MastorCopper,
                             modifier = Modifier.size(14.dp)
                         )
                         Column {
@@ -208,12 +208,12 @@ fun OfflineCacheStatusBar(
                                 text = "$cachedEntriesCount Diary Logs",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                             Text(
                                 text = "Cached in Room",
                                 fontSize = 9.sp,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                         }
                     }
@@ -223,7 +223,7 @@ fun OfflineCacheStatusBar(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = Color.White.copy(alpha = 0.8f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MastorSlateBorder.copy(alpha = 0.5f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MastorCreamBorder.copy(alpha = 0.5f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Row(
@@ -234,7 +234,7 @@ fun OfflineCacheStatusBar(
                         Icon(
                             imageVector = Icons.Default.FolderZip,
                             contentDescription = null,
-                            tint = MastorGold,
+                            tint = MastorCopper,
                             modifier = Modifier.size(14.dp)
                         )
                         Column {
@@ -242,12 +242,12 @@ fun OfflineCacheStatusBar(
                                 text = "$cachedFilesCount Files Cached",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                             Text(
                                 text = "OneDrive & G-Drive",
                                 fontSize = 9.sp,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                         }
                     }
@@ -293,7 +293,7 @@ fun OfflineCacheStatusBar(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color.White.copy(alpha = 0.8f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MastorSlateBorder.copy(alpha = 0.5f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MastorCreamBorder.copy(alpha = 0.5f))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),

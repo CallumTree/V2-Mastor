@@ -107,12 +107,12 @@ import com.example.domain.boq.GeminiBoqParser
 import com.example.domain.cloud.CloudFileItem
 import com.example.domain.cloud.CloudStorageService
 import com.example.domain.cloud.StorageProviders
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import kotlinx.coroutines.Job
@@ -172,8 +172,8 @@ fun LinkedDocumentCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -197,7 +197,7 @@ fun LinkedDocumentCard(
                                     text = linkedDocument.fileName,
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 if (linkedDocument.isPrimaryBoq) {
@@ -219,20 +219,20 @@ fun LinkedDocumentCard(
                             Text(
                                 text = "${StorageProviders.getDisplayName(linkedDocument.storageProvider)} • ${linkedDocument.fileSizeDisplay} • Synced ${linkedDocument.lastSyncedAt}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                         }
                     } else {
                         Surface(
                             shape = CircleShape,
-                            color = MastorSlateMuted.copy(alpha = 0.1f),
+                            color = MastorInkMuted.copy(alpha = 0.1f),
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Cloud,
                                     contentDescription = null,
-                                    tint = MastorSlateMuted,
+                                    tint = MastorInkMuted,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -243,12 +243,12 @@ fun LinkedDocumentCard(
                                 text = "No Cloud Document Linked",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                             Text(
                                 text = "Attach OneDrive or Google Drive BoQ document",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                         }
                     }
@@ -266,7 +266,7 @@ fun LinkedDocumentCard(
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Sync Cloud Document",
-                                tint = MastorSlateMuted,
+                                tint = MastorInkMuted,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -309,7 +309,7 @@ fun LinkedDocumentCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MastorBackgroundLight, RoundedCornerShape(8.dp))
+                        .background(MastorCream, RoundedCornerShape(8.dp))
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -317,13 +317,13 @@ fun LinkedDocumentCard(
                     Text(
                         text = "Path: ${linkedDocument.cloudPath}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                     Text(
                         text = "Parse in Phase 3 →",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MastorAccentBlue,
+                        color = MastorCopper,
                         modifier = Modifier
                             .testTag("parse_linked_doc_shortcut")
                             .clickable { onParseInPhase3(linkedDocument) }
@@ -344,13 +344,13 @@ fun LinkedDocumentCard(
                 )
             },
             title = {
-                Text("Remove Linked Document?", fontWeight = FontWeight.Bold, color = MastorSlateDark)
+                Text("Remove Linked Document?", fontWeight = FontWeight.Bold, color = MastorInk)
             },
             text = {
                 Text(
                     "Are you sure you want to remove '${linkedDocument.fileName}' from this project?\n\nThe original file will remain intact in ${StorageProviders.getDisplayName(linkedDocument.storageProvider)}.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
             },
             confirmButton = {
@@ -511,8 +511,8 @@ fun CloudDocumentUploadComponent(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header
@@ -529,12 +529,12 @@ fun CloudDocumentUploadComponent(
                             text = "Cloud Document Upload",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Text(
                             text = "Sync file to ${StorageProviders.getDisplayName(selectedProvider)}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }
@@ -569,7 +569,7 @@ fun CloudDocumentUploadComponent(
                                 .weight(1f)
                                 .border(
                                     width = if (isSel) 2.dp else 1.dp,
-                                    color = if (isSel) providerColor else MastorSlateBorder,
+                                    color = if (isSel) providerColor else MastorCreamBorder,
                                     shape = RoundedCornerShape(10.dp)
                                 )
                                 .clip(RoundedCornerShape(10.dp))
@@ -578,7 +578,7 @@ fun CloudDocumentUploadComponent(
                                     selectedFolder = if (provider == StorageProviders.ONEDRIVE) "/Contracts/142_Park_Lane/BoQ/" else "My Drive/Mastor/142 Park Lane/BoQ/"
                                 }
                                 .testTag("upload_provider_${provider}"),
-                            color = if (isSel) providerColor.copy(alpha = 0.08f) else MastorBackgroundLight
+                            color = if (isSel) providerColor.copy(alpha = 0.08f) else MastorCream
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -596,7 +596,7 @@ fun CloudDocumentUploadComponent(
                                     text = if (provider == StorageProviders.ONEDRIVE) "OneDrive" else "Google Drive",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isSel) providerColor else MastorSlateDark
+                                    color = if (isSel) providerColor else MastorInk
                                 )
                             }
                         }
@@ -610,7 +610,7 @@ fun CloudDocumentUploadComponent(
                     text = "Select Document to Upload:",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -624,7 +624,7 @@ fun CloudDocumentUploadComponent(
                                 .fillMaxWidth()
                                 .border(
                                     width = if (isPresetSel) 1.5.dp else 1.dp,
-                                    color = if (isPresetSel) brandColor else MastorSlateBorder,
+                                    color = if (isPresetSel) brandColor else MastorCreamBorder,
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clip(RoundedCornerShape(8.dp))
@@ -632,7 +632,7 @@ fun CloudDocumentUploadComponent(
                                     useCustomFileName = false
                                     selectedPresetIndex = index
                                 },
-                            color = if (isPresetSel) brandColor.copy(alpha = 0.06f) else MastorSurfaceLight
+                            color = if (isPresetSel) brandColor.copy(alpha = 0.06f) else MastorCreamDark
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -643,7 +643,7 @@ fun CloudDocumentUploadComponent(
                                     Icon(
                                         imageVector = Icons.Default.Description,
                                         contentDescription = null,
-                                        tint = if (isPresetSel) brandColor else MastorSlateMuted,
+                                        tint = if (isPresetSel) brandColor else MastorInkMuted,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -651,13 +651,13 @@ fun CloudDocumentUploadComponent(
                                         text = fileTriple.first,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if (isPresetSel) FontWeight.Bold else FontWeight.Medium,
-                                        color = MastorSlateDark
+                                        color = MastorInk
                                     )
                                 }
                                 Text(
                                     text = fileTriple.second,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                             }
                         }
@@ -669,12 +669,12 @@ fun CloudDocumentUploadComponent(
                             .fillMaxWidth()
                             .border(
                                 width = if (useCustomFileName) 1.5.dp else 1.dp,
-                                color = if (useCustomFileName) brandColor else MastorSlateBorder,
+                                color = if (useCustomFileName) brandColor else MastorCreamBorder,
                                 shape = RoundedCornerShape(8.dp)
                             )
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { useCustomFileName = true },
-                        color = if (useCustomFileName) brandColor.copy(alpha = 0.06f) else MastorSurfaceLight
+                        color = if (useCustomFileName) brandColor.copy(alpha = 0.06f) else MastorCreamDark
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -683,7 +683,7 @@ fun CloudDocumentUploadComponent(
                             Icon(
                                 imageVector = Icons.Default.InsertDriveFile,
                                 contentDescription = null,
-                                tint = if (useCustomFileName) brandColor else MastorSlateMuted,
+                                tint = if (useCustomFileName) brandColor else MastorInkMuted,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -691,7 +691,7 @@ fun CloudDocumentUploadComponent(
                                 text = "Or type custom file name...",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = if (useCustomFileName) FontWeight.Bold else FontWeight.Normal,
-                                color = if (useCustomFileName) MastorSlateDark else MastorSlateMuted
+                                color = if (useCustomFileName) MastorInk else MastorInkMuted
                             )
                         }
                     }
@@ -716,7 +716,7 @@ fun CloudDocumentUploadComponent(
                     text = "Destination Folder:",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
                 Spacer(modifier = Modifier.height(6.dp))
 
@@ -724,10 +724,10 @@ fun CloudDocumentUploadComponent(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, MastorSlateBorder, RoundedCornerShape(8.dp))
+                            .border(1.dp, MastorCreamBorder, RoundedCornerShape(8.dp))
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { folderDropdownExpanded = true },
-                        color = MastorBackgroundLight
+                        color = MastorCream
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -745,13 +745,13 @@ fun CloudDocumentUploadComponent(
                                 Text(
                                     text = selectedFolder,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                             }
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = null,
-                                tint = MastorSlateMuted
+                                tint = MastorInkMuted
                             )
                         }
                     }
@@ -823,7 +823,7 @@ fun CloudDocumentUploadComponent(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    color = MastorBackgroundLight,
+                    color = MastorCream,
                     border = BorderStroke(1.dp, brandColor.copy(alpha = 0.3f))
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -837,12 +837,12 @@ fun CloudDocumentUploadComponent(
                                     text = activeFileName,
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                                 Text(
                                     text = "Target: $selectedFolder",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                             }
 
@@ -882,7 +882,7 @@ fun CloudDocumentUploadComponent(
                                 Icon(
                                     imageVector = Icons.Default.Speed,
                                     contentDescription = null,
-                                    tint = MastorSlateMuted,
+                                    tint = MastorInkMuted,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -897,14 +897,14 @@ fun CloudDocumentUploadComponent(
                             Text(
                                 text = uploadedBytesText,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Timer,
                                     contentDescription = null,
-                                    tint = MastorSlateMuted,
+                                    tint = MastorInkMuted,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -912,7 +912,7 @@ fun CloudDocumentUploadComponent(
                                 Text(
                                     text = if (isPaused) "Paused" else "ETA: ${etaSeconds}s",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                             }
                         }
@@ -922,7 +922,7 @@ fun CloudDocumentUploadComponent(
                         Text(
                             text = statusMessage,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateDark,
+                            color = MastorInk,
                             fontWeight = FontWeight.Medium
                         )
 
@@ -992,12 +992,12 @@ fun CloudDocumentUploadComponent(
                                     text = "Upload Complete & Linked!",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                                 Text(
                                     text = "${uploadedLinkedDoc?.fileName} is now stored in ${StorageProviders.getDisplayName(selectedProvider)}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                             }
                         }
@@ -1021,7 +1021,7 @@ fun CloudDocumentUploadComponent(
                                     uploadedLinkedDoc?.let { onUploadComplete(it) }
                                 },
                                 shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                                colors = ButtonDefaults.buttonColors(containerColor = MastorCopper),
                                 modifier = Modifier
                                     .weight(1.2f)
                                     .testTag("finish_linked_doc_upload")
@@ -1097,7 +1097,7 @@ fun CloudDocumentPickerModal(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MastorSurfaceLight,
+        containerColor = MastorCreamDark,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
         Column(
@@ -1116,14 +1116,14 @@ fun CloudDocumentPickerModal(
                         text = "PHASE 7: CLOUD DOCUMENT STORAGE",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorAccentBlue,
+                        color = MastorCopper,
                         letterSpacing = 1.sp
                     )
                     Text(
                         text = "Cloud Integration & Uploads",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
                 }
             }
@@ -1178,7 +1178,7 @@ fun CloudDocumentPickerModal(
                             .weight(1f)
                             .border(
                                 width = if (isOdSelected) 2.dp else 1.dp,
-                                color = if (isOdSelected) OneDriveBrandBlue else MastorSlateBorder,
+                                color = if (isOdSelected) OneDriveBrandBlue else MastorCreamBorder,
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .clip(RoundedCornerShape(12.dp))
@@ -1187,7 +1187,7 @@ fun CloudDocumentPickerModal(
                                 selectedFileIds = emptySet()
                             }
                             .testTag("select_onedrive_tab"),
-                        color = if (isOdSelected) OneDriveBrandBlue.copy(alpha = 0.08f) else MastorSurfaceLight
+                        color = if (isOdSelected) OneDriveBrandBlue.copy(alpha = 0.08f) else MastorCreamDark
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),
@@ -1200,12 +1200,12 @@ fun CloudDocumentPickerModal(
                                     text = "OneDrive",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isOdSelected) OneDriveBrandBlue else MastorSlateDark
+                                    color = if (isOdSelected) OneDriveBrandBlue else MastorInk
                                 )
                                 Text(
                                     text = "Microsoft Graph",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                             }
                         }
@@ -1218,7 +1218,7 @@ fun CloudDocumentPickerModal(
                             .weight(1f)
                             .border(
                                 width = if (isGdSelected) 2.dp else 1.dp,
-                                color = if (isGdSelected) GoogleDriveBrandBlue else MastorSlateBorder,
+                                color = if (isGdSelected) GoogleDriveBrandBlue else MastorCreamBorder,
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .clip(RoundedCornerShape(12.dp))
@@ -1227,7 +1227,7 @@ fun CloudDocumentPickerModal(
                                 selectedFileIds = emptySet()
                             }
                             .testTag("select_googledrive_tab"),
-                        color = if (isGdSelected) GoogleDriveBrandBlue.copy(alpha = 0.08f) else MastorSurfaceLight
+                        color = if (isGdSelected) GoogleDriveBrandBlue.copy(alpha = 0.08f) else MastorCreamDark
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),
@@ -1240,12 +1240,12 @@ fun CloudDocumentPickerModal(
                                     text = "Google Drive",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isGdSelected) GoogleDriveBrandBlue else MastorSlateDark
+                                    color = if (isGdSelected) GoogleDriveBrandBlue else MastorInk
                                 )
                                 Text(
                                     text = "Google Drive API",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                             }
                         }
@@ -1258,8 +1258,8 @@ fun CloudDocumentPickerModal(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
-                    color = MastorBackgroundLight,
-                    border = BorderStroke(1.dp, MastorSlateBorder)
+                    color = MastorCream,
+                    border = BorderStroke(1.dp, MastorCreamBorder)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1278,7 +1278,7 @@ fun CloudDocumentPickerModal(
                                 text = "OAuth Active: ${if (selectedProvider == StorageProviders.ONEDRIVE) oneDriveAccount else googleDriveAccount}",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         }
                         Text(
@@ -1299,8 +1299,8 @@ fun CloudDocumentPickerModal(
                             .fillMaxWidth()
                             .testTag("recent_documents_section"),
                         shape = RoundedCornerShape(12.dp),
-                        color = MastorSurfaceLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
+                        color = MastorCreamDark,
+                        border = BorderStroke(1.dp, MastorCreamBorder)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Row(
@@ -1312,7 +1312,7 @@ fun CloudDocumentPickerModal(
                                     Icon(
                                         imageVector = Icons.Default.Timer,
                                         contentDescription = null,
-                                        tint = MastorAccentBlue,
+                                        tint = MastorCopper,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -1320,18 +1320,18 @@ fun CloudDocumentPickerModal(
                                         text = "Recent",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = MastorSlateDark
+                                        color = MastorInk
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Surface(
-                                        color = MastorAccentBlue.copy(alpha = 0.12f),
+                                        color = MastorCopper.copy(alpha = 0.12f),
                                         shape = RoundedCornerShape(6.dp)
                                     ) {
                                         Text(
                                             text = "Last ${recentFiles.size} accessed",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
-                                            color = MastorAccentBlue,
+                                            color = MastorCopper,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                         )
                                     }
@@ -1339,7 +1339,7 @@ fun CloudDocumentPickerModal(
                                 Text(
                                     text = "Quick Access",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MastorSlateMuted,
+                                    color = MastorInkMuted,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
@@ -1359,7 +1359,7 @@ fun CloudDocumentPickerModal(
                                             .clip(RoundedCornerShape(10.dp))
                                             .border(
                                                 width = if (isSelected) 2.dp else 1.dp,
-                                                color = if (isSelected) MastorAccentBlue else MastorSlateBorder,
+                                                color = if (isSelected) MastorCopper else MastorCreamBorder,
                                                 shape = RoundedCornerShape(10.dp)
                                             )
                                             .clickable {
@@ -1369,7 +1369,7 @@ fun CloudDocumentPickerModal(
                                                 refreshTrigger++
                                             }
                                             .testTag("recent_file_item_${recentFile.id}"),
-                                        color = if (isSelected) MastorAccentBlue.copy(alpha = 0.08f) else MastorBackgroundLight
+                                        color = if (isSelected) MastorCopper.copy(alpha = 0.08f) else MastorCream
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(10.dp)
@@ -1383,7 +1383,7 @@ fun CloudDocumentPickerModal(
                                                 Text(
                                                     text = recentFile.sizeDisplay,
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = MastorSlateMuted
+                                                    color = MastorInkMuted
                                                 )
                                             }
                                             Spacer(modifier = Modifier.height(6.dp))
@@ -1391,7 +1391,7 @@ fun CloudDocumentPickerModal(
                                                 text = recentFile.name,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.Bold,
-                                                color = MastorSlateDark,
+                                                color = MastorInk,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
@@ -1400,7 +1400,7 @@ fun CloudDocumentPickerModal(
                                                 Text(
                                                     text = recentFile.associatedProject,
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = MastorAccentBlue,
+                                                    color = MastorCopper,
                                                     fontWeight = FontWeight.Medium,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
@@ -1410,7 +1410,7 @@ fun CloudDocumentPickerModal(
                                             Text(
                                                 text = recentFile.lastModified,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = MastorSlateMuted,
+                                                color = MastorInkMuted,
                                                 fontSize = 10.sp,
                                                 maxLines = 1
                                             )
@@ -1432,14 +1432,14 @@ fun CloudDocumentPickerModal(
                         Text(
                             text = "Search by file name or project...",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search Documents",
-                            tint = if (searchQuery.isNotEmpty()) MastorAccentBlue else MastorSlateMuted,
+                            tint = if (searchQuery.isNotEmpty()) MastorCopper else MastorInkMuted,
                             modifier = Modifier.size(20.dp)
                         )
                     },
@@ -1454,7 +1454,7 @@ fun CloudDocumentPickerModal(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Clear search",
-                                    tint = MastorSlateMuted,
+                                    tint = MastorInkMuted,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -1463,10 +1463,10 @@ fun CloudDocumentPickerModal(
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MastorAccentBlue,
-                        unfocusedBorderColor = MastorSlateBorder,
-                        focusedContainerColor = MastorSurfaceLight,
-                        unfocusedContainerColor = MastorBackgroundLight
+                        focusedBorderColor = MastorCopper,
+                        unfocusedBorderColor = MastorCreamBorder,
+                        focusedContainerColor = MastorCreamDark,
+                        unfocusedContainerColor = MastorCream
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1485,18 +1485,18 @@ fun CloudDocumentPickerModal(
                             text = "Select Document from ${StorageProviders.getDisplayName(selectedProvider)}",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         if (searchQuery.isNotBlank()) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
-                                color = MastorAccentBlue.copy(alpha = 0.12f),
+                                color = MastorCopper.copy(alpha = 0.12f),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
                                     text = "${files.size} match${if (files.size == 1) "" else "es"}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MastorAccentBlue,
+                                    color = MastorCopper,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
@@ -1508,7 +1508,7 @@ fun CloudDocumentPickerModal(
                         Text(
                             text = "Hold item to select",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }
@@ -1530,7 +1530,7 @@ fun CloudDocumentPickerModal(
                             Icon(
                                 imageVector = if (searchQuery.isNotBlank()) Icons.Default.SearchOff else Icons.Default.Folder,
                                 contentDescription = null,
-                                tint = MastorSlateMuted,
+                                tint = MastorInkMuted,
                                 modifier = Modifier.size(36.dp)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
@@ -1542,7 +1542,7 @@ fun CloudDocumentPickerModal(
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MastorSlateDark,
+                                color = MastorInk,
                                 textAlign = TextAlign.Center
                             )
                             if (searchQuery.isNotBlank()) {
@@ -1550,7 +1550,7 @@ fun CloudDocumentPickerModal(
                                 Text(
                                     text = "Try searching by a different file name, extension, or associated project.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateMuted,
+                                    color = MastorInkMuted,
                                     textAlign = TextAlign.Center
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
@@ -1650,14 +1650,14 @@ fun CloudDocumentPickerModal(
                                     shape = RoundedCornerShape(10.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = when {
-                                            isMultiSelected -> MastorAccentBlue.copy(alpha = 0.12f)
-                                            isSingleSelected -> MastorAccentBlue.copy(alpha = 0.08f)
-                                            else -> MastorSurfaceLight
+                                            isMultiSelected -> MastorCopper.copy(alpha = 0.12f)
+                                            isSingleSelected -> MastorCopper.copy(alpha = 0.08f)
+                                            else -> MastorCreamDark
                                         }
                                     ),
                                     border = BorderStroke(
                                         width = if (isMultiSelected || isSingleSelected) 2.dp else 1.dp,
-                                        color = if (isMultiSelected || isSingleSelected) MastorAccentBlue else MastorSlateBorder
+                                        color = if (isMultiSelected || isSingleSelected) MastorCopper else MastorCreamBorder
                                     )
                                 ) {
                                     Row(
@@ -1672,7 +1672,7 @@ fun CloudDocumentPickerModal(
                                             Icon(
                                                 imageVector = if (file.isFolder) Icons.Default.Folder else Icons.Default.Description,
                                                 contentDescription = null,
-                                                tint = if (file.isFolder) Color(0xFFFFB300) else MastorAccentBlue,
+                                                tint = if (file.isFolder) Color(0xFFFFB300) else MastorCopper,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                             Spacer(modifier = Modifier.width(10.dp))
@@ -1681,7 +1681,7 @@ fun CloudDocumentPickerModal(
                                                     text = file.name,
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    color = MastorSlateDark
+                                                    color = MastorInk
                                                 )
                                                 if (!file.associatedProject.isNullOrBlank()) {
                                                     Row(
@@ -1691,7 +1691,7 @@ fun CloudDocumentPickerModal(
                                                         Icon(
                                                             imageVector = Icons.Default.Business,
                                                             contentDescription = null,
-                                                            tint = MastorAccentBlue,
+                                                            tint = MastorCopper,
                                                             modifier = Modifier.size(12.dp)
                                                         )
                                                         Spacer(modifier = Modifier.width(4.dp))
@@ -1699,14 +1699,14 @@ fun CloudDocumentPickerModal(
                                                             text = file.associatedProject,
                                                             style = MaterialTheme.typography.labelSmall,
                                                             fontWeight = FontWeight.Medium,
-                                                            color = MastorAccentBlue
+                                                            color = MastorCopper
                                                         )
                                                     }
                                                 }
                                                 Text(
                                                     text = "${file.sizeDisplay} • ${file.lastModified}",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = MastorSlateMuted
+                                                    color = MastorInkMuted
                                                 )
                                             }
                                         }
@@ -1725,8 +1725,8 @@ fun CloudDocumentPickerModal(
                                                         }
                                                     },
                                                     colors = CheckboxDefaults.colors(
-                                                        checkedColor = MastorAccentBlue,
-                                                        uncheckedColor = MastorSlateMuted
+                                                        checkedColor = MastorCopper,
+                                                        uncheckedColor = MastorInkMuted
                                                     ),
                                                     modifier = Modifier.testTag("select_checkbox_${file.id}")
                                                 )
@@ -1749,7 +1749,7 @@ fun CloudDocumentPickerModal(
                                                     RadioButton(
                                                         selected = isSingleSelected,
                                                         onClick = { selectedFileItem = file },
-                                                        colors = RadioButtonDefaults.colors(selectedColor = MastorAccentBlue)
+                                                        colors = RadioButtonDefaults.colors(selectedColor = MastorCopper)
                                                     )
                                                 }
                                             }
@@ -1777,14 +1777,14 @@ fun CloudDocumentPickerModal(
                             Text(
                                 text = "Delete Document from Cloud?",
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         },
                         text = {
                             Text(
                                 text = "Are you sure you want to delete '${fileToDelete.name}' from ${StorageProviders.getDisplayName(fileToDelete.provider)}?\n\nThis action will remove the document permanently.",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         },
                         confirmButton = {
@@ -1831,7 +1831,7 @@ fun CloudDocumentPickerModal(
                             Text(
                                 text = "Delete ${selectedFileIds.size} Documents?",
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         },
                         text = {
@@ -1839,7 +1839,7 @@ fun CloudDocumentPickerModal(
                                 Text(
                                     text = "Are you sure you want to permanently delete the following ${selectedFileIds.size} documents from ${StorageProviders.getDisplayName(selectedProvider)}?",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 selectedFiles.take(4).forEach { f ->
@@ -1847,14 +1847,14 @@ fun CloudDocumentPickerModal(
                                         text = "• ${f.name}",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = MastorSlateDark
+                                        color = MastorInk
                                     )
                                 }
                                 if (selectedFiles.size > 4) {
                                     Text(
                                         text = "• ...and ${selectedFiles.size - 4} more",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MastorSlateMuted
+                                        color = MastorInkMuted
                                     )
                                 }
                             }
@@ -1901,14 +1901,14 @@ fun CloudDocumentPickerModal(
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = null,
-                                tint = MastorAccentBlue
+                                tint = MastorCopper
                             )
                         },
                         title = {
                             Text(
                                 text = "Share ${selectedFiles.size} Documents",
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         },
                         text = {
@@ -1916,14 +1916,14 @@ fun CloudDocumentPickerModal(
                                 Text(
                                     text = "Share selected items from ${StorageProviders.getDisplayName(selectedProvider)}:",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     selectedFiles.forEach { f ->
                                         Surface(
                                             modifier = Modifier.fillMaxWidth(),
-                                            color = MastorBackgroundLight,
+                                            color = MastorCream,
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
                                             Row(
@@ -1933,7 +1933,7 @@ fun CloudDocumentPickerModal(
                                                 Icon(
                                                     imageVector = Icons.Default.Description,
                                                     contentDescription = null,
-                                                    tint = MastorAccentBlue,
+                                                    tint = MastorCopper,
                                                     modifier = Modifier.size(16.dp)
                                                 )
                                                 Spacer(modifier = Modifier.width(6.dp))
@@ -1941,7 +1941,7 @@ fun CloudDocumentPickerModal(
                                                     text = f.name,
                                                     style = MaterialTheme.typography.bodySmall,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    color = MastorSlateDark
+                                                    color = MastorInk
                                                 )
                                             }
                                         }
@@ -2003,7 +2003,7 @@ fun CloudDocumentPickerModal(
                                     shareNotification = null
                                     selectedFileIds = emptySet()
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                                colors = ButtonDefaults.buttonColors(containerColor = MastorCopper),
                                 modifier = Modifier.testTag("done_share_btn")
                             ) {
                                 Text("Done", fontWeight = FontWeight.Bold)
@@ -2022,7 +2022,7 @@ fun CloudDocumentPickerModal(
                             .fillMaxWidth()
                             .testTag("bulk_selection_bottom_bar"),
                         shape = RoundedCornerShape(14.dp),
-                        color = MastorSlateDark,
+                        color = MastorInk,
                         tonalElevation = 6.dp
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
@@ -2062,7 +2062,7 @@ fun CloudDocumentPickerModal(
                                 ) {
                                     Text(
                                         text = if (selectedFileIds.size == files.filter { !it.isFolder }.size) "Deselect All" else "Select All",
-                                        color = MastorAccentBlue,
+                                        color = MastorCopper,
                                         fontWeight = FontWeight.SemiBold,
                                         style = MaterialTheme.typography.labelMedium
                                     )
@@ -2146,7 +2146,7 @@ fun CloudDocumentPickerModal(
                             },
                             enabled = selectedFileItem != null || files.any { !it.isFolder },
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                            colors = ButtonDefaults.buttonColors(containerColor = MastorCopper),
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("confirm_link_cloud_doc_btn")
@@ -2184,8 +2184,8 @@ fun LinkedCloudBoqSourceSection(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -2197,7 +2197,7 @@ fun LinkedCloudBoqSourceSection(
                     Icon(
                         imageVector = Icons.Default.CloudSync,
                         contentDescription = null,
-                        tint = MastorAccentBlue,
+                        tint = MastorCopper,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -2205,7 +2205,7 @@ fun LinkedCloudBoqSourceSection(
                         text = "Linked Cloud Storage Source",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
                 }
 
@@ -2213,7 +2213,7 @@ fun LinkedCloudBoqSourceSection(
                     text = "Phase 7",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MastorAccentBlue
+                    color = MastorCopper
                 )
             }
 
@@ -2223,7 +2223,7 @@ fun LinkedCloudBoqSourceSection(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MastorBackgroundLight, RoundedCornerShape(12.dp))
+                        .background(MastorCream, RoundedCornerShape(12.dp))
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -2239,12 +2239,12 @@ fun LinkedCloudBoqSourceSection(
                                 text = linkedDocument.fileName,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                             Text(
                                 text = "${StorageProviders.getDisplayName(linkedDocument.storageProvider)} • ${linkedDocument.fileSizeDisplay}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                         }
                     }
@@ -2282,7 +2282,7 @@ fun LinkedCloudBoqSourceSection(
                                 }
                             },
                             shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                            colors = ButtonDefaults.buttonColors(containerColor = MastorCopper),
                             modifier = Modifier.testTag("parse_linked_cloud_doc_btn")
                         ) {
                             Icon(
@@ -2335,7 +2335,7 @@ fun LinkedCloudBoqSourceSection(
                     Text(
                         text = "No OneDrive or Google Drive file currently attached.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                     OutlinedButton(
                         onClick = onOpenPicker,
@@ -2360,13 +2360,13 @@ fun LinkedCloudBoqSourceSection(
                 )
             },
             title = {
-                Text("Remove Linked Document?", fontWeight = FontWeight.Bold, color = MastorSlateDark)
+                Text("Remove Linked Document?", fontWeight = FontWeight.Bold, color = MastorInk)
             },
             text = {
                 Text(
                     "Are you sure you want to remove '${linkedDocument.fileName}' from this project?\n\nThe original file will remain safely stored in ${StorageProviders.getDisplayName(linkedDocument.storageProvider)}.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
             },
             confirmButton = {

@@ -87,13 +87,16 @@ import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.components.MastorIcon
 import com.example.ui.components.MastorTopBar
 import com.example.ui.components.MastorWordmark
-import com.example.ui.theme.FinancialMediumNumeralStyle
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.illustrations.MastorProjectHeroCard
+import com.example.ui.theme.BracketLabel
+import com.example.ui.theme.MastorFinancialMed
+import com.example.ui.theme.MastorStatusBadge
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import java.io.File
@@ -121,7 +124,7 @@ fun ProjectPickerScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = MastorBackgroundLight,
+        containerColor = MastorCream,
         topBar = {
             MastorTopBar(
                 title = "Project Directory",
@@ -129,14 +132,14 @@ fun ProjectPickerScreen(
                 onMenuClick = null
             ) {
                 Surface(
-                    color = MastorAccentBlue.copy(alpha = 0.1f),
+                    color = MastorCopper.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(100.dp)
                 ) {
                     Text(
                         text = "${projects.size} Active Jobs",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorAccentBlue,
+                        color = MastorCopper,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -146,7 +149,7 @@ fun ProjectPickerScreen(
             if (onCreateProject != null) {
                 ExtendedFloatingActionButton(
                     onClick = { showNewJobDialog = true },
-                    containerColor = MastorAccentBlue,
+                    containerColor = MastorCopper,
                     contentColor = Color.White,
                     shape = RoundedCornerShape(16.dp),
                     icon = { Icon(Icons.Default.Add, contentDescription = "New Job") },
@@ -173,7 +176,7 @@ fun ProjectPickerScreen(
                         Icon(
                             imageVector = Icons.Default.Home,
                             contentDescription = null,
-                            tint = MastorSlateMuted,
+                            tint = MastorInkMuted,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -181,13 +184,13 @@ fun ProjectPickerScreen(
                             text = "No active jobs found",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Tap '+ New Job' below to create your first construction project.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }
@@ -199,8 +202,14 @@ fun ProjectPickerScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(projects, key = { it.id }) { proj ->
-                        ProjectPickerCard(
-                            project = proj,
+                        MastorProjectHeroCard(
+                            projectId = proj.id,
+                            projectName = proj.name,
+                            projectType = proj.workType,
+                            clientName = proj.client,
+                            contractValue = proj.contractValue,
+                            status = proj.status,
+                            contractRef = proj.contractRef,
                             onClick = { onSelectProject(proj.id) }
                         )
                     }
@@ -216,221 +225,6 @@ fun ProjectPickerScreen(
                     onCreateProject(name, client, contractRef, address, siteManager, surveyor, contractValue, workType, imageUrl, uplift1, uplift2)
                 }
             )
-        }
-    }
-}
-
-@Composable
-fun ProjectPickerCard(
-    project: Project,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .testTag("job_card_${project.id}"),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-        border = BorderStroke(1.dp, MastorSlateBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Site Picture Preview (if available)
-            if (project.imageUrl.isNotBlank()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(130.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                ) {
-                    AsyncImage(
-                        model = project.imageUrl,
-                        contentDescription = "Site photo for ${project.name}",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f))
-                                )
-                            )
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            // Top Row: Status Badge & Work Type Tag
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = MastorAccentBlue.copy(alpha = 0.08f),
-                    shape = RoundedCornerShape(100.dp),
-                    border = BorderStroke(1.dp, MastorAccentBlue.copy(alpha = 0.2f))
-                ) {
-                    Text(
-                        text = project.workType.ifBlank { "Commercial Fitout" }.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorAccentBlue,
-                        letterSpacing = 0.5.sp,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-
-                Surface(
-                    color = StatusClaimedBg,
-                    shape = RoundedCornerShape(100.dp),
-                    border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.3f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(StatusClaimedGreen)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = project.status.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = StatusClaimedGreen
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Line 1: Full Project Name (allow full wrap, no truncation)
-            Text(
-                text = project.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MastorSlateDark,
-                fontSize = 18.sp
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Line 2: Client name & Contract ref, fully visible
-            Text(
-                text = "Client: ${project.client} • Ref: ${project.contractRef}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MastorSlateMuted,
-                fontSize = 14.sp
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Line 3: Address & Managers metadata
-            if (project.address.isNotBlank()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MastorSlateMuted,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = project.address,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted,
-                        fontSize = 13.sp
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Site: ${project.siteManager}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted,
-                    fontSize = 12.sp
-                )
-                Text(
-                    text = "QS: ${project.surveyor}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted,
-                    fontSize = 12.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Financial Summary Row: Contract Value Large & Right-Aligned
-            Surface(
-                color = MastorBackgroundLight,
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, MastorSlateBorder)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "CENTRAL MARKUPS",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted,
-                            letterSpacing = 0.5.sp
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "+${project.uplift1Percent.toInt()}% / +${project.uplift2Percent.toInt()}%",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorAccentBlue
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "CONTRACT VALUE",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted,
-                            letterSpacing = 0.5.sp
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = MastorCalculationEngine.formatCurrency(project.contractValue),
-                            style = FinancialMediumNumeralStyle,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MastorSlateDark,
-                            fontSize = 22.sp
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -518,7 +312,7 @@ fun NewJobDialog(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .clip(RoundedCornerShape(20.dp)),
-            color = MastorSurfaceLight,
+            color = MastorCreamDark,
             tonalElevation = 6.dp
         ) {
             Column(
@@ -537,18 +331,18 @@ fun NewJobDialog(
                             text = "NEW CONSTRUCTION JOB",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorAccentBlue,
+                            color = MastorCopper,
                             letterSpacing = 1.sp
                         )
                         Text(
                             text = "Create Project Directory",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                     }
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorInkMuted)
                     }
                 }
 
@@ -565,12 +359,12 @@ fun NewJobDialog(
                             text = "Site Picture",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Text(
                             text = "Upload a photo of the project or site location",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                     if (siteImageUriString.isNotBlank()) {
@@ -633,8 +427,8 @@ fun NewJobDialog(
                             }
                             .testTag("upload_site_picture_area"),
                         shape = RoundedCornerShape(14.dp),
-                        color = MastorAccentBlue.copy(alpha = 0.03f),
-                        border = BorderStroke(1.5.dp, MastorAccentBlue.copy(alpha = 0.3f))
+                        color = MastorCopper.copy(alpha = 0.03f),
+                        border = BorderStroke(1.5.dp, MastorCopper.copy(alpha = 0.3f))
                     ) {
                         Column(
                             modifier = Modifier
@@ -643,7 +437,7 @@ fun NewJobDialog(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Surface(
-                                color = MastorAccentBlue.copy(alpha = 0.12f),
+                                color = MastorCopper.copy(alpha = 0.12f),
                                 shape = CircleShape,
                                 modifier = Modifier.size(50.dp)
                             ) {
@@ -651,7 +445,7 @@ fun NewJobDialog(
                                     Icon(
                                         imageVector = Icons.Default.CloudUpload,
                                         contentDescription = "Upload site picture",
-                                        tint = MastorAccentBlue,
+                                        tint = MastorCopper,
                                         modifier = Modifier.size(26.dp)
                                     )
                                 }
@@ -663,7 +457,7 @@ fun NewJobDialog(
                                 text = "Upload Site Picture",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
 
                             Spacer(modifier = Modifier.height(4.dp))
@@ -671,7 +465,7 @@ fun NewJobDialog(
                             Text(
                                 text = "Tap anywhere to select photo from device gallery or camera",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -683,7 +477,7 @@ fun NewJobDialog(
                                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                         )
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MastorCopper),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.testTag("choose_site_photo_btn")
                                 ) {
@@ -695,12 +489,12 @@ fun NewJobDialog(
                                 OutlinedButton(
                                     onClick = { openCamera() },
                                     shape = RoundedCornerShape(8.dp),
-                                    border = BorderStroke(1.dp, MastorSlateBorder),
+                                    border = BorderStroke(1.dp, MastorCreamBorder),
                                     modifier = Modifier.testTag("take_site_photo_btn")
                                 ) {
-                                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MastorSlateDark, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MastorInk, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Take Photo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MastorSlateDark)
+                                    Text("Take Photo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MastorInk)
                                 }
                             }
                         }
@@ -711,8 +505,8 @@ fun NewJobDialog(
                             .fillMaxWidth()
                             .testTag("site_picture_preview_card"),
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                        border = BorderStroke(1.dp, MastorSlateBorder)
+                        colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+                        border = BorderStroke(1.dp, MastorCreamBorder)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Box(
@@ -744,21 +538,21 @@ fun NewJobDialog(
                                             )
                                         },
                                         shape = RoundedCornerShape(8.dp),
-                                        border = BorderStroke(1.dp, MastorSlateBorder)
+                                        border = BorderStroke(1.dp, MastorCreamBorder)
                                     ) {
-                                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = MastorAccentBlue, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = MastorCopper, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Change", fontSize = 12.sp, color = MastorAccentBlue)
+                                        Text("Change", fontSize = 12.sp, color = MastorCopper)
                                     }
 
                                     OutlinedButton(
                                         onClick = { openCamera() },
                                         shape = RoundedCornerShape(8.dp),
-                                        border = BorderStroke(1.dp, MastorSlateBorder)
+                                        border = BorderStroke(1.dp, MastorCreamBorder)
                                     ) {
-                                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MastorSlateDark, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MastorInk, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Take New", fontSize = 12.sp, color = MastorSlateDark)
+                                        Text("Take New", fontSize = 12.sp, color = MastorInk)
                                     }
                                 }
 
@@ -781,12 +575,12 @@ fun NewJobDialog(
                     onValueChange = { name = it },
                     label = { Text("Project / Job Name *") },
                     placeholder = { Text("e.g. Canary Wharf Office Refurbishment") },
-                    leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, tint = MastorSlateMuted) },
+                    leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, tint = MastorInkMuted) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MastorAccentBlue,
-                        unfocusedBorderColor = MastorSlateBorder
+                        focusedBorderColor = MastorCopper,
+                        unfocusedBorderColor = MastorCreamBorder
                     )
                 )
 
@@ -798,12 +592,12 @@ fun NewJobDialog(
                         onValueChange = { client = it },
                         label = { Text("Client Name *") },
                         placeholder = { Text("e.g. Canary Group") },
-                        leadingIcon = { Icon(Icons.Default.Business, contentDescription = null, tint = MastorSlateMuted) },
+                        leadingIcon = { Icon(Icons.Default.Business, contentDescription = null, tint = MastorInkMuted) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MastorAccentBlue,
-                            unfocusedBorderColor = MastorSlateBorder
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
                         )
                     )
 
@@ -812,12 +606,12 @@ fun NewJobDialog(
                         onValueChange = { contractRef = it },
                         label = { Text("Contract Ref *") },
                         placeholder = { Text("e.g. CWG-2026") },
-                        leadingIcon = { Icon(Icons.Default.Receipt, contentDescription = null, tint = MastorSlateMuted) },
+                        leadingIcon = { Icon(Icons.Default.Receipt, contentDescription = null, tint = MastorInkMuted) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MastorAccentBlue,
-                            unfocusedBorderColor = MastorSlateBorder
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
                         )
                     )
                 }
@@ -829,12 +623,12 @@ fun NewJobDialog(
                     onValueChange = { address = it },
                     label = { Text("Site Address") },
                     placeholder = { Text("10 Upper Bank Street, London E14 5JJ") },
-                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = MastorSlateMuted) },
+                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = MastorInkMuted) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MastorAccentBlue,
-                        unfocusedBorderColor = MastorSlateBorder
+                        focusedBorderColor = MastorCopper,
+                        unfocusedBorderColor = MastorCreamBorder
                     )
                 )
 
@@ -845,13 +639,13 @@ fun NewJobDialog(
                         value = contractValueStr,
                         onValueChange = { contractValueStr = it },
                         label = { Text("Contract Value (£)") },
-                        leadingIcon = { Text("£", fontWeight = FontWeight.Bold, color = MastorSlateMuted) },
+                        leadingIcon = { Text("£", fontWeight = FontWeight.Bold, color = MastorInkMuted) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MastorAccentBlue,
-                            unfocusedBorderColor = MastorSlateBorder
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
                         )
                     )
 
@@ -863,8 +657,8 @@ fun NewJobDialog(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MastorAccentBlue,
-                            unfocusedBorderColor = MastorSlateBorder
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
                         )
                     )
                 }
@@ -879,8 +673,8 @@ fun NewJobDialog(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MastorAccentBlue,
-                            unfocusedBorderColor = MastorSlateBorder
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
                         )
                     )
 
@@ -891,8 +685,8 @@ fun NewJobDialog(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MastorAccentBlue,
-                            unfocusedBorderColor = MastorSlateBorder
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
                         )
                     )
                 }
@@ -908,8 +702,8 @@ fun NewJobDialog(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MastorAccentBlue,
-                            unfocusedBorderColor = MastorSlateBorder
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
                         )
                     )
 
@@ -921,8 +715,8 @@ fun NewJobDialog(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MastorAccentBlue,
-                            unfocusedBorderColor = MastorSlateBorder
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
                         )
                     )
                 }
@@ -935,7 +729,7 @@ fun NewJobDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = MastorSlateMuted)
+                        Text("Cancel", color = MastorInkMuted)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -959,7 +753,7 @@ fun NewJobDialog(
                                 up2
                             )
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                        colors = ButtonDefaults.buttonColors(containerColor = MastorCopper),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("save_new_job_btn")
                     ) {

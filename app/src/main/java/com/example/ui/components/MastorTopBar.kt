@@ -23,10 +23,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 
 /**
  * Standard Mastor Top App Bar: Shared header composable providing a consistent
@@ -44,7 +44,7 @@ fun MastorTopBar(
         modifier = modifier
             .fillMaxWidth()
             .testTag("mastor_top_bar"),
-        color = MastorSurfaceLight
+        color = MastorCreamDark
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -70,7 +70,7 @@ fun MastorTopBar(
                             Icon(
                                 imageVector = Icons.Default.Menu,
                                 contentDescription = "Menu",
-                                tint = MastorSlateDark,
+                                tint = MastorInk,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -86,7 +86,7 @@ fun MastorTopBar(
                             text = title,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark,
+                            color = MastorInk,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -94,7 +94,7 @@ fun MastorTopBar(
                             Text(
                                 text = subtitle,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MastorSlateMuted,
+                                color = MastorInkMuted,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -111,7 +111,7 @@ fun MastorTopBar(
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
                 thickness = 1.dp,
-                color = MastorSlateBorder
+                color = MastorCreamBorder
             )
         }
     }

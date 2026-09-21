@@ -61,16 +61,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.domain.calculation.CalculationTraceStep
 import com.example.domain.calculation.MastorCalculationEngine
-import com.example.ui.theme.FinancialLargeNumeralStyle
-import com.example.ui.theme.FinancialMediumNumeralStyle
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorAccentBlueLight
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSlateText
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorFinancialLarge
+import com.example.ui.theme.MastorFinancialMed
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCopperLight
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusFlaggedBg
@@ -87,8 +87,8 @@ import com.example.ui.theme.StatusPendingBg
 @Composable
 fun MastorCard(
     modifier: Modifier = Modifier,
-    backgroundColor: Color = MastorSurfaceLight,
-    borderColor: Color = MastorSlateBorder,
+    backgroundColor: Color = MastorCreamDark,
+    borderColor: Color = MastorCreamBorder,
     borderWidth: Dp = 1.dp,
     contentPadding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit
@@ -116,14 +116,14 @@ fun FinancialNumeral(
     label: String,
     modifier: Modifier = Modifier,
     isLarge: Boolean = true,
-    accentColor: Color = MastorSlateDark,
+    accentColor: Color = MastorInk,
     subtext: String? = null
 ) {
     Column(modifier = modifier) {
         Text(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            color = MastorSlateMuted,
+            color = MastorInkMuted,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.8.sp,
             fontSize = 11.sp
@@ -131,7 +131,7 @@ fun FinancialNumeral(
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = MastorCalculationEngine.formatCurrency(amount),
-            style = if (isLarge) FinancialLargeNumeralStyle else FinancialMediumNumeralStyle,
+            style = if (isLarge) MastorFinancialLarge else MastorFinancialMed,
             color = accentColor
         )
         if (subtext != null) {
@@ -139,7 +139,7 @@ fun FinancialNumeral(
             Text(
                 text = subtext,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MastorSlateMuted
+                color = MastorInkMuted
             )
         }
     }
@@ -160,7 +160,7 @@ fun MastorBadge(
         MastorStatusType.PENDING -> StatusPendingBg to StatusPendingAmber
         MastorStatusType.FLAGGED -> StatusFlaggedBg to StatusFlaggedRed
         MastorStatusType.IDENTIFIED -> StatusIdentifiedBg to StatusIdentifiedSky
-        MastorStatusType.NEUTRAL -> MastorBackgroundLight to MastorSlateMuted
+        MastorStatusType.NEUTRAL -> MastorCream to MastorInkMuted
     }
 
     Surface(
@@ -210,7 +210,7 @@ fun MastorButton(
         modifier = modifier.testTag(testTag),
         shape = RoundedCornerShape(100.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = MastorAccentBlue,
+            containerColor = MastorCopper,
             contentColor = Color.White
         )
     ) {
@@ -237,9 +237,9 @@ fun MastorOutlinedButton(
         onClick = onClick,
         modifier = modifier.testTag(testTag),
         shape = RoundedCornerShape(100.dp),
-        border = BorderStroke(1.dp, MastorSlateBorder),
+        border = BorderStroke(1.dp, MastorCreamBorder),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MastorSlateDark
+            contentColor = MastorInk
         )
     ) {
         if (icon != null) {
@@ -267,7 +267,7 @@ fun MastorInput(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MastorSlateMuted,
+            color = MastorInkMuted,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -275,17 +275,17 @@ fun MastorInput(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(MastorSurfaceLight)
-                .border(1.dp, MastorSlateBorder, RoundedCornerShape(14.dp))
+                .background(MastorCreamDark)
+                .border(1.dp, MastorCreamBorder, RoundedCornerShape(14.dp))
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             if (value.isEmpty() && placeholder.isNotEmpty()) {
-                Text(text = placeholder, color = MastorSlateMuted, style = MaterialTheme.typography.bodyMedium)
+                Text(text = placeholder, color = MastorInkMuted, style = MaterialTheme.typography.bodyMedium)
             }
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MastorSlateDark),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MastorInk),
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                 singleLine = true,
                 modifier = Modifier
@@ -315,7 +315,7 @@ fun MastorToggle(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MastorSlateDark,
+                color = MastorInk,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -325,10 +325,10 @@ fun MastorToggle(
             modifier = Modifier.testTag(testTag),
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = MastorAccentBlue,
-                uncheckedThumbColor = MastorSlateMuted,
-                uncheckedTrackColor = MastorBackgroundLight,
-                uncheckedBorderColor = MastorSlateBorder
+                checkedTrackColor = MastorCopper,
+                uncheckedThumbColor = MastorInkMuted,
+                uncheckedTrackColor = MastorCream,
+                uncheckedBorderColor = MastorCreamBorder
             )
         )
     }
@@ -357,7 +357,7 @@ fun ScopeElementClaimEditor(
 
     MastorCard(
         modifier = modifier,
-        borderColor = if (claimPercent > 0) MastorAccentBlue.copy(alpha = 0.5f) else MastorSlateBorder
+        borderColor = if (claimPercent > 0) MastorCopper.copy(alpha = 0.5f) else MastorCreamBorder
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -369,40 +369,40 @@ fun ScopeElementClaimEditor(
                     Text(
                         text = code,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MastorAccentBlue,
+                        color = MastorCopper,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = locationRoom,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Base Rate: ${MastorCalculationEngine.formatCurrency(rate)} / $units  •  Qty: $qty $units",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
             }
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = MastorCalculationEngine.formatCurrency(claimedValue),
-                    style = FinancialMediumNumeralStyle,
-                    color = if (claimPercent > 0) StatusClaimedGreen else MastorSlateDark
+                    style = MastorFinancialMed,
+                    color = if (claimPercent > 0) StatusClaimedGreen else MastorInk
                 )
                 Text(
                     text = "Base Total: ${MastorCalculationEngine.formatCurrency(baseCost)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
             }
         }
@@ -417,7 +417,7 @@ fun ScopeElementClaimEditor(
             Text(
                 text = "Claimed: ${claimPercent.toInt()}%",
                 style = MaterialTheme.typography.labelLarge,
-                color = if (claimPercent > 0) StatusClaimedGreen else MastorSlateMuted,
+                color = if (claimPercent > 0) StatusClaimedGreen else MastorInkMuted,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.width(90.dp)
             )
@@ -431,9 +431,9 @@ fun ScopeElementClaimEditor(
                     .weight(1f)
                     .testTag("${testTagPrefix}_slider"),
                 colors = SliderDefaults.colors(
-                    thumbColor = MastorAccentBlue,
-                    activeTrackColor = MastorAccentBlue,
-                    inactiveTrackColor = MastorBackgroundLight
+                    thumbColor = MastorCopper,
+                    activeTrackColor = MastorCopper,
+                    inactiveTrackColor = MastorCream
                 )
             )
 
@@ -475,10 +475,10 @@ fun MastorPhotoPlaceholder(
             .clip(RoundedCornerShape(20.dp))
             .background(
                 brush = Brush.linearGradient(
-                    colors = listOf(MastorSlateDark, MastorAccentBlue, MastorSlateText)
+                    colors = listOf(MastorInk, MastorCopper, MastorInk)
                 )
             )
-            .border(1.dp, MastorSlateBorder, RoundedCornerShape(20.dp))
+            .border(1.dp, MastorCreamBorder, RoundedCornerShape(20.dp))
     ) {
         Box(
             modifier = Modifier
@@ -508,7 +508,7 @@ fun MastorPhotoPlaceholder(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MastorAccentBlueLight
+                    color = MastorCopperLight
                 )
             }
         }
@@ -528,7 +528,7 @@ fun CalculationTraceDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = MastorSurfaceLight,
+            color = MastorCreamDark,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -543,14 +543,14 @@ fun CalculationTraceDialog(
                         Icon(
                             imageVector = Icons.Default.ReceiptLong,
                             contentDescription = null,
-                            tint = MastorAccentBlue,
+                            tint = MastorCopper,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Calculation Traceability",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                     }
                     IconButton(onClick = onDismiss) {
@@ -562,7 +562,7 @@ fun CalculationTraceDialog(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MastorAccentBlue,
+                    color = MastorCopper,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -574,8 +574,8 @@ fun CalculationTraceDialog(
                             .fillMaxWidth()
                             .padding(vertical = 6.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(MastorBackgroundLight)
-                            .border(1.dp, MastorSlateBorder, RoundedCornerShape(10.dp))
+                            .background(MastorCream)
+                            .border(1.dp, MastorCreamBorder, RoundedCornerShape(10.dp))
                             .padding(12.dp)
                     ) {
                         Row(
@@ -585,13 +585,13 @@ fun CalculationTraceDialog(
                             Text(
                                 text = "${index + 1}. ${step.title}",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MastorSlateDark,
+                                color = MastorInk,
                                 fontSize = 14.sp
                             )
                             Text(
                                 text = step.resultFormatted,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MastorAccentBlue,
+                                color = MastorCopper,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -599,14 +599,14 @@ fun CalculationTraceDialog(
                         Text(
                             text = "Formula: ${step.formula}",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MastorSlateDark,
+                            color = MastorInk,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
                             text = "Data source: ${step.inputsDescription}",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MastorSlateMuted,
+                            color = MastorInkMuted,
                             fontSize = 11.sp
                         )
                     }

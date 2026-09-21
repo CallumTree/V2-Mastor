@@ -96,11 +96,11 @@ import com.example.data.entity.WorkOrder
 import com.example.domain.cloud.CloudFileItem
 import com.example.domain.cloud.CloudStorageService
 import com.example.domain.cloud.StorageProviders
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedGreen
 
 // Custom Google Drive Colors
@@ -155,7 +155,7 @@ fun GoogleDriveAuthCard(
                                 text = "Google Drive Authorized",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
@@ -186,7 +186,7 @@ fun GoogleDriveAuthCard(
                         Text(
                             text = CloudStorageService.googleDriveAccountName,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }
@@ -256,7 +256,7 @@ fun GoogleDriveAuthCard(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 11.sp,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
                 }
 
@@ -330,7 +330,7 @@ fun GoogleDriveAccountDetailsDialog(
                 Text(
                     text = "Connected Google Cloud Workspace authorization for project documentation and work order attachments.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -345,7 +345,7 @@ fun GoogleDriveAccountDetailsDialog(
                             text = "AUTHORIZED ACCOUNT",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         if (isEditing) {
@@ -361,7 +361,7 @@ fun GoogleDriveAccountDetailsDialog(
                                 text = CloudStorageService.googleDriveAccountName,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         }
                     }
@@ -379,23 +379,23 @@ fun GoogleDriveAccountDetailsDialog(
                             text = "OAUTH 2.0 CREDENTIALS",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "• Client Project ID: ${CloudStorageService.googleDriveProjectId}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Text(
                             text = "• Project Number: ${CloudStorageService.googleDriveProjectNumber}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Text(
                             text = "• Brand Name: ${CloudStorageService.googleDriveBrandName}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Text(
                             text = "• Token Status: ${CloudStorageService.googleDriveTokenStatus}",
@@ -412,7 +412,7 @@ fun GoogleDriveAccountDetailsDialog(
                     text = "Granted OAuth Scopes:",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 CloudStorageService.googleDriveScopes.forEach { scope ->
@@ -547,13 +547,13 @@ fun GoogleDriveBrowserModal(
                 .padding(12.dp)
                 .testTag("google_drive_browser_modal"),
             shape = RoundedCornerShape(24.dp),
-            color = MastorSurfaceLight,
+            color = MastorCreamDark,
             tonalElevation = 8.dp
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Top Header Bar
                 Surface(
-                    color = MastorSlateDark,
+                    color = MastorInk,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -777,7 +777,7 @@ fun GoogleDriveBrowserModal(
                                 text = if (currentFolder == null) "Google Drive > My Drive > Mastor > 142 Park Lane" else "Google Drive > $currentFolder",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
 
                             if (currentFolder != null) {
@@ -813,14 +813,14 @@ fun GoogleDriveBrowserModal(
                                         Icon(
                                             imageVector = Icons.Default.FolderOpen,
                                             contentDescription = null,
-                                            tint = MastorSlateMuted,
+                                            tint = MastorInkMuted,
                                             modifier = Modifier.size(48.dp)
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
                                             text = "No files found matching filter",
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = MastorSlateMuted
+                                            color = MastorInkMuted
                                         )
                                     }
                                 }
@@ -872,7 +872,7 @@ fun GoogleDriveBrowserModal(
                                             text = selectedFile?.name ?: "",
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
-                                            color = MastorSlateDark,
+                                            color = MastorInk,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -913,13 +913,13 @@ fun GoogleDriveBrowserModal(
                                                     text = "Work Order Target",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     fontSize = 10.sp,
-                                                    color = MastorSlateMuted
+                                                    color = MastorInkMuted
                                                 )
                                                 Text(
                                                     text = selectedWorkOrderRef.ifBlank { "Select Work Order" },
                                                     style = MaterialTheme.typography.labelMedium,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = MastorSlateDark,
+                                                    color = MastorInk,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
@@ -956,13 +956,13 @@ fun GoogleDriveBrowserModal(
                                                     text = "Document Category",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     fontSize = 10.sp,
-                                                    color = MastorSlateMuted
+                                                    color = MastorInkMuted
                                                 )
                                                 Text(
                                                     text = selectedDocCategory,
                                                     style = MaterialTheme.typography.labelMedium,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = MastorSlateDark,
+                                                    color = MastorInk,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
@@ -1085,7 +1085,7 @@ fun GoogleDriveFileListItem(
                         text = file.name,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark,
+                        color = MastorInk,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1101,7 +1101,7 @@ fun GoogleDriveFileListItem(
                         text = if (file.isFolder) file.sizeDisplay else "${file.sizeDisplay} • ${file.lastModified}",
                         style = MaterialTheme.typography.bodySmall,
                         fontSize = 11.sp,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
 
                     if (!file.isFolder) {
@@ -1201,7 +1201,7 @@ fun DocumentPreviewDialog(
                     Text(
                         text = "$provider • $fileSize • $category",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                 }
             }
@@ -1225,7 +1225,7 @@ fun DocumentPreviewDialog(
                         Icon(
                             imageVector = Icons.Default.Folder,
                             contentDescription = null,
-                            tint = MastorSlateMuted,
+                            tint = MastorInkMuted,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1233,7 +1233,7 @@ fun DocumentPreviewDialog(
                             text = cloudPath,
                             style = MaterialTheme.typography.labelSmall,
                             fontFamily = FontFamily.Monospace,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                     }
                 }

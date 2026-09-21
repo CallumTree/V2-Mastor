@@ -80,7 +80,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import com.example.ui.components.ScopeElementListItem
 import com.example.ui.components.SubcontractorProcurementComponent
-import com.example.ui.theme.MastorSlateDark
+import com.example.ui.theme.MastorInk
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -124,15 +124,19 @@ import com.example.ui.components.ProjectSetupForm
 import com.example.ui.components.WorkOrderCard
 import com.example.domain.cloud.CloudFileItem
 import com.example.domain.cloud.CloudStorageService
+import com.example.ui.theme.BracketLabel
 import com.example.ui.theme.MastorBottomNavBar
+import com.example.ui.theme.MastorFinancialLarge
+import com.example.ui.theme.MastorFinancialMed
 import com.example.ui.theme.MastorNavItem
+import com.example.ui.theme.MastorPrimaryButton
 import com.example.ui.theme.FinancialLargeNumeralStyle
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.viewmodel.Phase1ViewModel
 
@@ -153,7 +157,7 @@ import androidx.compose.material.icons.filled.CorporateFare
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.SettingsSuggest
 
-private val MastorNavy = MastorSlateDark
+private val MastorNavy = MastorInk
 
 enum class Phase2Tab {
     DASHBOARD,
@@ -216,12 +220,12 @@ fun Phase2ScopeScreen(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(color = MastorAccentBlue)
+                CircularProgressIndicator(color = MastorCopper)
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Loading Mastor Phase 2 Scope Data...",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
             }
         }
@@ -261,7 +265,7 @@ fun Phase2ScopeScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = MastorSurfaceLight,
+                drawerContainerColor = MastorCreamDark,
                 drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
                 modifier = Modifier.width(310.dp)
             ) {
@@ -279,19 +283,19 @@ fun Phase2ScopeScreen(
                         text = "Mastor Prime Construction Ltd",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark,
+                        color = MastorInk,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "Job: ${proj.name} (${proj.contractRef})",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                HorizontalDivider(color = MastorSlateBorder)
+                HorizontalDivider(color = MastorCreamBorder)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Column(
@@ -304,7 +308,7 @@ fun Phase2ScopeScreen(
                         text = "PROJECT SETUP & CONFIGURATION",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         letterSpacing = 0.8.sp,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
@@ -318,11 +322,11 @@ fun Phase2ScopeScreen(
                         },
                         icon = { Icon(Icons.Default.Settings, contentDescription = "Project Setup") },
                         colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MastorAccentBlue.copy(alpha = 0.12f),
-                            selectedIconColor = MastorAccentBlue,
-                            selectedTextColor = MastorAccentBlue,
-                            unselectedIconColor = MastorSlateMuted,
-                            unselectedTextColor = MastorSlateDark
+                            selectedContainerColor = MastorCopper.copy(alpha = 0.12f),
+                            selectedIconColor = MastorCopper,
+                            selectedTextColor = MastorCopper,
+                            unselectedIconColor = MastorInkMuted,
+                            unselectedTextColor = MastorInk
                         )
                     )
 
@@ -335,11 +339,11 @@ fun Phase2ScopeScreen(
                         },
                         icon = { Icon(Icons.Default.Cloud, contentDescription = "Cloud Storage") },
                         colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MastorAccentBlue.copy(alpha = 0.12f),
-                            selectedIconColor = MastorAccentBlue,
-                            selectedTextColor = MastorAccentBlue,
-                            unselectedIconColor = MastorSlateMuted,
-                            unselectedTextColor = MastorSlateDark
+                            selectedContainerColor = MastorCopper.copy(alpha = 0.12f),
+                            selectedIconColor = MastorCopper,
+                            selectedTextColor = MastorCopper,
+                            unselectedIconColor = MastorInkMuted,
+                            unselectedTextColor = MastorInk
                         )
                     )
 
@@ -348,7 +352,7 @@ fun Phase2ScopeScreen(
                         text = "ACCOUNT & PREFERENCES",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         letterSpacing = 0.8.sp,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
@@ -362,28 +366,28 @@ fun Phase2ScopeScreen(
                         },
                         icon = { Icon(Icons.Default.CorporateFare, contentDescription = "Company Preferences") },
                         colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MastorAccentBlue.copy(alpha = 0.12f),
-                            selectedIconColor = MastorAccentBlue,
-                            selectedTextColor = MastorAccentBlue,
-                            unselectedIconColor = MastorSlateMuted,
-                            unselectedTextColor = MastorSlateDark
+                            selectedContainerColor = MastorCopper.copy(alpha = 0.12f),
+                            selectedIconColor = MastorCopper,
+                            selectedTextColor = MastorCopper,
+                            unselectedIconColor = MastorInkMuted,
+                            unselectedTextColor = MastorInk
                         )
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(color = MastorSlateBorder)
+                    HorizontalDivider(color = MastorCreamBorder)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     NavigationDrawerItem(
-                        label = { Text("Switch Project", fontWeight = FontWeight.Bold, color = MastorAccentBlue) },
+                        label = { Text("Switch Project", fontWeight = FontWeight.Bold, color = MastorCopper) },
                         selected = false,
                         onClick = {
                             coroutineScope.launch { drawerState.close() }
                             viewModel.selectProject(null)
                         },
-                        icon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Switch Project", tint = MastorAccentBlue) },
+                        icon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Switch Project", tint = MastorCopper) },
                         colors = NavigationDrawerItemDefaults.colors(
-                            unselectedContainerColor = MastorAccentBlue.copy(alpha = 0.08f)
+                            unselectedContainerColor = MastorCopper.copy(alpha = 0.08f)
                         ),
                         modifier = Modifier
                             .padding(vertical = 4.dp)
@@ -395,7 +399,7 @@ fun Phase2ScopeScreen(
     ) {
         Scaffold(
             modifier = modifier.fillMaxSize(),
-            containerColor = MastorBackgroundLight,
+            containerColor = MastorCream,
             bottomBar = {
                 val primaryNavItems = remember {
                     listOf(
@@ -456,16 +460,16 @@ fun Phase2ScopeScreen(
                     }
 
                     Surface(
-                        color = MastorAccentBlue.copy(alpha = 0.12f),
+                        color = MastorCopper.copy(alpha = 0.12f),
                         shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, MastorSlateBorder)
+                        border = BorderStroke(1.dp, MastorCreamBorder)
                     ) {
                         Text(
                             text = "+${proj.uplift1Percent.toInt()}%/+${proj.uplift2Percent.toInt()}%",
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark,
+                            color = MastorInk,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp),
                             maxLines = 1
                         )
@@ -572,13 +576,7 @@ fun Phase2ScopeScreen(
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 item {
-                                    Text(
-                                        text = "LINKED CLOUD DOCUMENT (PHASE 7)",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MastorAccentBlue,
-                                        letterSpacing = 1.sp
-                                    )
+                                    BracketLabel(text = "LINKED CLOUD DOCUMENT (PHASE 7)")
                                     Spacer(modifier = Modifier.height(4.dp))
                                     LinkedDocumentCard(
                                         linkedDocument = linkedDoc,
@@ -642,17 +640,17 @@ fun Phase2ScopeScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 6.dp),
                                 shape = RoundedCornerShape(12.dp),
-                                color = MastorSurfaceLight,
-                                border = BorderStroke(1.dp, MastorSlateBorder)
+                                color = MastorCreamDark,
+                                border = BorderStroke(1.dp, MastorCreamBorder)
                             ) {
                                 TabRow(
                                     selectedTabIndex = scopeSubTabIndex,
                                     containerColor = Color.Transparent,
-                                    contentColor = MastorAccentBlue,
+                                    contentColor = MastorCopper,
                                     indicator = { tabPositions ->
                                         TabRowDefaults.SecondaryIndicator(
                                             Modifier.tabIndicatorOffset(tabPositions[scopeSubTabIndex]),
-                                            color = MastorAccentBlue,
+                                            color = MastorCopper,
                                             height = 3.dp
                                         )
                                     },
@@ -712,36 +710,20 @@ fun Phase2ScopeScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Column {
-                                                Text(
-                                                    text = "WORK ORDERS & SCOPE PACKAGES",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MastorAccentBlue
-                                                )
+                                                BracketLabel(text = "WORK ORDERS & SCOPE PACKAGES")
                                                 Text(
                                                     text = "${uiState.workOrders.size} Packages • Total Base ${MastorCalculationEngine.formatCurrency(totalBaseCost)}",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = MastorSlateMuted
+                                                    color = MastorInkMuted
                                                 )
                                             }
 
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                Button(
-                                                    onClick = { showCreateWoDialog = true },
-                                                    shape = RoundedCornerShape(10.dp),
-                                                    colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
-                                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                                    modifier = Modifier.testTag("add_work_order_btn")
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Add,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text("New Work Order", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                                }
-                                            }
+                                            MastorPrimaryButton(
+                                                text = "New Work Order",
+                                                icon = Icons.Default.Add,
+                                                onClick = { showCreateWoDialog = true },
+                                                modifier = Modifier.testTag("add_work_order_btn")
+                                            )
                                         }
                                     }
 
@@ -749,8 +731,8 @@ fun Phase2ScopeScreen(
                                         item {
                                             Surface(
                                                 shape = RoundedCornerShape(16.dp),
-                                                color = MastorSurfaceLight,
-                                                border = BorderStroke(1.dp, MastorSlateBorder),
+                                                color = MastorCreamDark,
+                                                border = BorderStroke(1.dp, MastorCreamBorder),
                                                 modifier = Modifier.fillMaxWidth()
                                             ) {
                                                 Box(
@@ -762,7 +744,7 @@ fun Phase2ScopeScreen(
                                                     Text(
                                                         text = "No Work Orders defined yet. Tap 'New Work Order' to create scope packages.",
                                                         style = MaterialTheme.typography.bodyMedium,
-                                                        color = MastorSlateMuted
+                                                        color = MastorInkMuted
                                                     )
                                                 }
                                             }
@@ -823,8 +805,8 @@ fun Phase2ScopeScreen(
                                         .fillMaxWidth()
                                         .padding(horizontal = 16.dp, vertical = 6.dp),
                                     shape = RoundedCornerShape(16.dp),
-                                    color = MastorSurfaceLight,
-                                    border = BorderStroke(1.dp, MastorSlateBorder)
+                                    color = MastorCreamDark,
+                                    border = BorderStroke(1.dp, MastorCreamBorder)
                                 ) {
                                     Column(modifier = Modifier.padding(14.dp)) {
                                         Row(
@@ -833,30 +815,25 @@ fun Phase2ScopeScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Column {
-                                                Text(
-                                                    text = "SCOPE OF WORKS",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MastorAccentBlue
-                                                )
+                                                BracketLabel(text = "SCOPE OF WORKS")
                                                 Text(
                                                     text = "${uiState.scopeElements.size} Items • $completedCount Completed",
                                                     style = MaterialTheme.typography.titleMedium,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = MastorSlateDark
+                                                    color = MastorInk
                                                 )
                                             }
 
                                             Column(horizontalAlignment = Alignment.End) {
                                                 Text(
                                                     text = MastorCalculationEngine.formatCurrency(totalClaimedBaseCost),
-                                                    style = FinancialLargeNumeralStyle,
+                                                    style = MastorFinancialLarge,
                                                     color = StatusClaimedGreen
                                                 )
                                                 Text(
                                                     text = "of ${MastorCalculationEngine.formatCurrency(totalBaseCost)} (${overallProgress.toInt()}%)",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = MastorSlateMuted
+                                                    color = MastorInkMuted
                                                 )
                                             }
                                         }
@@ -876,7 +853,7 @@ fun Phase2ScopeScreen(
                                                     Icon(
                                                         imageVector = Icons.Default.Search,
                                                         contentDescription = "Search",
-                                                        tint = MastorSlateMuted,
+                                                        tint = MastorInkMuted,
                                                         modifier = Modifier.size(18.dp)
                                                     )
                                                 },
@@ -889,25 +866,17 @@ fun Phase2ScopeScreen(
 
                                             Spacer(modifier = Modifier.width(8.dp))
 
-                                            Button(
+                                            MastorPrimaryButton(
+                                                text = "Add Item",
+                                                icon = Icons.Default.Add,
                                                 onClick = {
                                                     val defaultWo = uiState.workOrders.firstOrNull()?.entity?.woRef ?: "WO-001"
                                                     addingScopeToWoRef = defaultWo
                                                 },
-                                                shape = RoundedCornerShape(10.dp),
-                                                colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
                                                 modifier = Modifier
                                                     .height(48.dp)
                                                     .testTag("add_scope_item_btn")
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Add,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text("Add Item", fontSize = 13.sp)
-                                            }
+                                            )
                                         }
 
                                         // Filter Chips Row
@@ -957,7 +926,7 @@ fun Phase2ScopeScreen(
                                                 Text(
                                                     text = if (scopeSearchQuery.isNotBlank()) "No scope items matching \"$scopeSearchQuery\"" else "No scope items added yet. Tap 'Add Item' to start.",
                                                     style = MaterialTheme.typography.bodyMedium,
-                                                    color = MastorSlateMuted
+                                                    color = MastorInkMuted
                                                 )
                                             }
                                         }
@@ -1174,7 +1143,7 @@ fun CompanyAccountPreferencesModal(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue),
+                colors = ButtonDefaults.buttonColors(containerColor = MastorCopper),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
@@ -1185,7 +1154,7 @@ fun CompanyAccountPreferencesModal(
                 Icon(
                     imageVector = Icons.Default.CorporateFare,
                     contentDescription = null,
-                    tint = MastorAccentBlue,
+                    tint = MastorCopper,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1193,7 +1162,7 @@ fun CompanyAccountPreferencesModal(
                     text = "Account & Preferences",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
             }
         },
@@ -1207,34 +1176,34 @@ fun CompanyAccountPreferencesModal(
                 Text(
                     text = "App-level configuration and SaaS organizational settings.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
 
                 Surface(
-                    color = MastorSurfaceLight,
+                    color = MastorCreamDark,
                     shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, MastorSlateBorder),
+                    border = BorderStroke(1.dp, MastorCreamBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Organization:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
+                            Text("Organization:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
                             Text("Mastor Prime Ltd", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("VAT Registration:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
+                            Text("VAT Registration:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
                             Text("GB 938 2841 02", style = MaterialTheme.typography.bodyMedium)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Current Plan:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
-                            Text("Enterprise QS (Active)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MastorAccentBlue)
+                            Text("Current Plan:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
+                            Text("Enterprise QS (Active)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MastorCopper)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Standard Retention:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
+                            Text("Standard Retention:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
                             Text("5.00%", style = MaterialTheme.typography.bodyMedium)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Valuation Cycle:", style = MaterialTheme.typography.labelMedium, color = MastorSlateMuted)
+                            Text("Valuation Cycle:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
                             Text("Monthly (28-day)", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
@@ -1263,7 +1232,7 @@ fun JobBannerHeader(
             .height(130.dp)
             .testTag("job_banner_header"),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Project Photo Background
@@ -1306,7 +1275,7 @@ fun JobBannerHeader(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Surface(
-                            color = MastorAccentBlue.copy(alpha = 0.90f),
+                            color = MastorCopper.copy(alpha = 0.90f),
                             shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(

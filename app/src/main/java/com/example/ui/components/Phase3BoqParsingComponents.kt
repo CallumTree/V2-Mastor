@@ -74,14 +74,18 @@ import com.example.domain.boq.ParsedScopeElement
 import com.example.domain.boq.ParsedWorkOrder
 import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.components.MastorTopBar
-import com.example.ui.theme.FinancialLargeNumeralStyle
-import com.example.ui.theme.FinancialMediumNumeralStyle
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.BracketLabel
+import com.example.ui.theme.MastorCard
+import com.example.ui.theme.MastorFinancialLarge
+import com.example.ui.theme.MastorFinancialMed
+import com.example.ui.theme.MastorPrimaryButton
+import com.example.ui.theme.MastorSecondaryButton
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusFlaggedRed
@@ -174,23 +178,17 @@ fun BoqUnifiedUploadAndConfirmScreen(
     ) {
         item {
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "BILL OF QUANTITIES (BOQ) IMPORT",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MastorAccentBlue,
-                letterSpacing = 1.sp
-            )
+            BracketLabel(text = "BILL OF QUANTITIES (BOQ) IMPORT")
             Text(
                 text = "Upload & Confirm Scope",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MastorSlateDark
+                color = MastorInk
             )
             Text(
                 text = "Extract verbatim rates, quantities, and scope lines. Review below before committing to live scope.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MastorSlateMuted
+                color = MastorInkMuted
             )
         }
 
@@ -229,15 +227,15 @@ fun BoqUnifiedUploadAndConfirmScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                border = BorderStroke(1.dp, MastorSlateBorder)
+                colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+                border = BorderStroke(1.dp, MastorCreamBorder)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
                         text = "1. Provide BoQ Data",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -260,7 +258,7 @@ fun BoqUnifiedUploadAndConfirmScreen(
                             .testTag("upload_file_button"),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MastorAccentBlue,
+                            containerColor = MastorCopper,
                             contentColor = Color.White
                         )
                     ) {
@@ -312,7 +310,7 @@ fun BoqUnifiedUploadAndConfirmScreen(
                     Text(
                         text = "Or choose sample demo BoQ data:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -362,7 +360,7 @@ fun BoqUnifiedUploadAndConfirmScreen(
                             .fillMaxWidth()
                             .height(90.dp)
                             .testTag("boq_text_input"),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorAccentBlue)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
                     )
 
                     if (pastedText.isNotBlank()) {
@@ -380,7 +378,7 @@ fun BoqUnifiedUploadAndConfirmScreen(
                                 .fillMaxWidth()
                                 .testTag("parse_boq_btn"),
                             shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MastorAccentBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MastorCopper)
                         ) {
                             Text("Extract Scope Lines from Text", fontSize = 13.sp)
                         }
@@ -395,8 +393,8 @@ fun BoqUnifiedUploadAndConfirmScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-                    border = BorderStroke(1.dp, MastorSlateBorder)
+                    colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+                    border = BorderStroke(1.dp, MastorCreamBorder)
                 ) {
                     Column(
                         modifier = Modifier
@@ -405,7 +403,7 @@ fun BoqUnifiedUploadAndConfirmScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         CircularProgressIndicator(
-                            color = MastorAccentBlue,
+                            color = MastorCopper,
                             strokeWidth = 3.dp,
                             modifier = Modifier.size(36.dp)
                         )
@@ -414,7 +412,7 @@ fun BoqUnifiedUploadAndConfirmScreen(
                             text = "Extracting Verbatim Scope & Rates...",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                     }
                 }
@@ -425,9 +423,9 @@ fun BoqUnifiedUploadAndConfirmScreen(
         parsedResult?.let { currentResult ->
             item {
                 Surface(
-                    color = MastorSurfaceLight,
+                    color = MastorCreamDark,
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, MastorSlateBorder),
+                    border = BorderStroke(1.dp, MastorCreamBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -438,31 +436,26 @@ fun BoqUnifiedUploadAndConfirmScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text(
-                                text = "2. HUMAN REVIEW & CONFIRMATION",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorAccentBlue
-                            )
+                            BracketLabel(text = "2. HUMAN REVIEW & CONFIRMATION")
                             Text(
                                 text = "$totalWorkOrders Work Orders • $totalScopeElements Items",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
                                 text = MastorCalculationEngine.formatCurrency(totalBaseCost),
-                                style = FinancialLargeNumeralStyle,
-                                color = MastorSlateDark
+                                style = MastorFinancialLarge,
+                                color = MastorInk
                             )
                             if (lowConfidenceCount > 0) {
                                 Text(
                                     text = "$lowConfidenceCount items flagged",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MastorAccentBlue,
+                                    color = MastorCopper,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -492,9 +485,9 @@ fun BoqUnifiedUploadAndConfirmScreen(
             // Confirmation Commit Bar
             item {
                 Surface(
-                    color = MastorSurfaceLight,
+                    color = MastorCreamDark,
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, MastorSlateBorder),
+                    border = BorderStroke(1.dp, MastorCreamBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -559,15 +552,15 @@ fun ParsedWorkOrderReviewCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column {
             // Header Row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MastorBackgroundLight)
+                    .background(MastorCream)
                     .padding(14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -575,7 +568,7 @@ fun ParsedWorkOrderReviewCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
-                            color = MastorAccentBlue.copy(alpha = 0.15f),
+                            color = MastorCopper.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
@@ -583,14 +576,14 @@ fun ParsedWorkOrderReviewCard(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorAccentBlue
+                                color = MastorCopper
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = parsedWo.workType,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                     Spacer(modifier = Modifier.height(2.dp))
@@ -598,7 +591,7 @@ fun ParsedWorkOrderReviewCard(
                         text = parsedWo.description,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
                 }
 
@@ -615,7 +608,7 @@ fun ParsedWorkOrderReviewCard(
                         Icon(
                             imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = "Toggle scope items",
-                            tint = MastorAccentBlue
+                            tint = MastorCopper
                         )
                     }
                 }
@@ -638,7 +631,7 @@ fun ParsedWorkOrderReviewCard(
                             text = "PARSED SCOPE LINES (${parsedWo.scopeElements.size})",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
 
                         OutlinedButton(
@@ -715,17 +708,17 @@ fun ParsedScopeElementReviewRow(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MastorSurfaceLight,
+        color = MastorCreamDark,
         border = BorderStroke(
             1.dp,
-            if (isNeedsReview) MastorAccentBlue.copy(alpha = 0.5f) else MastorSlateBorder
+            if (isNeedsReview) MastorCopper.copy(alpha = 0.5f) else MastorCreamBorder
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             // Needs Review Calm Accent Badge (per design requirement: calm accent colour, NOT alarming red)
             if (isNeedsReview) {
                 Surface(
-                    color = MastorAccentBlue.copy(alpha = 0.12f),
+                    color = MastorCopper.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.padding(bottom = 8.dp)
                 ) {
@@ -737,7 +730,7 @@ fun ParsedScopeElementReviewRow(
                             text = "NEEDS REVIEW",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorAccentBlue,
+                            color = MastorCopper,
                             fontSize = 9.sp
                         )
                         if (!element.flagReason.isNull0rBlank()) {
@@ -745,7 +738,7 @@ fun ParsedScopeElementReviewRow(
                             Text(
                                 text = "•  ${element.flagReason}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateDark,
+                                color = MastorInk,
                                 fontSize = 11.sp
                             )
                         }
@@ -843,7 +836,7 @@ fun ParsedScopeElementReviewRow(
                         text = "Calculated Base Cost: ${MastorCalculationEngine.formatCurrency(baseCost)}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
 
                     Row {
@@ -868,7 +861,7 @@ fun ParsedScopeElementReviewRow(
                                 text = "${element.code} • ${element.locationRoom}",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorAccentBlue
+                                color = MastorCopper
                             )
                         }
                         Spacer(modifier = Modifier.height(2.dp))
@@ -876,24 +869,24 @@ fun ParsedScopeElementReviewRow(
                             text = element.description,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Text(
                             text = "${element.qty} ${element.units} @ ${MastorCalculationEngine.formatCurrency(element.rate)} Base Rate",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
 
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = MastorCalculationEngine.formatCurrency(baseCost),
-                            style = FinancialMediumNumeralStyle,
-                            color = MastorSlateDark
+                            style = MastorFinancialMed,
+                            color = MastorInk
                         )
                         Row {
                             IconButton(onClick = { isEditing = true }) {
-                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = MastorSlateMuted, modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = MastorInkMuted, modifier = Modifier.size(16.dp))
                             }
                             IconButton(onClick = onDeleteElement) {
                                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = StatusFlaggedRed, modifier = Modifier.size(16.dp))

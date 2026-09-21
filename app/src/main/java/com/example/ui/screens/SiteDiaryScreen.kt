@@ -99,20 +99,21 @@ import com.example.domain.audio.SiteDiaryAudioTranscriber
 import com.example.domain.audio.VoiceNoteSample
 import com.example.domain.calculation.CalculatedWorkOrder
 import com.example.domain.calculation.MastorCalculationEngine
-import com.example.ui.components.MastorButton
-import com.example.ui.components.MastorCard
 import com.example.ui.components.MastorInput
-import com.example.ui.components.MastorOutlinedButton
 import com.example.ui.components.MastorTopBar
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorAccentBlueLight
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorGold
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSlateText
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.BracketLabel
+import com.example.ui.theme.MastorCard
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCopperLight
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorCreamDark
+import com.example.ui.theme.MastorDarkButton
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorPrimaryButton
+import com.example.ui.theme.MastorSecondaryButton
+import com.example.ui.theme.MastorStatusBadge
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusFlaggedBg
@@ -272,7 +273,7 @@ fun SiteDiaryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MastorBackgroundLight)
+            .background(MastorCream)
     ) {
         // Project Header Banner (Consistent with other tabs)
         MastorTopBar(
@@ -281,15 +282,15 @@ fun SiteDiaryScreen(
             onMenuClick = onMenuClick
         ) {
             Surface(
-                color = MastorGold.copy(alpha = 0.15f),
+                color = MastorCopper.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, MastorGold.copy(alpha = 0.4f))
+                border = BorderStroke(1.dp, MastorCopper.copy(alpha = 0.4f))
             ) {
                 Text(
                     text = MastorCalculationEngine.formatCurrency(project?.contractValue ?: 150000.0),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MastorGold,
+                    color = MastorCopper,
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
@@ -311,7 +312,7 @@ fun SiteDiaryScreen(
                     val bannerBg = if (isSuccess) StatusClaimedBg else StatusPendingBg
                     val bannerBorder = if (isSuccess) StatusClaimedGreen.copy(alpha = 0.4f) else StatusPendingAmber.copy(alpha = 0.4f)
                     val bannerIconColor = if (isSuccess) StatusClaimedGreen else StatusPendingAmber
-                    val bannerTextColor = if (isSuccess) MastorSlateDark else MastorSlateDark
+                    val bannerTextColor = if (isSuccess) MastorInk else MastorInk
 
                     Surface(
                         modifier = Modifier
@@ -350,7 +351,7 @@ fun SiteDiaryScreen(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Dismiss",
-                                    tint = MastorSlateMuted,
+                                    tint = MastorInkMuted,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -395,14 +396,14 @@ fun SiteDiaryScreen(
                                 Text(
                                     text = permissionDeniedMessage ?: "",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                             }
                             Spacer(modifier = Modifier.width(8.dp))
-                            MastorButton(
+                            MastorPrimaryButton(
                                 text = "Grant",
                                 onClick = { micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
-                                testTag = "retry_mic_permission_btn"
+                                modifier = Modifier.testTag("retry_mic_permission_btn")
                             )
                             IconButton(
                                 onClick = { permissionDeniedMessage = null },
@@ -411,7 +412,7 @@ fun SiteDiaryScreen(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Dismiss",
-                                    tint = MastorSlateMuted,
+                                    tint = MastorInkMuted,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -421,45 +422,42 @@ fun SiteDiaryScreen(
             }
 
             // =========================================================================
-            // 1. THREE LARGE ACTION BUTTONS (FULL WIDTH, STACKED, MINIMUM 64DP+ HEIGHT)
+            // 1. THREE LARGE ACTION BUTTONS (FULL WIDTH, STACKED, MINIMUM 56-64DP HEIGHT)
             // =========================================================================
 
             // 1) 🎙️ Record Voice Diary
             item {
-                SiteActionCard(
-                    title = "Record Voice Diary",
-                    description = "Speak your site update — AI will transcribe and extract progress items",
+                MastorPrimaryButton(
+                    text = "Record Voice Diary",
                     icon = Icons.Default.Mic,
-                    iconBgColor = MastorGold.copy(alpha = 0.16f),
-                    iconTint = MastorGold,
-                    testTag = "voice_site_log_button",
-                    onClick = { startVoiceRecordingFlow() }
+                    onClick = { startVoiceRecordingFlow() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("voice_site_log_button")
                 )
             }
 
             // 2) 📷 Photo Log
             item {
-                SiteActionCard(
-                    title = "Photo Log",
-                    description = "Capture progress, deliveries, defects or site conditions",
+                MastorDarkButton(
+                    text = "Photo Log",
                     icon = Icons.Default.CameraAlt,
-                    iconBgColor = MastorAccentBlue.copy(alpha = 0.16f),
-                    iconTint = MastorAccentBlue,
-                    testTag = "photo_site_log_button",
-                    onClick = { showPhotoModal = true }
+                    onClick = { showPhotoModal = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("photo_site_log_button")
                 )
             }
 
             // 3) 🎥 Video Diary
             item {
-                SiteActionCard(
-                    title = "Video Diary",
-                    description = "Record site walkthrough, structural inspections or visual evidence",
+                MastorDarkButton(
+                    text = "Video Diary",
                     icon = Icons.Default.Videocam,
-                    iconBgColor = StatusPendingAmber.copy(alpha = 0.16f),
-                    iconTint = StatusPendingAmber,
-                    testTag = "video_site_log_button",
-                    onClick = { showVideoModal = true }
+                    onClick = { showVideoModal = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("video_site_log_button")
                 )
             }
 
@@ -473,28 +471,21 @@ fun SiteDiaryScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "PREVIOUS ENTRIES",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted,
-                        letterSpacing = 1.sp
-                    )
+                    BracketLabel(text = "PREVIOUS ENTRIES")
 
                     if (isAnalyzing) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(12.dp),
                                 strokeWidth = 2.dp,
-                                color = MastorAccentBlue
+                                color = MastorCopper
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "AI Analyzing...",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 11.sp,
-                                color = MastorAccentBlue,
+                                color = MastorCopper,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -503,7 +494,7 @@ fun SiteDiaryScreen(
                             text = "${entries.size} recorded",
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 11.sp,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }
@@ -511,30 +502,27 @@ fun SiteDiaryScreen(
 
             if (entries.isEmpty()) {
                 item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MastorSurfaceLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
+                    MastorCard(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(32.dp),
+                                .padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(54.dp)
                                     .clip(CircleShape)
-                                    .background(MastorGold.copy(alpha = 0.12f)),
+                                    .background(MastorCopper.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Mic,
                                     contentDescription = null,
                                     modifier = Modifier.size(28.dp),
-                                    tint = MastorGold
+                                    tint = MastorCopper
                                 )
                             }
                             Spacer(modifier = Modifier.height(14.dp))
@@ -542,13 +530,13 @@ fun SiteDiaryScreen(
                                 text = "No Diary Entries Yet",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Tap Record Voice Diary, Photo Log or Video Diary above to capture your first site update in seconds.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted,
+                                color = MastorInkMuted,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
@@ -590,10 +578,10 @@ fun SiteActionCard(
             .fillMaxWidth()
             .height(76.dp)
             .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, MastorSlateBorder, RoundedCornerShape(16.dp))
+            .border(1.dp, MastorCreamBorder, RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .testTag(testTag),
-        color = MastorSurfaceLight,
+        color = MastorCreamDark,
         shadowElevation = 2.dp
     ) {
         Row(
@@ -628,14 +616,14 @@ fun SiteActionCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.5.sp,
-                    color = MastorSlateMuted,
+                    color = MastorInkMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -644,7 +632,7 @@ fun SiteActionCard(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MastorSlateMuted,
+                tint = MastorInkMuted,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -672,21 +660,14 @@ fun SiteDiaryCard(
 
     val headlineText = entry.geminiSummary?.takeIf { it.isNotBlank() } ?: entry.notes
 
-    Surface(
+    MastorCard(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .border(
-                width = if (isHighlighted) 2.dp else 1.dp,
-                color = if (isHighlighted) MastorGold else MastorSlateBorder,
-                shape = RoundedCornerShape(14.dp)
-            )
             .clickable { expanded = !expanded }
             .testTag("site_diary_card_${entry.id}"),
-        color = MastorSurfaceLight,
-        shadowElevation = 1.dp
+        borderColor = if (isHighlighted) MastorCopper else MastorCreamBorder
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(0.dp)) {
             // Header Row: Date bold at top + expand chevron
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -699,25 +680,25 @@ fun SiteDiaryCard(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
                     if (entry.author.isNotBlank()) {
                         Text(
                             text = entry.author,
                             style = MaterialTheme.typography.bodySmall,
                             fontSize = 11.sp,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatusPill(status = entry.statusUpdate)
+                    MastorStatusBadge(status = entry.statusUpdate)
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = if (expanded) "Collapse" else "Expand",
-                        tint = MastorSlateMuted,
+                        tint = MastorInkMuted,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -729,7 +710,7 @@ fun SiteDiaryCard(
             Text(
                 text = headlineText,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MastorSlateDark,
+                color = MastorInk,
                 lineHeight = 20.sp,
                 maxLines = if (expanded) Int.MAX_VALUE else 2,
                 overflow = TextOverflow.Ellipsis
@@ -746,8 +727,8 @@ fun SiteDiaryCard(
                 if (entry.isVoiceTranscribed) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = MastorGold.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, MastorGold.copy(alpha = 0.3f))
+                        color = MastorCopper.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, MastorCopper.copy(alpha = 0.3f))
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -756,7 +737,7 @@ fun SiteDiaryCard(
                             Icon(
                                 imageVector = Icons.Default.Mic,
                                 contentDescription = "Voice Log",
-                                tint = MastorGold,
+                                tint = MastorCopper,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -765,7 +746,7 @@ fun SiteDiaryCard(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorGold
+                                color = MastorCopper
                             )
                         }
                     }
@@ -774,8 +755,8 @@ fun SiteDiaryCard(
                 if (entry.photoUrl.isNotBlank()) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = MastorAccentBlueLight,
-                        border = BorderStroke(1.dp, MastorAccentBlue.copy(alpha = 0.25f))
+                        color = MastorCopperLight,
+                        border = BorderStroke(1.dp, MastorCopper.copy(alpha = 0.25f))
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -784,7 +765,7 @@ fun SiteDiaryCard(
                             Icon(
                                 imageVector = Icons.Default.CameraAlt,
                                 contentDescription = "Photo Attached",
-                                tint = MastorAccentBlue,
+                                tint = MastorCopper,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -793,7 +774,7 @@ fun SiteDiaryCard(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorAccentBlue
+                                color = MastorCopper
                             )
                         }
                     }
@@ -802,8 +783,8 @@ fun SiteDiaryCard(
                 if (entry.laborCount > 0) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
+                        color = MastorCream,
+                        border = BorderStroke(1.dp, MastorCreamBorder)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -812,7 +793,7 @@ fun SiteDiaryCard(
                             Icon(
                                 imageVector = Icons.Default.Groups,
                                 contentDescription = null,
-                                tint = MastorSlateDark,
+                                tint = MastorInk,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -821,7 +802,7 @@ fun SiteDiaryCard(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         }
                     }
@@ -830,8 +811,8 @@ fun SiteDiaryCard(
                 if (!entry.weatherNotes.isNullOrBlank()) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = MastorBackgroundLight,
-                        border = BorderStroke(1.dp, MastorSlateBorder)
+                        color = MastorCream,
+                        border = BorderStroke(1.dp, MastorCreamBorder)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -840,7 +821,7 @@ fun SiteDiaryCard(
                             Icon(
                                 imageVector = Icons.Default.Cloud,
                                 contentDescription = null,
-                                tint = MastorSlateMuted,
+                                tint = MastorInkMuted,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -848,7 +829,7 @@ fun SiteDiaryCard(
                                 text = entry.weatherNotes,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 10.5.sp,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                         }
                     }
@@ -867,7 +848,7 @@ fun SiteDiaryCard(
                                 .fillMaxWidth()
                                 .height(200.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(MastorBackgroundLight)
+                                .background(MastorCream)
                         ) {
                             AsyncImage(
                                 model = entry.photoUrl,
@@ -885,13 +866,13 @@ fun SiteDiaryCard(
                             text = "Site Notes:",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = entry.notes,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateDark,
+                            color = MastorInk,
                             lineHeight = 19.sp
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -902,25 +883,25 @@ fun SiteDiaryCard(
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
-                            color = MastorBackgroundLight,
-                            border = BorderStroke(1.dp, MastorSlateBorder)
+                            color = MastorCream,
+                            border = BorderStroke(1.dp, MastorCreamBorder)
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Mic, contentDescription = null, tint = MastorGold, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.Mic, contentDescription = null, tint = MastorCopper, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "Audio Transcript",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = MastorGold
+                                        color = MastorCopper
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = entry.audioTranscript,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateDark,
+                                    color = MastorInk,
                                     lineHeight = 18.sp
                                 )
                             }
@@ -933,8 +914,8 @@ fun SiteDiaryCard(
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
-                            color = MastorAccentBlueLight.copy(alpha = 0.4f),
-                            border = BorderStroke(1.dp, MastorAccentBlue.copy(alpha = 0.2f))
+                            color = MastorCopperLight.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MastorCopper.copy(alpha = 0.2f))
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Row(
@@ -943,27 +924,27 @@ fun SiteDiaryCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MastorAccentBlue, modifier = Modifier.size(14.dp))
+                                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MastorCopper, modifier = Modifier.size(14.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = "AI Site Summary",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
-                                            color = MastorAccentBlue
+                                            color = MastorCopper
                                         )
                                     }
                                     IconButton(
                                         onClick = onReAnalyze,
                                         modifier = Modifier.size(20.dp)
                                     ) {
-                                        Icon(Icons.Default.Refresh, contentDescription = "Re-analyze", tint = MastorSlateMuted, modifier = Modifier.size(13.dp))
+                                        Icon(Icons.Default.Refresh, contentDescription = "Re-analyze", tint = MastorInkMuted, modifier = Modifier.size(13.dp))
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = entry.geminiSummary,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateDark,
+                                    color = MastorInk,
                                     lineHeight = 18.sp
                                 )
                             }
@@ -979,7 +960,7 @@ fun SiteDiaryCard(
                                 Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(vertical = 1.dp)) {
                                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusClaimedGreen, modifier = Modifier.size(13.dp).padding(top = 2.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text(item, style = MaterialTheme.typography.bodySmall, color = MastorSlateDark)
+                                    Text(item, style = MaterialTheme.typography.bodySmall, color = MastorInk)
                                 }
                             }
                             Spacer(modifier = Modifier.height(6.dp))
@@ -990,7 +971,7 @@ fun SiteDiaryCard(
                             todosList.forEach { item ->
                                 Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(vertical = 1.dp)) {
                                     Text("→", fontWeight = FontWeight.Bold, color = StatusPendingAmber, modifier = Modifier.padding(end = 6.dp))
-                                    Text(item, style = MaterialTheme.typography.bodySmall, color = MastorSlateDark)
+                                    Text(item, style = MaterialTheme.typography.bodySmall, color = MastorInk)
                                 }
                             }
                             Spacer(modifier = Modifier.height(6.dp))
@@ -999,18 +980,18 @@ fun SiteDiaryCard(
                         if (!entry.audioValuationNotes.isNullOrBlank()) {
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = MastorGold.copy(alpha = 0.08f),
-                                border = BorderStroke(1.dp, MastorGold.copy(alpha = 0.25f)),
+                                color = MastorCopper.copy(alpha = 0.08f),
+                                border = BorderStroke(1.dp, MastorCopper.copy(alpha = 0.25f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.padding(8.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.PriceCheck, contentDescription = null, tint = MastorGold, modifier = Modifier.size(14.dp))
+                                        Icon(Icons.Default.PriceCheck, contentDescription = null, tint = MastorCopper, modifier = Modifier.size(14.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Valuation Note", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorGold)
+                                        Text("Valuation Note", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorCopper)
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
-                                    Text(entry.audioValuationNotes, style = MaterialTheme.typography.bodySmall, color = MastorSlateDark)
+                                    Text(entry.audioValuationNotes, style = MaterialTheme.typography.bodySmall, color = MastorInk)
                                 }
                             }
                             Spacer(modifier = Modifier.height(6.dp))
@@ -1201,7 +1182,7 @@ fun AudioSiteLogModal(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MastorSurfaceLight,
+            color = MastorCreamDark,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
@@ -1223,13 +1204,13 @@ fun AudioSiteLogModal(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(MastorGold.copy(alpha = 0.15f)),
+                                    .background(MastorCopper.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Mic,
                                     contentDescription = null,
-                                    tint = MastorGold,
+                                    tint = MastorCopper,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -1238,11 +1219,11 @@ fun AudioSiteLogModal(
                                 text = "Voice Site Diary",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorInkMuted)
                         }
                     }
                 }
@@ -1283,10 +1264,10 @@ fun AudioSiteLogModal(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
-                        color = if (isRecording) StatusFlaggedBg else MastorBackgroundLight,
+                        color = if (isRecording) StatusFlaggedBg else MastorCream,
                         border = BorderStroke(
                             1.dp,
-                            if (isRecording) StatusFlaggedRed.copy(alpha = 0.4f) else MastorSlateBorder
+                            if (isRecording) StatusFlaggedRed.copy(alpha = 0.4f) else MastorCreamBorder
                         )
                     ) {
                         Column(
@@ -1315,23 +1296,23 @@ fun AudioSiteLogModal(
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(14.dp))
-                                MastorButton(
+                                MastorPrimaryButton(
                                     text = "Stop & Transcribe (Gemini AI)",
                                     onClick = { stopLiveRecording() },
                                     icon = Icons.Default.Stop,
-                                    testTag = "stop_voice_recording_btn"
+                                    modifier = Modifier.testTag("stop_voice_recording_btn")
                                 )
                             } else if (isProcessing) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(26.dp),
-                                    color = MastorGold,
+                                    color = MastorCopper,
                                     strokeWidth = 2.5.dp
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Text(
                                     text = "Transcribing audio with Gemini 2.0 Flash...",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorGold,
+                                    color = MastorCopper,
                                     fontWeight = FontWeight.Medium
                                 )
                             } else {
@@ -1364,7 +1345,7 @@ fun AudioSiteLogModal(
                         text = "Or tap a sample site update to test:",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     LazyRow(
@@ -1374,8 +1355,8 @@ fun AudioSiteLogModal(
                         items(SiteAudioRecorder.sampleVoiceNotes) { sample ->
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = MastorSurfaceLight,
-                                border = BorderStroke(1.dp, MastorSlateBorder),
+                                color = MastorCreamDark,
+                                border = BorderStroke(1.dp, MastorCreamBorder),
                                 modifier = Modifier.clickable {
                                     processSamplePreset(sample)
                                 }
@@ -1387,7 +1368,7 @@ fun AudioSiteLogModal(
                                     Icon(
                                         imageVector = Icons.Default.PlayArrow,
                                         contentDescription = null,
-                                        tint = MastorGold,
+                                        tint = MastorCopper,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -1395,7 +1376,7 @@ fun AudioSiteLogModal(
                                         text = sample.title,
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Medium,
-                                        color = MastorSlateDark
+                                        color = MastorInk
                                     )
                                 }
                             }
@@ -1411,7 +1392,7 @@ fun AudioSiteLogModal(
                             text = "Headline Summary",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         OutlinedTextField(
@@ -1427,19 +1408,19 @@ fun AudioSiteLogModal(
                             text = "Audio Transcript",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MastorBackgroundLight,
-                            border = BorderStroke(1.dp, MastorSlateBorder),
+                            color = MastorCream,
+                            border = BorderStroke(1.dp, MastorCreamBorder),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = transcriptText,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateDark,
+                                color = MastorInk,
                                 modifier = Modifier.padding(10.dp)
                             )
                         }
@@ -1466,14 +1447,14 @@ fun AudioSiteLogModal(
                                         Text(
                                             text = "• Done: $task",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MastorSlateDark
+                                            color = MastorInk
                                         )
                                     }
                                     for (todo in analysis.todos) {
                                         Text(
                                             text = "• To-Do: $todo",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MastorSlateDark,
+                                            color = MastorInk,
                                             fontWeight = FontWeight.SemiBold
                                         )
                                     }
@@ -1488,12 +1469,12 @@ fun AudioSiteLogModal(
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            MastorOutlinedButton(
+                            MastorSecondaryButton(
                                 text = "Cancel",
                                 onClick = onDismiss
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            MastorButton(
+                            MastorPrimaryButton(
                                 text = "Save to Site Diary",
                                 onClick = {
                                     onSaveVoiceEntry(
@@ -1514,7 +1495,7 @@ fun AudioSiteLogModal(
                                     )
                                 },
                                 icon = Icons.Default.CheckCircle,
-                                testTag = "save_voice_diary_btn"
+                                modifier = Modifier.testTag("save_voice_diary_btn")
                             )
                         }
                     }
@@ -1582,7 +1563,7 @@ fun PhotoLogModal(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MastorSurfaceLight,
+            color = MastorCreamDark,
             shadowElevation = 8.dp,
             modifier = Modifier
                 .fillMaxWidth()
@@ -1606,13 +1587,13 @@ fun PhotoLogModal(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(MastorAccentBlue.copy(alpha = 0.15f)),
+                                    .background(MastorCopper.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CameraAlt,
                                     contentDescription = null,
-                                    tint = MastorAccentBlue,
+                                    tint = MastorCopper,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -1621,11 +1602,11 @@ fun PhotoLogModal(
                                 text = "Site Photo Log",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorInkMuted)
                         }
                     }
                 }
@@ -1670,8 +1651,8 @@ fun PhotoLogModal(
                                     .fillMaxWidth()
                                     .height(180.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .border(1.dp, MastorSlateBorder, RoundedCornerShape(12.dp))
-                                    .background(MastorBackgroundLight)
+                                    .border(1.dp, MastorCreamBorder, RoundedCornerShape(12.dp))
+                                    .background(MastorCream)
                             ) {
                                 AsyncImage(
                                     model = capturedPhotoUri,
@@ -1701,7 +1682,7 @@ fun PhotoLogModal(
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
-                                MastorOutlinedButton(
+                                MastorSecondaryButton(
                                     text = "Retake",
                                     onClick = { openCamera() }
                                 )
@@ -1714,10 +1695,10 @@ fun PhotoLogModal(
                                 .height(130.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .border(
-                                    BorderStroke(1.5.dp, MastorAccentBlue.copy(alpha = 0.5f)),
+                                    BorderStroke(1.5.dp, MastorCopper.copy(alpha = 0.5f)),
                                     RoundedCornerShape(12.dp)
                                 )
-                                .background(MastorAccentBlueLight.copy(alpha = 0.3f))
+                                .background(MastorCopperLight.copy(alpha = 0.3f))
                                 .clickable { openCamera() }
                                 .testTag("open_camera_capture_btn"),
                             color = Color.Transparent
@@ -1731,13 +1712,13 @@ fun PhotoLogModal(
                                     modifier = Modifier
                                         .size(46.dp)
                                         .clip(CircleShape)
-                                        .background(MastorAccentBlue.copy(alpha = 0.15f)),
+                                        .background(MastorCopper.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.CameraAlt,
                                         contentDescription = "Open Camera",
-                                        tint = MastorAccentBlue,
+                                        tint = MastorCopper,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
@@ -1746,13 +1727,13 @@ fun PhotoLogModal(
                                     text = "Tap to Open Camera & Take Site Photo",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MastorAccentBlue
+                                    color = MastorCopper
                                 )
                                 Text(
                                     text = "Uses Android device camera intent",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontSize = 11.sp,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                             }
                         }
@@ -1760,7 +1741,7 @@ fun PhotoLogModal(
                 }
 
                 item {
-                    Text("Photo Notes & Observations", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
+                    Text("Photo Notes & Observations", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorInkMuted)
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedTextField(
                         value = notes,
@@ -1780,12 +1761,12 @@ fun PhotoLogModal(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        MastorOutlinedButton(
+                        MastorSecondaryButton(
                             text = "Cancel",
                             onClick = onDismiss
                         )
                         Spacer(modifier = Modifier.width(12.dp))
-                        MastorButton(
+                        MastorPrimaryButton(
                             text = "Save Photo Log",
                             onClick = {
                                 val finalNotes = notes.ifBlank { "Site photographic inspection logged." }
@@ -1801,7 +1782,7 @@ fun PhotoLogModal(
                                 )
                             },
                             icon = Icons.Default.CameraAlt,
-                            testTag = "submit_photo_log_button"
+                            modifier = Modifier.testTag("submit_photo_log_button")
                         )
                     }
                 }
@@ -1880,7 +1861,7 @@ fun VideoLogModal(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MastorSurfaceLight,
+            color = MastorCreamDark,
             shadowElevation = 8.dp,
             modifier = Modifier
                 .fillMaxWidth()
@@ -1919,11 +1900,11 @@ fun VideoLogModal(
                                 text = "Site Video Diary",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorSlateMuted)
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorInkMuted)
                         }
                     }
                 }
@@ -1965,8 +1946,8 @@ fun VideoLogModal(
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            color = MastorBackgroundLight,
-                            border = BorderStroke(1.dp, MastorSlateBorder)
+                            color = MastorCream,
+                            border = BorderStroke(1.dp, MastorCreamBorder)
                         ) {
                             Column(
                                 modifier = Modifier
@@ -2000,15 +1981,15 @@ fun VideoLogModal(
                                     text = "Site Video Recorded ($durationFormatted)",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                                 Text(
                                     text = "Ready to attach to daily site diary entry",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                MastorOutlinedButton(
+                                MastorSecondaryButton(
                                     text = "Retake Video",
                                     onClick = { openVideoCamera() }
                                 )
@@ -2053,13 +2034,13 @@ fun VideoLogModal(
                                     text = "Tap to Record Site Video Diary",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MastorSlateDark
+                                    color = MastorInk
                                 )
                                 Text(
                                     text = "Uses Android video capture intent",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontSize = 11.sp,
-                                    color = MastorSlateMuted
+                                    color = MastorInkMuted
                                 )
                             }
                         }
@@ -2067,7 +2048,7 @@ fun VideoLogModal(
                 }
 
                 item {
-                    Text("Walkthrough Notes & Key Focus Areas", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorSlateMuted)
+                    Text("Walkthrough Notes & Key Focus Areas", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorInkMuted)
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedTextField(
                         value = notes,
@@ -2087,12 +2068,12 @@ fun VideoLogModal(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        MastorOutlinedButton(
+                        MastorSecondaryButton(
                             text = "Cancel",
                             onClick = onDismiss
                         )
                         Spacer(modifier = Modifier.width(12.dp))
-                        MastorButton(
+                        MastorPrimaryButton(
                             text = "Save Video Diary",
                             onClick = {
                                 val finalNotes = notes.ifBlank { "Video site walkthrough recorded: Structural inspections and progress overview." }
@@ -2108,7 +2089,7 @@ fun VideoLogModal(
                                 )
                             },
                             icon = Icons.Default.Videocam,
-                            testTag = "submit_video_log_button"
+                            modifier = Modifier.testTag("submit_video_log_button")
                         )
                     }
                 }

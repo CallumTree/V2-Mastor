@@ -51,12 +51,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.entity.SiteDiaryEntry
 import com.example.domain.calculation.MastorCalculationEngine
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorGold
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusPendingAmber
 import java.text.SimpleDateFormat
@@ -102,7 +102,7 @@ fun DashboardContractProgressBar(
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = MastorSlateMuted,
+                color = MastorInkMuted,
                 letterSpacing = 0.8.sp
             )
             Text(
@@ -111,7 +111,7 @@ fun DashboardContractProgressBar(
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MastorGold
+                    color = MastorCopper
                 )
             )
         }
@@ -131,7 +131,7 @@ fun DashboardContractProgressBar(
 
             // Background / Track
             drawRoundRect(
-                color = MastorSlateBorder,
+                color = MastorCreamBorder,
                 size = Size(w, h),
                 cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
             )
@@ -140,7 +140,7 @@ fun DashboardContractProgressBar(
             val claimedWidth = w * claimedRatio
             if (claimedWidth > 0f) {
                 drawRoundRect(
-                    color = MastorGold,
+                    color = MastorCopper,
                     topLeft = Offset(0f, 0f),
                     size = Size(claimedWidth, h),
                     cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
@@ -151,7 +151,7 @@ fun DashboardContractProgressBar(
             val remainingWidth = w * (1f - claimedRatio)
             if (remainingWidth > 0f && claimedWidth < w) {
                 drawRoundRect(
-                    color = MastorAccentBlue,
+                    color = MastorCopper,
                     topLeft = Offset(claimedWidth, 0f),
                     size = Size(remainingWidth, h),
                     cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
@@ -192,13 +192,13 @@ fun DashboardContractProgressBar(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(MastorGold)
+                        .background(MastorCopper)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Claimed: ${MastorCalculationEngine.formatCurrency(claimedValue)} (${"%.1f".format(claimedPercent)}%)",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateDark,
+                    color = MastorInk,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -209,13 +209,13 @@ fun DashboardContractProgressBar(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(MastorAccentBlue)
+                        .background(MastorCopper)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Remaining: ${MastorCalculationEngine.formatCurrency(remainingValue)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateDark,
+                    color = MastorInk,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -265,7 +265,7 @@ fun DashboardCommercialDonutChart(
                     if (!hasData) {
                         // Empty State Ring
                         drawArc(
-                            color = MastorSlateBorder,
+                            color = MastorCreamBorder,
                             startAngle = 0f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -279,7 +279,7 @@ fun DashboardCommercialDonutChart(
                         // 1. Base Scope (Slate)
                         if (baseAngle > 0f) {
                             drawArc(
-                                color = MastorAccentBlue,
+                                color = MastorCopper,
                                 startAngle = currentAngle,
                                 sweepAngle = baseAngle,
                                 useCenter = false,
@@ -307,7 +307,7 @@ fun DashboardCommercialDonutChart(
                         // 3. Uplifts (Gold)
                         if (upliftsAngle > 0f) {
                             drawArc(
-                                color = MastorGold,
+                                color = MastorCopper,
                                 startAngle = currentAngle,
                                 sweepAngle = upliftsAngle,
                                 useCenter = false,
@@ -325,7 +325,7 @@ fun DashboardCommercialDonutChart(
                         text = "TOTAL",
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 9.sp,
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
@@ -334,7 +334,7 @@ fun DashboardCommercialDonutChart(
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                     )
                 }
@@ -348,7 +348,7 @@ fun DashboardCommercialDonutChart(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 ChartLegendItem(
-                    color = MastorAccentBlue,
+                    color = MastorCopper,
                     label = "Base Scope",
                     value = MastorCalculationEngine.formatCurrency(baseScopeValue),
                     percent = if (hasData) (baseScopeValue / total) * 100.0 else 0.0
@@ -360,7 +360,7 @@ fun DashboardCommercialDonutChart(
                     percent = if (hasData) (variationsValue / total) * 100.0 else 0.0
                 )
                 ChartLegendItem(
-                    color = MastorGold,
+                    color = MastorCopper,
                     label = "Central Uplifts",
                     value = MastorCalculationEngine.formatCurrency(upliftsValue),
                     percent = if (hasData) (upliftsValue / total) * 100.0 else 0.0
@@ -395,8 +395,8 @@ fun DashboardValuationHistoryBarChart(
                 .fillMaxWidth()
                 .height(130.dp),
             shape = RoundedCornerShape(12.dp),
-            color = MastorSurfaceLight,
-            border = BorderStroke(1.dp, MastorSlateBorder)
+            color = MastorCreamDark,
+            border = BorderStroke(1.dp, MastorCreamBorder)
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -407,13 +407,13 @@ fun DashboardValuationHistoryBarChart(
                         text = "No certified valuation cycles recorded yet",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Valuation bars will display as progress claims are issued.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted.copy(alpha = 0.8f)
+                        color = MastorInkMuted.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -441,7 +441,7 @@ fun DashboardValuationHistoryBarChart(
 
             // Baseline divider
             drawLine(
-                color = MastorSlateBorder,
+                color = MastorCreamBorder,
                 start = Offset(0f, topPadding + chartHeight),
                 end = Offset(width, topPadding + chartHeight),
                 strokeWidth = 1.dp.toPx()
@@ -455,7 +455,7 @@ fun DashboardValuationHistoryBarChart(
                 val barHeight = ((item.certifiedAmount / maxVal) * chartHeight).toFloat().coerceAtLeast(4f)
                 val barLeft = centerX - barWidth / 2f
                 val barTop = topPadding + (chartHeight - barHeight)
-                val barColor = if (item.isDraft) MastorGold else MastorAccentBlue
+                val barColor = if (item.isDraft) MastorCopper else MastorCopper
 
                 // Draw rounded bar
                 drawRoundRect(
@@ -473,7 +473,7 @@ fun DashboardValuationHistoryBarChart(
                         fontSize = 10.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
-                        color = if (item.isDraft) MastorGold else MastorSlateDark
+                        color = if (item.isDraft) MastorCopper else MastorInk
                     )
                 )
                 drawText(
@@ -490,7 +490,7 @@ fun DashboardValuationHistoryBarChart(
                     style = TextStyle(
                         fontSize = 11.sp,
                         fontWeight = if (item.isDraft) FontWeight.Bold else FontWeight.Medium,
-                        color = if (item.isDraft) MastorGold else MastorSlateMuted
+                        color = if (item.isDraft) MastorCopper else MastorInkMuted
                     )
                 )
                 drawText(
@@ -516,13 +516,13 @@ fun DashboardValuationHistoryBarChart(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(MastorAccentBlue)
+                        .background(MastorCopper)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Previous Certified Cycles",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted,
+                    color = MastorInkMuted,
                     fontSize = 12.sp
                 )
             }
@@ -532,13 +532,13 @@ fun DashboardValuationHistoryBarChart(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(MastorGold)
+                        .background(MastorCopper)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Current Draft",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorGold,
+                    color = MastorCopper,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp
                 )
@@ -574,8 +574,8 @@ fun ScopeStatusSummaryRingChart(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MastorSurfaceLight,
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        color = MastorCreamDark,
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -583,7 +583,7 @@ fun ScopeStatusSummaryRingChart(
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = MastorSlateMuted,
+                color = MastorInkMuted,
                 letterSpacing = 0.8.sp
             )
 
@@ -609,7 +609,7 @@ fun ScopeStatusSummaryRingChart(
 
                         if (!hasItems) {
                             drawArc(
-                                color = MastorSlateBorder,
+                                color = MastorCreamBorder,
                                 startAngle = 0f,
                                 sweepAngle = 360f,
                                 useCenter = false,
@@ -623,7 +623,7 @@ fun ScopeStatusSummaryRingChart(
                             // Not Started (Slate)
                             if (notStartedAngle > 0f) {
                                 drawArc(
-                                    color = MastorSlateMuted,
+                                    color = MastorInkMuted,
                                     startAngle = currentAngle,
                                     sweepAngle = notStartedAngle,
                                     useCenter = false,
@@ -651,7 +651,7 @@ fun ScopeStatusSummaryRingChart(
                             // Claimed (Gold)
                             if (claimedAngle > 0f) {
                                 drawArc(
-                                    color = MastorGold,
+                                    color = MastorCopper,
                                     startAngle = currentAngle,
                                     sweepAngle = claimedAngle,
                                     useCenter = false,
@@ -671,7 +671,7 @@ fun ScopeStatusSummaryRingChart(
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 18.sp,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                         )
                         Text(
@@ -679,7 +679,7 @@ fun ScopeStatusSummaryRingChart(
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }
@@ -692,7 +692,7 @@ fun ScopeStatusSummaryRingChart(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     ScopeLegendRow(
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         label = "Not Started",
                         count = notStartedCount,
                         total = total
@@ -704,7 +704,7 @@ fun ScopeStatusSummaryRingChart(
                         total = total
                     )
                     ScopeLegendRow(
-                        color = MastorGold,
+                        color = MastorCopper,
                         label = "Claimed (100%)",
                         count = claimedCount,
                         total = total
@@ -739,7 +739,7 @@ private fun ScopeLegendRow(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MastorSlateDark,
+                color = MastorInk,
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp
             )
@@ -750,7 +750,7 @@ private fun ScopeLegendRow(
                 fontFamily = FontFamily.Monospace,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = MastorSlateDark
+                color = MastorInk
             )
         )
     }
@@ -779,7 +779,7 @@ fun WorkOrderCompactProgressBar(
 
         // Slate background
         drawRoundRect(
-            color = MastorSlateBorder,
+            color = MastorCreamBorder,
             size = Size(w, h),
             cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
         )
@@ -788,7 +788,7 @@ fun WorkOrderCompactProgressBar(
         val fillWidth = w * clampedRatio
         if (fillWidth > 0f) {
             drawRoundRect(
-                color = MastorGold,
+                color = MastorCopper,
                 size = Size(fillWidth, h),
                 cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
             )
@@ -829,7 +829,7 @@ fun ValuationContractCircularRing(
 
             // Slate background track
             drawArc(
-                color = MastorSlateBorder,
+                color = MastorCreamBorder,
                 startAngle = 0f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -841,7 +841,7 @@ fun ValuationContractCircularRing(
             // Gold progress arc
             if (sweepAngle > 0f) {
                 drawArc(
-                    color = MastorGold,
+                    color = MastorCopper,
                     startAngle = -90f,
                     sweepAngle = sweepAngle,
                     useCenter = false,
@@ -859,7 +859,7 @@ fun ValuationContractCircularRing(
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp,
-                color = MastorSlateDark
+                color = MastorInk
             )
         )
     }
@@ -897,7 +897,7 @@ fun ValuationStackedContractBar(
 
             // 1. Transparent with border for remaining background
             drawRoundRect(
-                color = MastorSlateBorder,
+                color = MastorCreamBorder,
                 size = Size(w, h),
                 cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx()),
                 style = Stroke(width = 1.5.dp.toPx())
@@ -909,7 +909,7 @@ fun ValuationStackedContractBar(
             val prevW = w * prevRatio
             if (prevW > 0f) {
                 drawRoundRect(
-                    color = MastorAccentBlue,
+                    color = MastorCopper,
                     topLeft = Offset(currentX, 0f),
                     size = Size(prevW, h),
                     cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
@@ -921,7 +921,7 @@ fun ValuationStackedContractBar(
             val thisClaimW = w * thisClaimRatio
             if (thisClaimW > 0f) {
                 drawRoundRect(
-                    color = MastorGold,
+                    color = MastorCopper,
                     topLeft = Offset(currentX, 0f),
                     size = Size(thisClaimW, h),
                     cornerRadius = CornerRadius(if (prevW == 0f) 4.dp.toPx() else 0f, if (prevW == 0f) 4.dp.toPx() else 0f)
@@ -941,14 +941,14 @@ fun ValuationStackedContractBar(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(MastorAccentBlue)
+                        .background(MastorCopper)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "Prev: ${MastorCalculationEngine.formatCurrency(previouslyCertified)}",
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
             }
 
@@ -957,7 +957,7 @@ fun ValuationStackedContractBar(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(MastorGold)
+                        .background(MastorCopper)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
@@ -965,7 +965,7 @@ fun ValuationStackedContractBar(
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MastorGold
+                    color = MastorCopper
                 )
             }
 
@@ -973,14 +973,14 @@ fun ValuationStackedContractBar(
                 Box(
                     modifier = Modifier
                         .size(8.dp)
-                        .border(1.dp, MastorSlateBorder, CircleShape)
+                        .border(1.dp, MastorCreamBorder, CircleShape)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "Remaining: ${MastorCalculationEngine.formatCurrency(remainingValue)}",
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
             }
         }
@@ -1024,8 +1024,8 @@ fun VariationSegmentedSummaryBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MastorSurfaceLight,
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        color = MastorCreamDark,
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -1038,7 +1038,7 @@ fun VariationSegmentedSummaryBar(
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateMuted,
+                    color = MastorInkMuted,
                     letterSpacing = 0.8.sp
                 )
                 Text(
@@ -1047,7 +1047,7 @@ fun VariationSegmentedSummaryBar(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
                 )
             }
@@ -1068,14 +1068,14 @@ fun VariationSegmentedSummaryBar(
                 if (!hasVos) {
                     // Empty state bar
                     drawRoundRect(
-                        color = MastorSlateBorder,
+                        color = MastorCreamBorder,
                         size = Size(w, h),
                         cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                     )
                 } else {
                     // Base background
                     drawRoundRect(
-                        color = MastorSlateBorder,
+                        color = MastorCreamBorder,
                         size = Size(w, h),
                         cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                     )
@@ -1109,7 +1109,7 @@ fun VariationSegmentedSummaryBar(
                     if (rejRatio > 0f) {
                         val segW = w * rejRatio
                         drawRoundRect(
-                            color = MastorSlateMuted,
+                            color = MastorInkMuted,
                             topLeft = Offset(currentX, 0f),
                             size = Size(segW, h),
                             cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
@@ -1135,7 +1135,7 @@ fun VariationSegmentedSummaryBar(
                             text = if (approvedCount > 0) "Approved ($approvedCount)" else "Approved",
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 11.sp,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                     Spacer(modifier = Modifier.height(2.dp))
@@ -1154,7 +1154,7 @@ fun VariationSegmentedSummaryBar(
                             text = if (pendingCount > 0) "Pending ($pendingCount)" else "Pending",
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 11.sp,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                     Spacer(modifier = Modifier.height(2.dp))
@@ -1167,19 +1167,19 @@ fun VariationSegmentedSummaryBar(
                 // Rejected
                 Column(horizontalAlignment = Alignment.End) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MastorSlateMuted))
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MastorInkMuted))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = if (rejectedCount > 0) "Rejected ($rejectedCount)" else "Rejected",
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 11.sp,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = MastorCalculationEngine.formatCurrency(finalRejected),
-                        style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MastorSlateMuted)
+                        style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MastorInkMuted)
                     )
                 }
             }
@@ -1189,7 +1189,7 @@ fun VariationSegmentedSummaryBar(
                 Text(
                     text = "No variation orders recorded yet.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MastorSlateMuted,
+                    color = MastorInkMuted,
                     fontSize = 11.sp
                 )
             }
@@ -1220,8 +1220,8 @@ fun SiteDiaryHorizontalTimeline(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MastorSurfaceLight,
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        color = MastorCreamDark,
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -1234,16 +1234,16 @@ fun SiteDiaryHorizontalTimeline(
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateMuted,
+                    color = MastorInkMuted,
                     letterSpacing = 0.8.sp
                 )
 
                 if (entries.isNotEmpty()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        TimelineTypeBadge(color = MastorGold, label = "Progress")
+                        TimelineTypeBadge(color = MastorCopper, label = "Progress")
                         TimelineTypeBadge(color = StatusPendingAmber, label = "Delay")
-                        TimelineTypeBadge(color = MastorAccentBlue, label = "Weather")
-                        TimelineTypeBadge(color = MastorSlateMuted, label = "General")
+                        TimelineTypeBadge(color = MastorCopper, label = "Weather")
+                        TimelineTypeBadge(color = MastorInkMuted, label = "General")
                     }
                 }
             }
@@ -1261,23 +1261,23 @@ fun SiteDiaryHorizontalTimeline(
                 ) {
                     Canvas(modifier = Modifier.fillMaxWidth().height(2.dp)) {
                         drawLine(
-                            color = MastorSlateBorder,
+                            color = MastorCreamBorder,
                             start = Offset(0f, 0f),
                             end = Offset(size.width, 0f),
                             strokeWidth = 2.dp.toPx()
                         )
                     }
                     Surface(
-                        color = MastorSurfaceLight,
+                        color = MastorCreamDark,
                         shape = RoundedCornerShape(100.dp),
-                        border = BorderStroke(1.dp, MastorSlateBorder),
+                        border = BorderStroke(1.dp, MastorCreamBorder),
                         modifier = Modifier.padding(horizontal = 8.dp)
                     ) {
                         Text(
                             text = "No entries yet",
                             style = MaterialTheme.typography.bodySmall,
                             fontSize = 11.sp,
-                            color = MastorSlateMuted,
+                            color = MastorInkMuted,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)
                         )
                     }
@@ -1344,7 +1344,7 @@ fun SiteDiaryHorizontalTimeline(
 
                         // Main timeline line
                         drawLine(
-                            color = MastorSlateBorder,
+                            color = MastorCreamBorder,
                             start = Offset(16.dp.toPx(), centerY),
                             end = Offset(w - 16.dp.toPx(), centerY),
                             strokeWidth = 2.dp.toPx()
@@ -1352,12 +1352,12 @@ fun SiteDiaryHorizontalTimeline(
 
                         // Start & End markers
                         drawCircle(
-                            color = MastorSlateMuted,
+                            color = MastorInkMuted,
                             radius = 3.dp.toPx(),
                             center = Offset(16.dp.toPx(), centerY)
                         )
                         drawCircle(
-                            color = MastorSlateMuted,
+                            color = MastorInkMuted,
                             radius = 3.dp.toPx(),
                             center = Offset(w - 16.dp.toPx(), centerY)
                         )
@@ -1372,9 +1372,9 @@ fun SiteDiaryHorizontalTimeline(
                             // dot coloured by entry type (delay = amber, progress = gold, weather = slate, general = slate muted)
                             val dotColor = when {
                                 statusLower.contains("delay") || notesLower.contains("delay") -> StatusPendingAmber
-                                statusLower.contains("progress") || statusLower.contains("completed") || entry.isVoiceTranscribed -> MastorGold
-                                statusLower.contains("weather") || notesLower.contains("weather") || !entry.weatherNotes.isNullOrBlank() -> MastorAccentBlue
-                                else -> MastorSlateMuted
+                                statusLower.contains("progress") || statusLower.contains("completed") || entry.isVoiceTranscribed -> MastorCopper
+                                statusLower.contains("weather") || notesLower.contains("weather") || !entry.weatherNotes.isNullOrBlank() -> MastorCopper
+                                else -> MastorInkMuted
                             }
 
                             val isSelected = (entry.id == selectedEntryId)
@@ -1382,12 +1382,12 @@ fun SiteDiaryHorizontalTimeline(
                             if (isSelected) {
                                 // Highlighted pulse ring
                                 drawCircle(
-                                    color = MastorGold.copy(alpha = 0.35f),
+                                    color = MastorCopper.copy(alpha = 0.35f),
                                     radius = 13.dp.toPx(),
                                     center = Offset(dotX, centerY)
                                 )
                                 drawCircle(
-                                    color = MastorGold,
+                                    color = MastorCopper,
                                     radius = 7.dp.toPx(),
                                     center = Offset(dotX, centerY)
                                 )
@@ -1410,7 +1410,7 @@ fun SiteDiaryHorizontalTimeline(
                         // Start & End date labels
                         val startLayout = textMeasurer.measure(
                             text = AnnotatedString(minDateStr),
-                            style = TextStyle(fontSize = 10.sp, color = MastorSlateMuted, fontWeight = FontWeight.Medium)
+                            style = TextStyle(fontSize = 10.sp, color = MastorInkMuted, fontWeight = FontWeight.Medium)
                         )
                         drawText(
                             textLayoutResult = startLayout,
@@ -1419,7 +1419,7 @@ fun SiteDiaryHorizontalTimeline(
 
                         val endLayout = textMeasurer.measure(
                             text = AnnotatedString(todayDateStr),
-                            style = TextStyle(fontSize = 10.sp, color = MastorSlateMuted, fontWeight = FontWeight.Medium)
+                            style = TextStyle(fontSize = 10.sp, color = MastorInkMuted, fontWeight = FontWeight.Medium)
                         )
                         drawText(
                             textLayoutResult = endLayout,
@@ -1432,7 +1432,7 @@ fun SiteDiaryHorizontalTimeline(
                     text = "Tap any timeline node to highlight and jump to that site diary log.",
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
-                    color = MastorSlateMuted,
+                    color = MastorInkMuted,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1446,7 +1446,7 @@ private fun TimelineTypeBadge(color: Color, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(color))
         Spacer(modifier = Modifier.width(3.dp))
-        Text(label, style = MaterialTheme.typography.bodySmall, fontSize = 10.sp, color = MastorSlateMuted)
+        Text(label, style = MaterialTheme.typography.bodySmall, fontSize = 10.sp, color = MastorInkMuted)
     }
 }
 
@@ -1478,7 +1478,7 @@ private fun ChartLegendItem(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MastorSlateDark,
+                color = MastorInk,
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp
             )
@@ -1490,14 +1490,14 @@ private fun ChartLegendItem(
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
             )
             Text(
                 text = "${"%.1f".format(percent)}%",
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 10.sp,
-                color = MastorSlateMuted
+                color = MastorInkMuted
             )
         }
     }

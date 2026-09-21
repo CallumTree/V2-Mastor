@@ -29,6 +29,8 @@ fun MastorCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     internalPadding: Dp = SpaceLG,
+    borderColor: Color = MastorCreamBorder,
+    borderWidth: Dp = 1.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(16.dp)
@@ -39,7 +41,7 @@ fun MastorCard(
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = shape,
         color = MastorCreamDark,
-        border = BorderStroke(1.dp, MastorCreamBorder),
+        border = BorderStroke(borderWidth, borderColor),
         shadowElevation = ElevationCard
     ) {
         Column(modifier = Modifier.padding(internalPadding)) {

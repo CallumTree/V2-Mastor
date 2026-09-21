@@ -79,17 +79,15 @@ import com.example.ui.components.MastorButton
 import com.example.ui.components.MastorCard
 import com.example.ui.components.MastorOutlinedButton
 import com.example.ui.components.VariationSegmentedSummaryBar
-import com.example.ui.theme.FinancialLargeNumeralStyle
-import com.example.ui.theme.FinancialMediumNumeralStyle
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorGold
-import com.example.ui.theme.MastorGoldBg
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSlateText
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCopperLight
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorCreamDark
+import com.example.ui.theme.MastorFinancialLarge
+import com.example.ui.theme.MastorFinancialMed
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.theme.StatusIdentifiedBg
@@ -110,12 +108,12 @@ val VO_STAGES = listOf(
 // Semantic status color helper
 fun getVoStatusColors(status: String): Pair<Color, Color> {
     return when (status.trim()) {
-        "VO Identified" -> Pair(MastorSlateMuted, MastorBackgroundLight)   // Neutral — just logged
+        "VO Identified" -> Pair(MastorInkMuted, MastorCream)   // Neutral — just logged
         "VO Received" -> Pair(StatusIdentifiedSky, StatusIdentifiedBg)     // Info — acknowledged
         "VO Completed" -> Pair(StatusPendingAmber, StatusPendingBg)        // Pending — awaiting valuation
-        "VO Invoiced" -> Pair(MastorGold, MastorGoldBg)                    // Financial milestone (matches Valuations)
+        "VO Invoiced" -> Pair(MastorCopper, MastorCopperLight)                    // Financial milestone (matches Valuations)
         "VO Paid" -> Pair(StatusClaimedGreen, StatusClaimedBg)             // Claimed / complete
-        else -> Pair(MastorSlateMuted, MastorBackgroundLight)
+        else -> Pair(MastorInkMuted, MastorCream)
     }
 }
 
@@ -283,7 +281,7 @@ fun VariationOrdersScreen(
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = MastorSlateDark,
+                            color = MastorInk,
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(
@@ -296,7 +294,7 @@ fun VariationOrdersScreen(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Dismiss",
-                                tint = MastorSlateMuted,
+                                tint = MastorInkMuted,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -319,8 +317,8 @@ fun VariationOrdersScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                color = MastorSurfaceLight,
-                border = BorderStroke(1.dp, MastorSlateBorder)
+                color = MastorCreamDark,
+                border = BorderStroke(1.dp, MastorCreamBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -333,7 +331,7 @@ fun VariationOrdersScreen(
                                 text = "VARIATION ORDERS PIPELINE",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateMuted,
+                                color = MastorInkMuted,
                                 letterSpacing = 0.5.sp
                             )
                             Spacer(modifier = Modifier.height(2.dp))
@@ -341,12 +339,12 @@ fun VariationOrdersScreen(
                                 text = "Variation Portfolio",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateDark
+                                color = MastorInk
                             )
                             Text(
                                 text = "${groupedTickets.size} tickets • ${variationOrders.size} lines",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                         }
 
@@ -362,7 +360,7 @@ fun VariationOrdersScreen(
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
-                    HorizontalDivider(color = MastorSlateBorder.copy(alpha = 0.5f))
+                    HorizontalDivider(color = MastorCreamBorder.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(14.dp))
 
                     // Primary Financial Metric (28sp bold gold)
@@ -376,19 +374,19 @@ fun VariationOrdersScreen(
                                 text = "TOTAL VO VALUE (BASE)",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = MastorCalculationEngine.formatCurrency(totalBase),
-                                style = FinancialLargeNumeralStyle,
-                                color = MastorGold
+                                style = MastorFinancialLarge,
+                                color = MastorCopper
                             )
                             if (up1 > 0 || up2 > 0) {
                                 Text(
                                     text = "With Project Uplifts (+${up1}% / +${up2}%): ${MastorCalculationEngine.formatCurrency(totalWithUplift)}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MastorSlateMuted,
+                                    color = MastorInkMuted,
                                     fontSize = 11.sp
                                 )
                             }
@@ -397,7 +395,7 @@ fun VariationOrdersScreen(
                         Column(horizontalAlignment = Alignment.End) {
                             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text("Claimed / In Valuation", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                                    Text("Claimed / In Valuation", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                                     Text(
                                         text = MastorCalculationEngine.formatCurrency(includedBase),
                                         style = MaterialTheme.typography.titleMedium,
@@ -406,7 +404,7 @@ fun VariationOrdersScreen(
                                     )
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text("Pending", style = MaterialTheme.typography.labelSmall, color = MastorSlateMuted)
+                                    Text("Pending", style = MaterialTheme.typography.labelSmall, color = MastorInkMuted)
                                     Text(
                                         text = MastorCalculationEngine.formatCurrency(pendingBase),
                                         style = MaterialTheme.typography.titleMedium,
@@ -462,7 +460,7 @@ fun VariationOrdersScreen(
                         .height(48.dp)
                         .testTag("approve_all_completed_vos_button"),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MastorGold,
+                        containerColor = MastorCopper,
                         contentColor = Color(0xFF0F172A)
                     ),
                     shape = RoundedCornerShape(12.dp)
@@ -492,7 +490,7 @@ fun VariationOrdersScreen(
                 ) {
                     Text(
                         text = "No variation orders raised yet. Tap '+ New VO Ticket' to create one.",
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -587,14 +585,14 @@ private fun VoTicketCard(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MastorAccentBlue.copy(alpha = 0.12f),
+                        color = MastorCopper.copy(alpha = 0.12f),
                         modifier = Modifier.testTag("vo_badge_$voNumber")
                     ) {
                         Text(
                             text = voNumber,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
-                            color = MastorAccentBlue,
+                            color = MastorCopper,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
@@ -606,20 +604,20 @@ private fun VoTicketCard(
                             text = if (externalVoNumber.isNotBlank()) "Ext Ref: $externalVoNumber" else "Internal Variation",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Apartment,
                                 contentDescription = null,
-                                tint = MastorSlateMuted,
+                                tint = MastorInkMuted,
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "${lines.size} lines across ${linesByProperty.size} ${if (linesByProperty.size == 1) "property" else "properties"}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MastorSlateMuted
+                                color = MastorInkMuted
                             )
                         }
                     }
@@ -646,7 +644,7 @@ private fun VoTicketCard(
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = null,
-                            tint = MastorSlateMuted
+                            tint = MastorInkMuted
                         )
                     }
                 }
@@ -661,7 +659,7 @@ private fun VoTicketCard(
                 text = "TICKET STATUS PROGRESSION",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = MastorSlateMuted,
+                color = MastorInkMuted,
                 letterSpacing = 0.8.sp
             )
 
@@ -674,7 +672,7 @@ private fun VoTicketCard(
             )
 
             Spacer(modifier = Modifier.height(14.dp))
-            HorizontalDivider(color = MastorSlateBorder.copy(alpha = 0.5f))
+            HorizontalDivider(color = MastorCreamBorder.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(12.dp))
 
             // Totals Banner with Base and Gross Uplift Breakdown
@@ -688,13 +686,13 @@ private fun VoTicketCard(
                         text = "Base Value: ${MastorCalculationEngine.formatCurrency(ticketBaseTotal)}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
                     if (up1 > 0 || up2 > 0) {
                         Text(
                             text = "Gross with Uplifts: ${MastorCalculationEngine.formatCurrency(ticketGrossTotal)}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateMuted,
+                            color = MastorInkMuted,
                             fontSize = 11.sp
                         )
                     }
@@ -704,7 +702,7 @@ private fun VoTicketCard(
                 Text(
                     text = "$includedCount/${lines.size} Lines Included in Claim",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (includedCount > 0) StatusClaimedGreen else MastorSlateMuted,
+                    color = if (includedCount > 0) StatusClaimedGreen else MastorInkMuted,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -752,7 +750,7 @@ private fun VoTicketCard(
                             .height(48.dp)
                             .testTag("approve_vo_to_valuation_$voNumber"),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MastorGold,
+                            containerColor = MastorCopper,
                             contentColor = Color(0xFF0F172A)
                         ),
                         shape = RoundedCornerShape(12.dp)
@@ -822,8 +820,8 @@ private fun VoStatusHorizontalStepper(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MastorSurfaceLight)
-            .border(1.dp, MastorSlateBorder, RoundedCornerShape(12.dp))
+            .background(MastorCreamDark)
+            .border(1.dp, MastorCreamBorder, RoundedCornerShape(12.dp))
             .padding(4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -840,10 +838,10 @@ private fun VoStatusHorizontalStepper(
                     .heightIn(min = 48.dp)
                     .clickable { onStageSelected(stage) },
                 shape = RoundedCornerShape(8.dp),
-                color = if (isCurrent) stageBg else if (isPassedOrCurrent) MastorSlateBorder.copy(alpha = 0.3f) else Color.Transparent,
+                color = if (isCurrent) stageBg else if (isPassedOrCurrent) MastorCreamBorder.copy(alpha = 0.3f) else Color.Transparent,
                 border = BorderStroke(
                     1.dp,
-                    if (isCurrent) stageFg else if (isPassedOrCurrent) MastorSlateBorder else Color.Transparent
+                    if (isCurrent) stageFg else if (isPassedOrCurrent) MastorCreamBorder else Color.Transparent
                 )
             ) {
                 Column(
@@ -856,7 +854,7 @@ private fun VoStatusHorizontalStepper(
                             modifier = Modifier
                                 .size(18.dp)
                                 .clip(CircleShape)
-                                .background(if (isPassedOrCurrent) stageFg else MastorSlateMuted.copy(alpha = 0.4f)),
+                                .background(if (isPassedOrCurrent) stageFg else MastorInkMuted.copy(alpha = 0.4f)),
                             contentAlignment = Alignment.Center
                         ) {
                             if (isPassedOrCurrent) {
@@ -884,7 +882,7 @@ private fun VoStatusHorizontalStepper(
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 10.sp,
                         fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Medium,
-                        color = if (isCurrent) stageFg else if (isPassedOrCurrent) MastorSlateDark else MastorSlateMuted
+                        color = if (isCurrent) stageFg else if (isPassedOrCurrent) MastorInk else MastorInkMuted
                     )
                 }
             }
@@ -906,8 +904,8 @@ private fun PropertySubGroupCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MastorSurfaceLight,
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        color = MastorCreamDark,
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
 
@@ -919,7 +917,7 @@ private fun PropertySubGroupCard(
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
-                    tint = MastorAccentBlue,
+                    tint = MastorCopper,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -927,12 +925,12 @@ private fun PropertySubGroupCard(
                     text = "Property: $property",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MastorSlateDark
+                    color = MastorInk
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = MastorSlateBorder.copy(alpha = 0.4f))
+            HorizontalDivider(color = MastorCreamBorder.copy(alpha = 0.4f))
             Spacer(modifier = Modifier.height(8.dp))
 
             // Lines in this property
@@ -961,10 +959,10 @@ private fun VoLineRowItem(
             .fillMaxWidth()
             .testTag("vo_line_row_${vo.id}"),
         shape = RoundedCornerShape(10.dp),
-        color = MastorSurfaceLight,
+        color = MastorCreamDark,
         border = BorderStroke(
             1.dp,
-            if (vo.tick) StatusClaimedGreen.copy(alpha = 0.4f) else MastorSlateBorder
+            if (vo.tick) StatusClaimedGreen.copy(alpha = 0.4f) else MastorCreamBorder
         )
     ) {
         Row(
@@ -983,7 +981,7 @@ private fun VoLineRowItem(
                     onCheckedChange = { onToggleTick() },
                     colors = CheckboxDefaults.colors(
                         checkedColor = StatusClaimedGreen,
-                        uncheckedColor = MastorSlateMuted
+                        uncheckedColor = MastorInkMuted
                     ),
                     modifier = Modifier
                         .size(32.dp)
@@ -998,12 +996,12 @@ private fun VoLineRowItem(
                             text = vo.code,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Text(
                             text = " • ${vo.locationRoom}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
 
@@ -1013,7 +1011,7 @@ private fun VoLineRowItem(
                     Text(
                         text = vo.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MastorSlateDark,
+                        color = MastorInk,
                         lineHeight = 18.sp
                     )
 
@@ -1022,7 +1020,7 @@ private fun VoLineRowItem(
                     Text(
                         text = "${vo.qty} ${vo.units} @ ${MastorCalculationEngine.formatCurrency(vo.rate)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MastorSlateMuted,
+                        color = MastorInkMuted,
                         fontSize = 12.sp
                     )
                 }
@@ -1033,15 +1031,15 @@ private fun VoLineRowItem(
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = MastorCalculationEngine.formatCurrency(baseLineTotal),
-                    style = FinancialMediumNumeralStyle,
+                    style = MastorFinancialMed,
                     fontWeight = FontWeight.Bold,
-                    color = if (vo.tick) StatusClaimedGreen else MastorSlateDark
+                    color = if (vo.tick) StatusClaimedGreen else MastorInk
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = if (vo.tick) "Claimed" else "Unticked",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (vo.tick) StatusClaimedGreen else MastorSlateMuted,
+                        color = if (vo.tick) StatusClaimedGreen else MastorInkMuted,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -1077,13 +1075,13 @@ private fun MarkupRow(label: String, value: String, isBold: Boolean = false) {
             text = label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-            color = MastorSlateDark
+            color = MastorInk
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.SemiBold,
-            color = if (isBold) MastorAccentBlue else MastorSlateDark
+            color = if (isBold) MastorCopper else MastorInk
         )
     }
 }
@@ -1231,7 +1229,7 @@ private fun CreateVoLineDialog(
                 Text(
                     text = "Initial Status Stage:",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MastorSlateMuted
+                    color = MastorInkMuted
                 )
 
                 Row(
@@ -1243,8 +1241,8 @@ private fun CreateVoLineDialog(
                         val (fg, bg) = getVoStatusColors(stage)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) bg else MastorSurfaceLight,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) fg else MastorSlateBorder),
+                            color = if (isSelected) bg else MastorCreamDark,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) fg else MastorCreamBorder),
                             modifier = Modifier
                                 .clickable { selectedStatus = stage }
                                 .padding(vertical = 2.dp)
@@ -1254,7 +1252,7 @@ private fun CreateVoLineDialog(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 9.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) fg else MastorSlateDark,
+                                color = if (isSelected) fg else MastorInk,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                             )
                         }

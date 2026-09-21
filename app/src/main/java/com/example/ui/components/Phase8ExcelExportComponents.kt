@@ -63,12 +63,12 @@ import com.example.domain.calculation.CalculatedWorkOrder
 import com.example.domain.excel.ExcelExportEngine
 import com.example.domain.excel.ExcelSheetPreview
 import com.example.domain.excel.ExcelWorkbookSnapshot
-import com.example.ui.theme.MastorAccentBlue
-import com.example.ui.theme.MastorBackgroundLight
-import com.example.ui.theme.MastorSlateBorder
-import com.example.ui.theme.MastorSlateDark
-import com.example.ui.theme.MastorSlateMuted
-import com.example.ui.theme.MastorSurfaceLight
+import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCream
+import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorInk
+import com.example.ui.theme.MastorInkMuted
+import com.example.ui.theme.MastorCreamDark
 import com.example.ui.theme.StatusClaimedBg
 import com.example.ui.theme.StatusClaimedGreen
 import kotlinx.coroutines.launch
@@ -140,7 +140,7 @@ fun ExcelExportConfirmationModal(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MastorSurfaceLight,
+        containerColor = MastorCreamDark,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
         val jobRef = project.projectNumber.ifBlank { project.contractRef }
@@ -171,7 +171,7 @@ fun ExcelExportConfirmationModal(
                         text = fullValuationRef,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark,
+                        color = MastorInk,
                         maxLines = 2
                     )
                 }
@@ -209,8 +209,8 @@ fun ExcelExportConfirmationModal(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
-                color = MastorBackgroundLight,
-                border = BorderStroke(1.dp, MastorSlateBorder)
+                color = MastorCream,
+                border = BorderStroke(1.dp, MastorCreamBorder)
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -219,7 +219,7 @@ fun ExcelExportConfirmationModal(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        tint = MastorAccentBlue,
+                        tint = MastorCopper,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
@@ -228,13 +228,13 @@ fun ExcelExportConfirmationModal(
                             text = "Live Calculation Snapshot",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "This will generate an un-cached V6 Excel workbook as of right now (${snapshot.timestampDisplay}). It is a one-way export intended for clients, architects, and quantity surveyors.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MastorSlateMuted
+                            color = MastorInkMuted
                         )
                     }
                 }
@@ -246,7 +246,7 @@ fun ExcelExportConfirmationModal(
                 text = "Workbook Sheets Included (7 Tabs):",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = MastorSlateDark
+                color = MastorInk
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -341,8 +341,8 @@ private fun ExcelSheetPreviewCard(sheet: ExcelSheetPreview) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = MastorSurfaceLight),
-        border = BorderStroke(1.dp, MastorSlateBorder)
+        colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
+        border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -362,7 +362,7 @@ private fun ExcelSheetPreviewCard(sheet: ExcelSheetPreview) {
                         text = sheet.sheetName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MastorSlateDark
+                        color = MastorInk
                     )
                 }
 
@@ -383,7 +383,7 @@ private fun ExcelSheetPreviewCard(sheet: ExcelSheetPreview) {
                     Text(
                         text = "${sheet.rowCount} Rows",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MastorSlateMuted
+                        color = MastorInkMuted
                     )
                 }
             }
@@ -392,7 +392,7 @@ private fun ExcelSheetPreviewCard(sheet: ExcelSheetPreview) {
             Text(
                 text = sheet.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = MastorSlateMuted
+                color = MastorInkMuted
             )
 
             if (sheet.highlights.isNotEmpty()) {
@@ -400,7 +400,7 @@ private fun ExcelSheetPreviewCard(sheet: ExcelSheetPreview) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MastorBackgroundLight, RoundedCornerShape(6.dp))
+                        .background(MastorCream, RoundedCornerShape(6.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -409,7 +409,7 @@ private fun ExcelSheetPreviewCard(sheet: ExcelSheetPreview) {
                             text = "$label: $value",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = MastorSlateDark
+                            color = MastorInk
                         )
                     }
                 }
