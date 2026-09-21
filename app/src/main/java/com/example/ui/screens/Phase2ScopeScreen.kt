@@ -125,11 +125,11 @@ import com.example.ui.illustrations.MastorDashboardHero
 import com.example.ui.components.WorkOrderCard
 import com.example.domain.cloud.CloudFileItem
 import com.example.domain.cloud.CloudStorageService
+import com.example.ui.components.MastorBottomNavBar
+import com.example.ui.components.SubcontractorProcurementComponent
 import com.example.ui.theme.BracketLabel
-import com.example.ui.theme.MastorBottomNavBar
 import com.example.ui.theme.MastorFinancialLarge
 import com.example.ui.theme.MastorFinancialMed
-import com.example.ui.theme.MastorNavItem
 import com.example.ui.theme.MastorPrimaryButton
 import com.example.ui.theme.FinancialLargeNumeralStyle
 import com.example.ui.theme.MastorCopper
@@ -153,6 +153,7 @@ import com.example.ui.components.LinkedDocumentCard
 import kotlinx.coroutines.launch
 
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material.icons.filled.CorporateFare
 import androidx.compose.material.icons.filled.AccountBalance
@@ -167,7 +168,10 @@ enum class Phase2Tab {
     VALUATIONS,
     VARIATIONS,
     BOQ_IMPORT,
-    PROJECT_SETUP
+    PROJECT_SETUP,
+    PROCUREMENT,
+    INVOICES,
+    DOCUMENTS
 }
 
 enum class BoqParsingUiState {
@@ -402,21 +406,10 @@ fun Phase2ScopeScreen(
             modifier = modifier.fillMaxSize(),
             containerColor = MastorCream,
             bottomBar = {
-                val primaryNavItems = remember {
-                    listOf(
-                        MastorNavItem(Phase2Tab.DASHBOARD, "Dash", Icons.Default.Dashboard),
-                        MastorNavItem(Phase2Tab.SCOPE, "Scope", Icons.AutoMirrored.Filled.ListAlt),
-                        MastorNavItem(Phase2Tab.SITE_DIARY, "Diary", Icons.Default.CameraAlt),
-                        MastorNavItem(Phase2Tab.VALUATIONS, "Vals", Icons.AutoMirrored.Filled.ReceiptLong),
-                        MastorNavItem(Phase2Tab.VARIATIONS, "VOs", Icons.Default.Receipt),
-                        MastorNavItem(Phase2Tab.BOQ_IMPORT, "BoQ", Icons.Default.CloudUpload),
-                        MastorNavItem(Phase2Tab.PROJECT_SETUP, "Setup", Icons.Default.Settings)
-                    )
-                }
                 MastorBottomNavBar(
-                    items = primaryNavItems,
-                    selectedItem = selectedTab,
-                    onItemSelected = { selectedTab = it }
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    onOpenExcelExport = { showExcelModal = true }
                 )
             }
         ) { paddingValues ->
@@ -960,6 +953,82 @@ fun Phase2ScopeScreen(
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    Phase2Tab.PROCUREMENT -> {
+                        SubcontractorProcurementComponent(
+                            projectId = proj.id,
+                            packages = uiState.procurementPackages,
+                            subcontractors = uiState.subcontractors,
+                            allScopeElements = uiState.scopeElements,
+                            allClaims = uiState.subcontractorClaims,
+                            onCreatePackage = { trade, elementIds, dateSent ->
+                                viewModel.createProcurementPackage(trade, elementIds, dateSent)
+                            },
+                            onRecordQuote = { packageId, subId, quoteAmount, quoteDate, notes ->
+                                viewModel.recordSubcontractorQuote(packageId, subId, quoteAmount, quoteDate, notes)
+                            },
+                            onAwardPackage = { packageId, subId ->
+                                viewModel.awardProcurementPackage(packageId, subId)
+                            },
+                            onAddClaim = { packageId, amount, date, notes ->
+                                viewModel.addSubcontractorClaim(packageId, amount, date, notes)
+                            },
+                            onUpdateStatus = { packageId, status ->
+                                viewModel.updateProcurementPackageStatus(packageId, status)
+                            },
+                            onDeletePackage = { packageId ->
+                                viewModel.deleteProcurementPackage(packageId)
+                            },
+                            onCreateSubcontractor = { company, contact, phone, email, trade, notes ->
+                                viewModel.createSubcontractor(company, contact, phone, email, trade, notes)
+                            },
+                            onDeleteSubcontractor = { subId ->
+                                viewModel.deleteSubcontractor(subId)
+                            }
+                        )
+                    }
+
+                    Phase2Tab.INVOICES -> {
+                        ValuationsScreen(
+                            viewModel = viewModel,
+                            calculatedValuation = uiState.valuation,
+                            allValuations = uiState.allValuations,
+                            scopeElements = uiState.scopeElements,
+                            variationOrders = uiState.variationOrders
+                        )
+                    }
+
+                    Phase2Tab.DOCUMENTS -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                        ) {
+                            BracketLabel(text = "LINKED DOCUMENTS & CLOUD STORAGE")
+                            Spacer(modifier = Modifier.height(12.dp))
+                            val primaryDoc = uiState.linkedDocuments.firstOrNull { it.isPrimaryBoq } ?: uiState.linkedDocuments.firstOrNull()
+                            LinkedDocumentCard(
+                                linkedDocument = primaryDoc,
+                                onOpenPicker = { showCloudPickerModal = true },
+                                onSyncNow = {
+                                    primaryDoc?.let { viewModel.syncCloudDocument(it.id) }
+                                },
+                                onParseInPhase3 = {
+                                    selectedTab = Phase2Tab.BOQ_IMPORT
+                                },
+                                onUnlinkDocument = { doc ->
+                                    viewModel.unlinkCloudDocument(doc.id)
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            MastorPrimaryButton(
+                                text = "Open Cloud Storage Picker",
+                                icon = Icons.Default.Cloud,
+                                onClick = { showCloudPickerModal = true },
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
