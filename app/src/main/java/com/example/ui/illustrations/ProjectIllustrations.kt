@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -113,12 +114,12 @@ object ProjectIllustrationPicker {
         }
         return {
             when (type) {
-                ProjectIllustrationType.RESIDENTIAL_PPR -> ResidentialPprIllustration(variant = index)
-                ProjectIllustrationType.COMMERCIAL -> CommercialIllustration(variant = index)
-                ProjectIllustrationType.ROOFING -> RoofingIllustration(variant = index)
-                ProjectIllustrationType.INTERNAL_WORKS -> InternalWorksIllustration(variant = index)
-                ProjectIllustrationType.EXTERNAL_WORKS -> ExternalWorksIllustration(variant = index)
-                ProjectIllustrationType.UNKNOWN -> UnknownIllustration(variant = index)
+                ProjectIllustrationType.RESIDENTIAL_PPR -> ResidentialPprIllustration(variant = index, modifier = Modifier.fillMaxSize())
+                ProjectIllustrationType.COMMERCIAL -> CommercialIllustration(variant = index, modifier = Modifier.fillMaxSize())
+                ProjectIllustrationType.ROOFING -> RoofingIllustration(variant = index, modifier = Modifier.fillMaxSize())
+                ProjectIllustrationType.INTERNAL_WORKS -> InternalWorksIllustration(variant = index, modifier = Modifier.fillMaxSize())
+                ProjectIllustrationType.EXTERNAL_WORKS -> ExternalWorksIllustration(variant = index, modifier = Modifier.fillMaxSize())
+                ProjectIllustrationType.UNKNOWN -> UnknownIllustration(variant = index, modifier = Modifier.fillMaxSize())
             }
         }
     }
@@ -1296,7 +1297,10 @@ fun MastorProjectHeroCard(
             .testTag("job_card_$projectId")
     ) {
         // 1. Background Illustration filling full card
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .clipToBounds()
+        ) {
             illustrationComposable()
         }
 
@@ -1418,7 +1422,10 @@ fun MastorDashboardHero(
             .background(MastorCharcoal)
     ) {
         // 1. Vector Illustration backdrop scaled to fill entire panel
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .clipToBounds()
+        ) {
             illustration()
         }
 
