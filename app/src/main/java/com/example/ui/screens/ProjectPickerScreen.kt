@@ -127,7 +127,7 @@ fun ProjectPickerScreen(
                 ) {
                     Text(
                         text = "${projects.size} Active Jobs",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MastorLabel,
                         fontWeight = FontWeight.Bold,
                         color = MastorCopper,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -172,14 +172,14 @@ fun ProjectPickerScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "No active jobs found",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MastorTitle,
                             fontWeight = FontWeight.Bold,
                             color = MastorInk
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Tap '+ New Job' below to create your first construction project.",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MastorBody,
                             color = MastorInkMuted
                         )
                     }
@@ -343,13 +343,13 @@ fun NewJobDialog(
                     Column {
                         Text(
                             text = "Site Picture",
-                            style = MaterialTheme.typography.titleSmall,
+                            style = MastorTitle,
                             fontWeight = FontWeight.Bold,
                             color = MastorInk
                         )
                         Text(
                             text = "Upload a photo of the project or site location",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MastorLabel,
                             color = MastorInkMuted
                         )
                     }
@@ -372,7 +372,7 @@ fun NewJobDialog(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "PHOTO READY",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MastorLabel,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = StatusClaimedGreen
@@ -395,7 +395,7 @@ fun NewJobDialog(
                         Text(
                             text = uploadError ?: "",
                             color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MastorLabel,
                             modifier = Modifier.padding(8.dp)
                         )
                     }
@@ -441,7 +441,7 @@ fun NewJobDialog(
 
                             Text(
                                 text = "Upload Site Picture",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MastorTitle,
                                 fontWeight = FontWeight.Bold,
                                 color = MastorInk
                             )
@@ -450,7 +450,7 @@ fun NewJobDialog(
 
                             Text(
                                 text = "Tap anywhere to select photo from device gallery or camera",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MastorLabel,
                                 color = MastorInkMuted
                             )
 

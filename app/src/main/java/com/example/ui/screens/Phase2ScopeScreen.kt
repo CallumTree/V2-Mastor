@@ -127,24 +127,7 @@ import com.example.domain.cloud.CloudFileItem
 import com.example.domain.cloud.CloudStorageService
 import com.example.ui.components.MastorBottomNavBar
 import com.example.ui.components.SubcontractorProcurementComponent
-import com.example.ui.theme.BracketLabel
-import com.example.ui.theme.MastorEmptyState
-import com.example.ui.theme.MastorLoadingCard
-import com.example.ui.theme.MastorFinancialLarge
-import com.example.ui.theme.MastorFinancialMed
-import com.example.ui.theme.MastorPrimaryButton
-import com.example.ui.theme.FinancialLargeNumeralStyle
-import com.example.ui.theme.MastorCopper
-import com.example.ui.theme.MastorCream
-import com.example.ui.theme.MastorCreamBorder
-import com.example.ui.theme.MastorInk
-import com.example.ui.theme.MastorInkMuted
-import com.example.ui.theme.MastorCreamDark
-import com.example.ui.theme.SpaceLG
-import com.example.ui.theme.SpaceMD
-import com.example.ui.theme.SpaceSM
-import com.example.ui.theme.SpaceXS
-import com.example.ui.theme.StatusClaimedGreen
+import com.example.ui.theme.*
 import com.example.ui.viewmodel.Phase1ViewModel
 
 import android.net.Uri
@@ -289,7 +272,7 @@ fun Phase2ScopeScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "Mastor Prime Construction Ltd",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MastorTitle,
                         fontWeight = FontWeight.Bold,
                         color = MastorInk,
                         maxLines = 1,
@@ -297,7 +280,7 @@ fun Phase2ScopeScreen(
                     )
                     Text(
                         text = "Job: ${proj.name} (${proj.contractRef})",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MastorLabel,
                         color = MastorInkMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -314,7 +297,7 @@ fun Phase2ScopeScreen(
                 ) {
                     Text(
                         text = "PROJECT SETUP & CONFIGURATION",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MastorLabel,
                         fontWeight = FontWeight.Bold,
                         color = MastorInkMuted,
                         letterSpacing = 0.8.sp,
@@ -358,7 +341,7 @@ fun Phase2ScopeScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "ACCOUNT & PREFERENCES",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MastorLabel,
                         fontWeight = FontWeight.Bold,
                         color = MastorInkMuted,
                         letterSpacing = 0.8.sp,
@@ -421,60 +404,7 @@ fun Phase2ScopeScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // Compact Header powered by standardized MastorTopBar
-                MastorTopBar(
-                    title = proj.name,
-                    subtitle = "Client: ${proj.client} • Ref: ${proj.contractRef}",
-                    onMenuClick = { coroutineScope.launch { drawerState.open() } }
-                ) {
-                    Surface(
-                        color = Color(0xFF107C41).copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, Color(0xFF107C41).copy(alpha = 0.3f)),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { showExcelModal = true }
-                            .testTag("top_bar_excel_btn")
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FileDownload,
-                                contentDescription = "Export Excel",
-                                tint = Color(0xFF107C41),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Excel",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF107C41)
-                            )
-                        }
-                    }
-
-                    Surface(
-                        color = MastorCopper.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, MastorCreamBorder)
-                    ) {
-                        Text(
-                            text = "+${proj.uplift1Percent.toInt()}%/+${proj.uplift2Percent.toInt()}%",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorInk,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp),
-                            maxLines = 1
-                        )
-                    }
-                }
-
-                // In DASHBOARD tab, ProjectDashboardOverviewScreen renders its own full-bleed MastorDashboardHero.
-                // In other tabs (Scope, Site Diary, Vals, VOs, BoQ, Setup), display MastorDashboardHero at top.
+                // MastorDashboardHero is the primary header now
                 if (selectedTab != Phase2Tab.DASHBOARD) {
                     MastorDashboardHero(
                         project = proj,
@@ -718,7 +648,7 @@ fun Phase2ScopeScreen(
                                                 BracketLabel(text = "WORK ORDERS & SCOPE PACKAGES")
                                                 Text(
                                                     text = "${uiState.workOrders.size} Packages • Total Base ${MastorCalculationEngine.formatCurrency(totalBaseCost)}",
-                                                    style = MaterialTheme.typography.bodySmall,
+                                                    style = MastorLabel,
                                                     color = MastorInkMuted
                                                 )
                                             }
@@ -811,7 +741,7 @@ fun Phase2ScopeScreen(
                                                 BracketLabel(text = "SCOPE OF WORKS")
                                                 Text(
                                                     text = "${uiState.scopeElements.size} Items • $completedCount Completed",
-                                                    style = MaterialTheme.typography.titleMedium,
+                                                    style = MastorTitle,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MastorInk
                                                 )
@@ -825,7 +755,7 @@ fun Phase2ScopeScreen(
                                                 )
                                                 Text(
                                                     text = "of ${MastorCalculationEngine.formatCurrency(totalBaseCost)} (${overallProgress.toInt()}%)",
-                                                    style = MaterialTheme.typography.bodySmall,
+                                                    style = MastorLabel,
                                                     color = MastorInkMuted
                                                 )
                                             }
@@ -1233,7 +1163,7 @@ fun CompanyAccountPreferencesModal(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Account & Preferences",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MastorTitle,
                     fontWeight = FontWeight.Bold,
                     color = MastorInk
                 )
@@ -1248,7 +1178,7 @@ fun CompanyAccountPreferencesModal(
             ) {
                 Text(
                     text = "App-level configuration and SaaS organizational settings.",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MastorLabel,
                     color = MastorInkMuted
                 )
 
@@ -1260,24 +1190,24 @@ fun CompanyAccountPreferencesModal(
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Organization:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
-                            Text("Mastor Prime Ltd", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Text("Organization:", style = MastorBracketLabel, color = MastorInkMuted)
+                            Text("Mastor Prime Ltd", style = MastorBody, fontWeight = FontWeight.Bold)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("VAT Registration:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
-                            Text("GB 938 2841 02", style = MaterialTheme.typography.bodyMedium)
+                            Text("VAT Registration:", style = MastorBracketLabel, color = MastorInkMuted)
+                            Text("GB 938 2841 02", style = MastorBody)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Current Plan:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
-                            Text("Enterprise QS (Active)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MastorCopper)
+                            Text("Current Plan:", style = MastorBracketLabel, color = MastorInkMuted)
+                            Text("Enterprise QS (Active)", style = MastorBody, fontWeight = FontWeight.SemiBold, color = MastorCopper)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Standard Retention:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
-                            Text("5.00%", style = MaterialTheme.typography.bodyMedium)
+                            Text("Standard Retention:", style = MastorBracketLabel, color = MastorInkMuted)
+                            Text("5.00%", style = MastorBody)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Valuation Cycle:", style = MaterialTheme.typography.labelMedium, color = MastorInkMuted)
-                            Text("Monthly (28-day)", style = MaterialTheme.typography.bodyMedium)
+                            Text("Valuation Cycle:", style = MastorBracketLabel, color = MastorInkMuted)
+                            Text("Monthly (28-day)", style = MastorBody)
                         }
                     }
                 }

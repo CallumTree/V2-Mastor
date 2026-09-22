@@ -125,7 +125,7 @@ fun VariationOrdersScreen(
             title = {
                 Text(
                     "Delete VO Ticket $voNum?",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MastorTitle,
                     fontWeight = FontWeight.Bold,
                     color = MastorInk
                 )
@@ -164,7 +164,7 @@ fun VariationOrdersScreen(
             title = {
                 Text(
                     "Remove Line ${line.code}?",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MastorTitle,
                     fontWeight = FontWeight.Bold,
                     color = MastorInk
                 )
@@ -946,7 +946,7 @@ private fun CreateVoLineDialog(
         title = {
             Text(
                 "Add Variation Order Line",
-                style = MaterialTheme.typography.titleMedium,
+                style = MastorTitle,
                 fontWeight = FontWeight.Bold,
                 color = MastorInk
             )

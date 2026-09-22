@@ -168,13 +168,13 @@ private fun ScaledCanvasIllustration(
 
 // =============================================================================
 // RESIDENTIAL_PPR (5 Variants)
-// Warm terracotta tones (#C97B3F at 15-25% opacity base, #1A1A2E for line work)
+// Warm terracotta tones (#C97B3F at 15-25% opacity base, #C97B3F / #EDE6D8 for line work)
 // =============================================================================
 @Composable
 fun ResidentialPprIllustration(variant: Int, modifier: Modifier = Modifier) {
     val terracottaBase = Color(0xFFC97B3F).copy(alpha = 0.20f)
     val terracottaAccent = Color(0xFFC97B3F).copy(alpha = 0.35f)
-    val lineStroke = Color(0xFF1A1A2E)
+    val lineStroke = Color(0xFFEDE6D8).copy(alpha = 0.45f)
 
     ScaledCanvasIllustration(modifier = modifier) {
         // Base ground line
@@ -614,8 +614,8 @@ fun CommercialIllustration(variant: Int, modifier: Modifier = Modifier) {
 // =============================================================================
 @Composable
 fun RoofingIllustration(variant: Int, modifier: Modifier = Modifier) {
-    val charcoalBase = Color(0xFF1A1A2E).copy(alpha = 0.32f)
-    val charcoalMid = Color(0xFF1A1A2E).copy(alpha = 0.65f)
+    val charcoalBase = Color(0xFF2E2E4A).copy(alpha = 0.45f)
+    val charcoalMid = Color(0xFFEDE6D8).copy(alpha = 0.40f)
     val copperHighlight = MastorCopper
 
     ScaledCanvasIllustration(modifier = modifier) {
@@ -801,9 +801,9 @@ fun RoofingIllustration(variant: Int, modifier: Modifier = Modifier) {
 // =============================================================================
 @Composable
 fun InternalWorksIllustration(variant: Int, modifier: Modifier = Modifier) {
-    val amberBase = Color(0xFFF59E0B).copy(alpha = 0.12f)
+    val amberBase = Color(0xFFF59E0B).copy(alpha = 0.15f)
     val amberMid = Color(0xFFF59E0B).copy(alpha = 0.45f)
-    val lineStroke = Color(0xFF1A1A2E)
+    val lineStroke = Color(0xFFEDE6D8).copy(alpha = 0.45f)
     val amberAccent = Color(0xFFF59E0B)
 
     ScaledCanvasIllustration(modifier = modifier) {
@@ -1001,10 +1001,10 @@ fun InternalWorksIllustration(variant: Int, modifier: Modifier = Modifier) {
 // =============================================================================
 @Composable
 fun ExternalWorksIllustration(variant: Int, modifier: Modifier = Modifier) {
-    val sageBase = Color(0xFF22C55E).copy(alpha = 0.12f)
+    val sageBase = Color(0xFF22C55E).copy(alpha = 0.15f)
     val sageMid = Color(0xFF22C55E).copy(alpha = 0.40f)
     val sageAccent = Color(0xFF22C55E)
-    val lineStroke = Color(0xFF1A1A2E)
+    val lineStroke = Color(0xFFEDE6D8).copy(alpha = 0.45f)
 
     ScaledCanvasIllustration(modifier = modifier) {
         when (variant % 4) {
@@ -1352,16 +1352,16 @@ fun MastorProjectHeroCard(
                         text = projectName,
                         style = MastorDisplayMedium.copy(fontSize = 20.sp, lineHeight = 24.sp),
                         color = MastorCreamText,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 2, // maxLines=2 intentional — fixed-height hero card
+                        overflow = TextOverflow.Clip
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = clientName,
                         style = MastorBody,
                         color = MastorCreamMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 2, // maxLines=2 intentional — fixed-height hero card
+                        overflow = TextOverflow.Clip
                     )
                 }
 
@@ -1504,16 +1504,16 @@ fun MastorDashboardHero(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     ),
                     color = MastorCreamText,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 2, // maxLines=2 intentional — fixed-height hero card
+                    overflow = TextOverflow.Clip
                 )
 
                 Text(
                     text = project.client.ifBlank { "Client Unspecified" },
                     style = MastorBody,
                     color = MastorCreamMuted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 2, // maxLines=2 intentional — fixed-height hero card
+                    overflow = TextOverflow.Clip
                 )
 
                 Spacer(modifier = Modifier.height(2.dp))

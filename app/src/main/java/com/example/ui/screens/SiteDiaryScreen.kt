@@ -276,7 +276,7 @@ fun SiteDiaryScreen(
             ) {
                 Text(
                     text = MastorCalculationEngine.formatCurrency(project?.contractValue ?: 150000.0),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MastorLabel,
                     fontWeight = FontWeight.Bold,
                     color = MastorCopper,
                     fontFamily = FontFamily.Monospace,
@@ -555,7 +555,7 @@ fun SiteActionCard(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MastorTitle,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = MastorInk
@@ -563,7 +563,7 @@ fun SiteActionCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MastorLabel,
                     fontSize = 11.5.sp,
                     color = MastorInkMuted,
                     maxLines = 1,
@@ -894,7 +894,7 @@ fun StatusPill(status: String) {
     ) {
         Text(
             text = status.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
+            style = MastorLabel,
             fontWeight = FontWeight.Bold,
             fontSize = 9.5.sp,
             color = textColor,

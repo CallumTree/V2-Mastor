@@ -278,7 +278,7 @@ fun ValuationsScreen(
             title = {
                 Text(
                     text = "Variation Orders Check",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MastorTitle,
                     fontWeight = FontWeight.Bold,
                     color = MastorInk
                 )
