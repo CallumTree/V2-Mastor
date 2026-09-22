@@ -14,49 +14,39 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material.icons.filled.UnfoldLess
-import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -71,14 +61,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
@@ -90,29 +80,41 @@ import com.example.domain.calculation.CalculatedValuation
 import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.components.ExcelExportConfirmationModal
 import com.example.ui.components.ExportToExcelButton
-import com.example.ui.components.FinancialNumeral
-import com.example.ui.components.MastorBadge
 import com.example.ui.components.MastorButton
-import com.example.ui.components.MastorCard
-import com.example.ui.components.MastorOutlinedButton
 import com.example.ui.components.MastorSegmentedTabs
-import com.example.ui.components.MastorStatusType
+import com.example.ui.components.MastorStatusBadge
 import com.example.ui.components.MastorTabItem
-import com.example.ui.components.ValuationContractCircularRing
-import com.example.ui.components.ValuationStackedContractBar
+import com.example.ui.theme.BracketLabel
+import com.example.ui.theme.MastorActionChip
+import com.example.ui.theme.MastorBody
+import com.example.ui.theme.MastorBracketLabel
+import com.example.ui.theme.MastorCard
+import com.example.ui.theme.MastorCharcoalLight
+import com.example.ui.theme.MastorCode
 import com.example.ui.theme.MastorCopper
-import com.example.ui.theme.MastorCopperLight
+import com.example.ui.theme.MastorCopperCard
 import com.example.ui.theme.MastorCream
 import com.example.ui.theme.MastorCreamBorder
-import com.example.ui.theme.MastorCreamDark
+import com.example.ui.theme.MastorCreamMuted
+import com.example.ui.theme.MastorCreamText
+import com.example.ui.theme.MastorDarkCard
+import com.example.ui.theme.MastorDestructiveButton
 import com.example.ui.theme.MastorFinancialLarge
 import com.example.ui.theme.MastorFinancialMed
+import com.example.ui.theme.MastorFinancialSmall
 import com.example.ui.theme.MastorInk
 import com.example.ui.theme.MastorInkMuted
-import com.example.ui.theme.StatusClaimedBg
-import com.example.ui.theme.StatusClaimedGreen
-import com.example.ui.theme.StatusPendingAmber
-import com.example.ui.theme.StatusPendingBg
+import com.example.ui.theme.MastorPrimaryButton
+import com.example.ui.theme.MastorSecondaryButton
+import com.example.ui.theme.Space3XL
+import com.example.ui.theme.SpaceLG
+import com.example.ui.theme.SpaceMD
+import com.example.ui.theme.SpaceSM
+import com.example.ui.theme.SpaceXL
+import com.example.ui.theme.SpaceXS
+import com.example.ui.theme.StatusAmber
+import com.example.ui.theme.StatusGreen
+import com.example.ui.theme.StatusRed
 import com.example.ui.viewmodel.Phase1ViewModel
 
 sealed class ValuationLineItem {
@@ -197,7 +199,7 @@ fun ValuationsScreen(
             chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(chooser)
         } catch (e: Exception) {
-            // Error handling
+            // Handled
         } finally {
             viewModel.clearGeneratedInvoiceFile()
         }
@@ -211,53 +213,9 @@ fun ValuationsScreen(
         else -> emptyList()
     }
 
-    if (valuationsList.isEmpty()) {
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(24.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ReceiptLong,
-                    contentDescription = null,
-                    tint = MastorInkMuted,
-                    modifier = Modifier.size(36.dp)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "No valuations found",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MastorInk,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Start an interim payment application to begin claiming works.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MastorInkMuted
-                )
-                Spacer(modifier = Modifier.height(14.dp))
-                MastorButton(
-                    text = "Create Initial Valuation",
-                    onClick = {
-                        viewModel.createNewValuation(
-                            valuationNumber = "VAL-001",
-                            date = "17 Aug 2026",
-                            preparedBy = uiState.project?.surveyor ?: "Eleanor Vance (QS)"
-                        )
-                    }
-                )
-            }
-        }
-        return
-    }
-
     var expandedValuationIds by remember(valuationsList.map { it.entity.id }) {
         val drafts = valuationsList.filter { it.entity.status.equals("Draft", ignoreCase = true) }.map { it.entity.id }
-        mutableStateOf(if (drafts.isNotEmpty()) drafts.toSet() else setOf(valuationsList.first().entity.id))
+        mutableStateOf(if (drafts.isNotEmpty()) drafts.toSet() else setOf(valuationsList.firstOrNull()?.entity?.id ?: ""))
     }
 
     var selectedFilterIndex by remember { mutableIntStateOf(0) }
@@ -282,23 +240,24 @@ fun ValuationsScreen(
     scopeToDelete?.let { (scope, _) ->
         AlertDialog(
             onDismissRequest = { scopeToDelete = null },
-            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = Color(0xFFDC2626)) },
+            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = StatusRed) },
             title = { Text("Remove Scope Item?") },
             text = {
                 Text("Remove '${scope.code} - ${scope.description}' from this valuation claim?")
             },
             confirmButton = {
-                MastorButton(
+                MastorDestructiveButton(
                     text = "Remove",
                     onClick = {
                         viewModel.revertScopeToUnclaimed(scope.id)
                         scopeToDelete = null
                     },
+                    isSmall = true,
                     modifier = Modifier.testTag("confirm_revert_scope_button")
                 )
             },
             dismissButton = {
-                TextButton(onClick = { scopeToDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { scopeToDelete = null }) { Text("Cancel", color = MastorInkMuted) }
             }
         )
     }
@@ -306,28 +265,28 @@ fun ValuationsScreen(
     voToDelete?.let { (vo, _) ->
         AlertDialog(
             onDismissRequest = { voToDelete = null },
-            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = Color(0xFFDC2626)) },
+            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = StatusRed) },
             title = { Text("Remove Variation?") },
             text = {
                 Text("Remove '${vo.voNumber} - ${vo.description}' from this valuation claim?")
             },
             confirmButton = {
-                MastorButton(
+                MastorDestructiveButton(
                     text = "Remove",
                     onClick = {
                         viewModel.revertVoToUnclaimed(vo)
                         voToDelete = null
                     },
+                    isSmall = true,
                     modifier = Modifier.testTag("confirm_revert_vo_button")
                 )
             },
             dismissButton = {
-                TextButton(onClick = { voToDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { voToDelete = null }) { Text("Cancel", color = MastorInkMuted) }
             }
         )
     }
 
-    // Pre-certify VO reminder dialog before certification / lock
     valuationForPreCertifyReminder?.let { calcVal ->
         val jobRef = uiState.project?.projectNumber?.ifBlank { uiState.project?.contractRef } ?: uiState.project?.contractRef ?: ""
         val fullValuationHeader = when {
@@ -340,7 +299,7 @@ fun ValuationsScreen(
             onDismissRequest = { valuationForPreCertifyReminder = null },
             icon = {
                 Icon(
-                    imageVector = Icons.Default.ReceiptLong,
+                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
                     contentDescription = "Variation Orders",
                     tint = MastorCopper
                 )
@@ -357,18 +316,18 @@ fun ValuationsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = "Have you added any completed Variation Orders to this valuation?",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MastorBody,
                         color = MastorInk
                     )
                     Text(
                         text = "Locking $fullValuationHeader (${MastorCalculationEngine.formatCurrency(calcVal.grandInvoiceTotal)}) as certified & invoiced.",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MastorBody.copy(fontSize = 13.sp),
                         color = MastorInkMuted
                     )
                 }
             },
             confirmButton = {
-                MastorButton(
+                MastorPrimaryButton(
                     text = "Yes, continue",
                     onClick = {
                         val valId = calcVal.entity.id
@@ -395,7 +354,7 @@ fun ValuationsScreen(
 
     if (showNewValuationModal) {
         NewValuationDialog(
-            defaultValNumber = "VAL-${(valuationsList.size + 1).toString().padStart(3, '0')}",
+            defaultValNumber = "IV-${(valuationsList.size + 1).toString().padStart(2, '0')}",
             defaultSurveyor = uiState.project?.surveyor ?: "Eleanor Vance (QS)",
             onDismiss = { showNewValuationModal = false },
             onCreate = { valNum, date, surveyor ->
@@ -410,11 +369,11 @@ fun ValuationsScreen(
     showErrorDialogMessage?.let { errMsg ->
         AlertDialog(
             onDismissRequest = { showErrorDialogMessage = null },
-            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFDC2626)) },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusRed) },
             title = { Text("Cannot Issue Invoice") },
-            text = { Text(errMsg) },
+            text = { Text(errMsg, color = StatusRed) },
             confirmButton = {
-                TextButton(onClick = { showErrorDialogMessage = null }) { Text("OK") }
+                TextButton(onClick = { showErrorDialogMessage = null }) { Text("OK", color = MastorInk) }
             }
         )
     }
@@ -432,88 +391,54 @@ fun ValuationsScreen(
         }
     }
 
+    // Main layout with MastorCream background
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .background(MastorCream)
+            .padding(horizontal = SpaceLG),
+        verticalArrangement = Arrangement.spacedBy(SpaceMD)
     ) {
-        // Compact top bar + tabs
         item {
-            val jobRef = uiState.project?.projectNumber?.ifBlank { uiState.project?.contractRef } ?: uiState.project?.contractRef ?: ""
-            val screenHeaderTitle = if (uiState.project != null) {
-                if (jobRef.isNotBlank()) "${uiState.project!!.name} — $jobRef" else uiState.project!!.name
-            } else "Valuations & IPAs"
+            Spacer(modifier = Modifier.height(SpaceMD))
 
+            // Screen Header: BracketLabel("INTERIM VALUATIONS") + "New Draft" button as MastorSecondaryButton
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = screenHeaderTitle,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorInk
-                    )
-                    Text(
-                        text = "Valuations & Interim Payment Applications • ${valuationsList.size} cycle(s)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MastorInkMuted
-                    )
-                }
+                BracketLabel(
+                    text = "INTERIM VALUATIONS",
+                    color = MastorInk
+                )
 
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    val allExpanded = valuationsList.all { expandedValuationIds.contains(it.entity.id) }
-                    IconButton(
-                        onClick = {
-                            expandedValuationIds = if (allExpanded) emptySet() else valuationsList.map { it.entity.id }.toSet()
-                        },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .testTag("toggle_all_expand_button")
-                    ) {
-                        Icon(
-                            imageVector = if (allExpanded) Icons.Default.UnfoldLess else Icons.Default.UnfoldMore,
-                            contentDescription = if (allExpanded) "Collapse All" else "Expand All",
-                            tint = MastorInkMuted,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    MastorButton(
-                        text = "+ Period",
-                        onClick = { showNewValuationModal = true },
-                        modifier = Modifier.testTag("create_new_valuation_period_button")
-                    )
-                }
+                MastorSecondaryButton(
+                    text = "+ New Draft",
+                    onClick = { showNewValuationModal = true },
+                    modifier = Modifier
+                        .widthIn(max = 140.dp)
+                        .heightIn(min = 40.dp)
+                        .testTag("create_new_valuation_period_button")
+                )
             }
 
             invoiceError?.let { err ->
+                Spacer(modifier = Modifier.height(SpaceSM))
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFFEE2E2),
-                    border = BorderStroke(1.dp, Color(0xFFEF4444))
+                    color = StatusRed.copy(alpha = 0.1f),
+                    border = BorderStroke(1.dp, StatusRed.copy(alpha = 0.5f))
                 ) {
                     Row(
                         modifier = Modifier.padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = Color(0xFFDC2626),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = err,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF991B1B),
+                            style = MastorBody.copy(color = StatusRed, fontSize = 13.sp),
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(
@@ -523,7 +448,7 @@ fun ValuationsScreen(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Dismiss error",
-                                tint = Color(0xFF991B1B),
+                                tint = StatusRed,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -531,8 +456,9 @@ fun ValuationsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(SpaceSM))
 
+            // Filter Tabs
             val tabs = listOf(
                 MastorTabItem(label = "All", badgeCount = valuationsList.size),
                 MastorTabItem(label = "Drafts", badgeCount = draftCount),
@@ -545,21 +471,24 @@ fun ValuationsScreen(
                 onTabSelected = { selectedFilterIndex = it },
                 modifier = Modifier.testTag("valuations_filter_tabs")
             )
+
+            Spacer(modifier = Modifier.height(SpaceSM))
         }
 
         if (filteredValuations.isEmpty()) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No valuations under this tab.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MastorInkMuted
-                    )
+                MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(SpaceXL),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        BracketLabel(
+                            text = "NO VALUATIONS UNDER THIS TAB",
+                            color = MastorCreamMuted
+                        )
+                    }
                 }
             }
         } else {
@@ -567,14 +496,7 @@ fun ValuationsScreen(
                 val isExpanded = expandedValuationIds.contains(calcVal.entity.id)
                 val isInvoiced = calcVal.entity.status.equals("Invoiced", ignoreCase = true)
 
-                val jobRef = uiState.project?.projectNumber?.ifBlank { uiState.project?.contractRef } ?: uiState.project?.contractRef ?: ""
-                val fullValuationHeader = when {
-                    uiState.project != null && jobRef.isNotBlank() -> "${uiState.project!!.name} — $jobRef — ${calcVal.entity.valuationNumber}"
-                    uiState.project != null -> "${uiState.project!!.name} — ${calcVal.entity.valuationNumber}"
-                    else -> calcVal.entity.valuationNumber
-                }
-
-                CollapsibleValuationCard(
+                MastorValuationCard(
                     project = uiState.project,
                     calculatedValuation = calcVal,
                     scopeElements = scopeElements,
@@ -601,7 +523,7 @@ fun ValuationsScreen(
                     },
                     onShowTrace = {
                         viewModel.showTrace(
-                            title = "$fullValuationHeader Calculation Audit",
+                            title = "${calcVal.entity.valuationNumber} Calculation Audit",
                             steps = calcVal.traceSteps
                         )
                     },
@@ -613,11 +535,18 @@ fun ValuationsScreen(
                 )
             }
         }
+
+        item {
+            Spacer(modifier = Modifier.height(Space3XL))
+        }
     }
 }
 
+/**
+ * Redesigned Valuation Card using MastorDarkCard
+ */
 @Composable
-private fun CollapsibleValuationCard(
+private fun MastorValuationCard(
     project: Project? = null,
     calculatedValuation: CalculatedValuation,
     scopeElements: List<ScopeElement>,
@@ -636,596 +565,384 @@ private fun CollapsibleValuationCard(
     onRevertVo: (VariationOrder) -> Unit
 ) {
     val valuation = calculatedValuation.entity
-    val jobRef = project?.projectNumber?.ifBlank { project.contractRef } ?: project?.contractRef ?: ""
-    val fullValuationHeader = when {
-        project != null && jobRef.isNotBlank() -> "${project.name} — $jobRef — ${valuation.valuationNumber}"
-        project != null -> "${project.name} — ${valuation.valuationNumber}"
-        else -> valuation.valuationNumber
-    }
 
-    var isUpliftBreakdownExpanded by remember { mutableStateOf(false) }
-    var isSection1Expanded by remember { mutableStateOf(true) }
-    var isSection2Expanded by remember { mutableStateOf(true) }
+    // Calculate contract progress
+    val baseScopeSum = scopeElements.sumOf { it.qty * it.rate }
+    val up1Val = project?.uplift1Percent ?: 0.0
+    val up2Val = project?.uplift2Percent ?: 0.0
+    val totalContractValue = if (project != null && baseScopeSum > 0.0) {
+        MastorCalculationEngine.calculateCompoundedTotal(baseScopeSum, up1Val, up2Val)
+    } else {
+        calculatedValuation.grandInvoiceTotal.coerceAtLeast(1.0)
+    }
+    val contractCertifiedPercent = if (totalContractValue > 0.0) {
+        (calculatedValuation.grandInvoiceTotal / totalContractValue * 100.0).coerceIn(0.0, 100.0)
+    } else 0.0
+
+    val scopeLineItems = scopeElements.map { ValuationLineItem.ScopeLineItem(it) }
+    val variationLineItems = variationOrders.map { ValuationLineItem.VariationLineItem(it) }
+    val allLineItems = scopeLineItems + variationLineItems
+
+    val previouslyCertifiedTotal = MastorCalculationEngine.roundMoney(
+        allLineItems.sumOf { it.previouslyCertifiedValue }
+    )
+    val thisPeriodClaimTotal = MastorCalculationEngine.roundMoney(
+        allLineItems.sumOf { it.thisClaimValue }
+    )
+    val cumulativeCertifiedTotal = MastorCalculationEngine.roundMoney(
+        previouslyCertifiedTotal + thisPeriodClaimTotal
+    )
+
+    val (u1Amount, u2Amount, grossInvoiceTotal) = MastorCalculationEngine.calculateProjectUplifts(
+        baseAmount = thisPeriodClaimTotal,
+        uplift1Percent = calculatedValuation.uplift1Percent,
+        uplift2Percent = calculatedValuation.uplift2Percent
+    )
+    val upliftsOnThisPeriod = MastorCalculationEngine.roundMoney(u1Amount + u2Amount)
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
         label = "chevronRotation"
     )
 
-    Surface(
+    MastorDarkCard(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("collapsible_val_card_${valuation.id}"),
-        shape = RoundedCornerShape(12.dp),
-        color = MastorCreamDark,
-        border = BorderStroke(
-            1.dp,
-            if (isInvoiced) StatusClaimedGreen.copy(alpha = 0.4f) else MastorCreamBorder
-        )
+            .testTag("collapsible_val_card_${valuation.id}")
     ) {
-        Column {
-            // Calm, compact header row
+        // Valuation card header row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggleExpand() },
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left: valuation number in MastorFinancialMed MastorCopper, status date in MastorBody MastorCreamMuted
+            Column {
+                Text(
+                    text = valuation.valuationNumber,
+                    style = MastorFinancialMed.copy(color = MastorCopper)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${valuation.date} • ${valuation.preparedBy}",
+                    style = MastorBody.copy(color = MastorCreamMuted, fontSize = 12.sp)
+                )
+            }
+
+            // Right: MastorStatusBadge(valuation.status) + expand chevron
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggleExpand() }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SpaceSM)
+            ) {
+                MastorStatusBadge(status = valuation.status)
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MastorCreamMuted,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .rotate(chevronRotation)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(SpaceMD))
+
+        // Valuation card body (collapsed): three metric rows + progress ring
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Three metric rows:
+            // BracketLabel("THIS PERIOD") / value in MastorFinancialMed MastorCopper
+            // BracketLabel("PREV CERTIFIED") / value in MastorFinancialSmall MastorCreamMuted
+            // BracketLabel("GROSS TOTAL") / value in MastorFinancialMed MastorCreamText
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth(0.9f),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (isInvoiced) Icons.Default.Lock else Icons.Default.ReceiptLong,
-                        contentDescription = null,
-                        tint = if (isInvoiced) StatusClaimedGreen else MastorInkMuted,
-                        modifier = Modifier.size(18.dp)
+                    BracketLabel(text = "THIS PERIOD", color = MastorCreamMuted)
+                    Text(
+                        text = MastorCalculationEngine.formatCurrency(thisPeriodClaimTotal),
+                        style = MastorFinancialMed.copy(color = MastorCopper)
                     )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = fullValuationHeader,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorInk
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            if (isInvoiced) {
-                                MastorBadge(
-                                    text = "LOCKED",
-                                    statusType = MastorStatusType.CLAIMED
-                                )
-                            } else {
-                                MastorBadge(
-                                    text = "DRAFT",
-                                    statusType = MastorStatusType.PENDING
-                                )
-                            }
-                        }
-                        Text(
-                            text = "${valuation.date} • ${valuation.preparedBy}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MastorInkMuted
-                        )
-                    }
                 }
 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(0.9f),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = MastorCalculationEngine.formatCurrency(calculatedValuation.grandInvoiceTotal),
-                            style = MastorFinancialMed,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isInvoiced) StatusClaimedGreen else MastorInk
-                        )
-                        Text(
-                            text = "${calculatedValuation.claimedScopeCount} scopes • ${calculatedValuation.claimedVoCount} VOs",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MastorInkMuted
-                        )
-                    }
+                    BracketLabel(text = "PREV CERTIFIED", color = MastorCreamMuted)
+                    Text(
+                        text = MastorCalculationEngine.formatCurrency(previouslyCertifiedTotal),
+                        style = MastorFinancialSmall.copy(color = MastorCreamMuted)
+                    )
+                }
 
-                    Icon(
-                        imageVector = Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = MastorInkMuted,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .rotate(chevronRotation)
+                Row(
+                    modifier = Modifier.fillMaxWidth(0.9f),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BracketLabel(text = "GROSS TOTAL", color = MastorCreamMuted)
+                    Text(
+                        text = MastorCalculationEngine.formatCurrency(calculatedValuation.grandInvoiceTotal),
+                        style = MastorFinancialMed.copy(color = MastorCreamText)
                     )
                 }
             }
 
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+            // Progress ring: MastorCopper stroke on MastorCharcoalLight background, percentage in MastorFinancialSmall centre
+            Box(
+                modifier = Modifier.size(68.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Column(modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {
-                    HorizontalDivider(color = MastorCreamBorder)
-                    Spacer(modifier = Modifier.height(10.dp))
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokeW = 7.dp.toPx()
+                    val diameter = size.minDimension - strokeW
+                    val topLeft = Offset(strokeW / 2f, strokeW / 2f)
+                    val arcSize = Size(diameter, diameter)
 
-                    // Grand total summary bar & Stacked Progress Visualizer
-                    val baseScopeSum = scopeElements.sumOf { it.qty * it.rate }
-                    val up1Val = project?.uplift1Percent ?: 0.0
-                    val up2Val = project?.uplift2Percent ?: 0.0
-                    val totalContractValue = if (project != null && baseScopeSum > 0.0) {
-                        MastorCalculationEngine.calculateCompoundedTotal(baseScopeSum, up1Val, up2Val)
-                    } else {
-                        calculatedValuation.grandInvoiceTotal.coerceAtLeast(1.0)
-                    }
-                    val contractCertifiedPercent = if (totalContractValue > 0.0) {
-                        (calculatedValuation.grandInvoiceTotal / totalContractValue * 100.0).coerceIn(0.0, 100.0)
-                    } else 0.0
+                    // Background ring track: MastorCharcoalLight
+                    drawArc(
+                        color = MastorCharcoalLight,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(width = strokeW, cap = StrokeCap.Round)
+                    )
 
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MastorCream,
-                        border = BorderStroke(1.dp, MastorCreamBorder)
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "GROSS VALUATION TOTAL",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MastorInkMuted,
-                                        letterSpacing = 0.5.sp
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = MastorCalculationEngine.formatCurrency(calculatedValuation.grandInvoiceTotal),
-                                        style = MastorFinancialLarge,
-                                        color = MastorCopper,
-                                        modifier = Modifier.testTag("grand_invoice_total_text_${valuation.id}")
-                                    )
-                                }
-
-                                // Circular Progress Ring (% of contract value certified)
-                                ValuationContractCircularRing(
-                                    percentOfContract = contractCertifiedPercent,
-                                    modifier = Modifier.size(68.dp)
-                                )
-
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    ExportToExcelButton(onClick = onExportExcel)
-                                    IconButton(
-                                        onClick = onShowTrace,
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .testTag("audit_trace_button_${valuation.id}")
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Analytics,
-                                            contentDescription = "Audit Trace",
-                                            tint = MastorInkMuted,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            // 4 Key Valuation Metrics Grid
-                            val prevCertified = 0.0
-                            val retentionAmt = MastorCalculationEngine.roundMoney(calculatedValuation.grandInvoiceTotal * 0.05)
-                            val netPayable = (calculatedValuation.grandInvoiceTotal - prevCertified - retentionAmt).coerceAtLeast(0.0)
-                            val thisClaim = (calculatedValuation.grandInvoiceTotal - prevCertified).coerceAtLeast(0.0)
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Previous Certified",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 11.sp,
-                                        color = MastorInkMuted
-                                    )
-                                    Text(
-                                        text = MastorCalculationEngine.formatCurrency(prevCertified),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MastorInk
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Retention (5%)",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 11.sp,
-                                        color = MastorInkMuted
-                                    )
-                                    Text(
-                                        text = MastorCalculationEngine.formatCurrency(retentionAmt),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = StatusPendingAmber
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = "Net Claim This Period",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 11.sp,
-                                        color = MastorInkMuted
-                                    )
-                                    Text(
-                                        text = MastorCalculationEngine.formatCurrency(netPayable),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = StatusClaimedGreen
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Stacked horizontal bar per valuation: Previously Certified (slate), This Claim (gold), Remaining (border)
-                            ValuationStackedContractBar(
-                                previouslyCertified = prevCertified,
-                                thisClaim = thisClaim,
-                                contractValue = totalContractValue
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "Base Scope: ${MastorCalculationEngine.formatCurrency(calculatedValuation.scopeBaseClaimedTotal)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp,
-                                    color = MastorInkMuted
-                                )
-                                Text(
-                                    text = "VOs: ${MastorCalculationEngine.formatCurrency(calculatedValuation.voBaseClaimedTotal)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp,
-                                    color = MastorInkMuted
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Primary Action Button or Certified Locked State
-                    if (!isInvoiced) {
-                        MastorButton(
-                            text = "Issue Invoice & Lock",
-                            onClick = onIssueInvoice,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .testTag("issue_invoice_button_${valuation.id}")
+                    // Foreground ring: MastorCopper
+                    val sweep = (contractCertifiedPercent / 100.0 * 360.0).toFloat().coerceIn(0f, 360f)
+                    if (sweep > 0f) {
+                        drawArc(
+                            color = MastorCopper,
+                            startAngle = -90f,
+                            sweepAngle = sweep,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = arcSize,
+                            style = Stroke(width = strokeW, cap = StrokeCap.Round)
                         )
-                    } else {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            color = StatusClaimedGreen.copy(alpha = 0.08f),
-                            border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.4f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = null,
-                                    tint = StatusClaimedGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Valuation Certified & Locked (Immutable)",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = StatusClaimedGreen
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        OutlinedButton(
-                            onClick = onGeneratePdfInvoice,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .testTag("generate_pdf_invoice_button_${valuation.id}"),
-                            border = BorderStroke(1.5.dp, MastorCopper),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MastorCopper
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ReceiptLong,
-                                contentDescription = null,
-                                tint = MastorCopper,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Generate PDF Invoice",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorCopper
-                            )
-                        }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "${contractCertifiedPercent.toInt()}%",
+                    style = MastorFinancialSmall.copy(color = MastorCopper)
+                )
+            }
+        }
 
-                    // Step-by-Step Uplift Breakdown (collapsed by default)
-                    Row(
+        // Expanded state shows ValuationItemsList
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Column(modifier = Modifier.padding(top = SpaceMD)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MastorCharcoalLight)
+                )
+
+                Spacer(modifier = Modifier.height(SpaceMD))
+
+                // Action buttons: Excel & Audit Trace
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ExportToExcelButton(onClick = onExportExcel)
+                    Spacer(modifier = Modifier.width(SpaceSM))
+                    IconButton(
+                        onClick = onShowTrace,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("audit_trace_button_${valuation.id}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Analytics,
+                            contentDescription = "Audit Trace",
+                            tint = MastorCreamMuted,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(SpaceSM))
+
+                // Primary actions: Issue Invoice & Lock OR Generate PDF Invoice
+                if (!isInvoiced) {
+                    MastorPrimaryButton(
+                        text = "Issue Invoice & Lock",
+                        onClick = onIssueInvoice,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { isUpliftBreakdownExpanded = !isUpliftBreakdownExpanded }
-                            .padding(vertical = 4.dp),
+                            .testTag("issue_invoice_button_${valuation.id}")
+                    )
+                } else {
+                    // "Generate PDF Invoice" button: MastorPrimaryButton full width, only on Invoiced valuations
+                    MastorPrimaryButton(
+                        text = "Generate PDF Invoice",
+                        onClick = onGeneratePdfInvoice,
+                        icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("generate_pdf_invoice_button_${valuation.id}")
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(SpaceXL))
+
+                // Expanded panel sections use BracketLabel headers: [ CONTRACT SCOPE ]
+                BracketLabel(text = "CONTRACT SCOPE", color = MastorCopper)
+                Spacer(modifier = Modifier.height(SpaceSM))
+
+                if (scopeLineItems.isEmpty()) {
+                    Text(
+                        text = "No contract scope items.",
+                        style = MastorBody.copy(color = MastorCreamMuted)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(SpaceSM)) {
+                        scopeLineItems.forEach { item ->
+                            val scope = item.element
+                            val calculatedScope = MastorCalculationEngine.calculateScopeElement(scope)
+                            val isClaimed = scope.claimPercent > 0.0
+
+                            ScopeValuationItemMastorCard(
+                                scope = scope,
+                                calculatedScope = calculatedScope,
+                                isClaimed = isClaimed,
+                                isDisabled = isInvoiced,
+                                onToggleClaim = { onToggleScope(scope) },
+                                onUpdatePercent = { newPct -> onUpdateScopePercent(scope.id, newPct) },
+                                onDelete = { onRevertScope(scope) }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(SpaceXL))
+
+                // Expanded panel sections use BracketLabel headers: [ VARIATION ORDERS ]
+                BracketLabel(text = "VARIATION ORDERS", color = StatusAmber)
+                Spacer(modifier = Modifier.height(SpaceSM))
+
+                if (variationLineItems.isEmpty()) {
+                    Text(
+                        text = "No variation orders for this project.",
+                        style = MastorBody.copy(color = MastorCreamMuted)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(SpaceSM)) {
+                        variationLineItems.forEach { item ->
+                            val vo = item.vo
+                            VoValuationItemMastorCard(
+                                vo = vo,
+                                isDisabled = isInvoiced,
+                                onToggleTick = { onToggleVo(vo) },
+                                onDelete = { onRevertVo(vo) }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(SpaceXL))
+
+                // Running totals section: MastorCopperCard, all labels as BracketLabel, all values MastorFinancialMed
+                MastorCopperCard(modifier = Modifier.fillMaxWidth()) {
+                    BracketLabel(text = "VALUATION RUNNING TOTALS", color = MastorInk)
+                    Spacer(modifier = Modifier.height(SpaceSM))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        BracketLabel(text = "PREVIOUSLY CERTIFIED", color = MastorInkMuted)
                         Text(
-                            text = "Uplift Breakdown (+${calculatedValuation.uplift1Percent}% / +${calculatedValuation.uplift2Percent}%)",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            text = MastorCalculationEngine.formatCurrency(previouslyCertifiedTotal),
+                            style = MastorFinancialMed.copy(color = MastorInk)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(SpaceXS))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BracketLabel(text = "THIS PERIOD CLAIM", color = MastorInkMuted)
+                        Text(
+                            text = MastorCalculationEngine.formatCurrency(thisPeriodClaimTotal),
+                            style = MastorFinancialMed.copy(color = MastorCopper)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(SpaceXS))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BracketLabel(text = "CUMULATIVE CERTIFIED", color = MastorInkMuted)
+                        Text(
+                            text = MastorCalculationEngine.formatCurrency(cumulativeCertifiedTotal),
+                            style = MastorFinancialMed.copy(color = MastorInk)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(SpaceXS))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BracketLabel(
+                            text = "UPLIFTS (+${calculatedValuation.uplift1Percent}% / +${calculatedValuation.uplift2Percent}%)",
                             color = MastorInkMuted
                         )
-                        Icon(
-                            imageVector = if (isUpliftBreakdownExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = MastorInkMuted,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-
-                    AnimatedVisibility(visible = isUpliftBreakdownExpanded) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MastorCream, RoundedCornerShape(6.dp))
-                                .padding(8.dp)
-                        ) {
-                            ReceiptRow(
-                                label = "Base Claimed (Scope + VOs)",
-                                value = MastorCalculationEngine.formatCurrency(calculatedValuation.subtotalBaseClaimed)
-                            )
-                            ReceiptRow(
-                                label = "Uplift 1 (+${calculatedValuation.uplift1Percent}%)",
-                                value = "+ ${MastorCalculationEngine.formatCurrency(calculatedValuation.uplift1Amount)}"
-                            )
-                            ReceiptRow(
-                                label = "Uplift 2 (+${calculatedValuation.uplift2Percent}%)",
-                                value = "+ ${MastorCalculationEngine.formatCurrency(calculatedValuation.uplift2Amount)}"
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MastorCreamBorder)
-                            ReceiptRow(
-                                label = "Grand Total",
-                                value = MastorCalculationEngine.formatCurrency(calculatedValuation.grandInvoiceTotal),
-                                isBold = true
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Unified Claim Items mapping
-                    val scopeLineItems = scopeElements.map { ValuationLineItem.ScopeLineItem(it) }
-                    val variationLineItems = variationOrders.map { ValuationLineItem.VariationLineItem(it) }
-                    val allLineItems: List<ValuationLineItem> = scopeLineItems + variationLineItems
-
-                    // Running totals for claim items
-                    val previouslyCertifiedTotal = MastorCalculationEngine.roundMoney(
-                        allLineItems.sumOf { it.previouslyCertifiedValue }
-                    )
-                    val thisPeriodClaimTotal = MastorCalculationEngine.roundMoney(
-                        allLineItems.sumOf { it.thisClaimValue }
-                    )
-                    val cumulativeCertifiedTotal = MastorCalculationEngine.roundMoney(
-                        previouslyCertifiedTotal + thisPeriodClaimTotal
-                    )
-
-                    val (u1Amount, u2Amount, grossInvoiceTotal) = MastorCalculationEngine.calculateProjectUplifts(
-                        baseAmount = thisPeriodClaimTotal,
-                        uplift1Percent = calculatedValuation.uplift1Percent,
-                        uplift2Percent = calculatedValuation.uplift2Percent
-                    )
-                    val upliftsOnThisPeriod = MastorCalculationEngine.roundMoney(u1Amount + u2Amount)
-
-                    // Section 1: CONTRACT SCOPE
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { isSection1Expanded = !isSection1Expanded }
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
                         Text(
-                            text = "CONTRACT SCOPE (${scopeLineItems.size})",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorInkMuted,
-                            letterSpacing = 0.5.sp
-                        )
-                        Icon(
-                            imageVector = if (isSection1Expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = MastorInkMuted,
-                            modifier = Modifier.size(18.dp)
+                            text = "+ ${MastorCalculationEngine.formatCurrency(upliftsOnThisPeriod)}",
+                            style = MastorFinancialMed.copy(color = MastorInk)
                         )
                     }
 
-                    AnimatedVisibility(visible = isSection1Expanded) {
-                        Column(
-                            modifier = Modifier.padding(top = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (scopeLineItems.isEmpty()) {
-                                Text(
-                                    text = "No contract scope items.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MastorInkMuted
-                                )
-                            } else {
-                                scopeLineItems.forEach { item ->
-                                    val scope = item.element
-                                    val calculatedScope = MastorCalculationEngine.calculateScopeElement(scope)
-                                    val isClaimed = scope.claimPercent > 0.0
-
-                                    ScopeValuationItemCard(
-                                        scope = scope,
-                                        calculatedScope = calculatedScope,
-                                        isClaimed = isClaimed,
-                                        isDisabled = isInvoiced,
-                                        onToggleClaim = { onToggleScope(scope) },
-                                        onUpdatePercent = { newPct -> onUpdateScopePercent(scope.id, newPct) },
-                                        onDelete = { onRevertScope(scope) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Section 2: VARIATION ORDERS with Amber accent
-                    Row(
+                    Spacer(modifier = Modifier.height(SpaceSM))
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { isSection2Expanded = !isSection2Expanded }
-                            .padding(vertical = 4.dp),
+                            .height(1.dp)
+                            .background(MastorCreamBorder)
+                    )
+                    Spacer(modifier = Modifier.height(SpaceSM))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 3.dp, height = 12.dp)
-                                    .background(StatusPendingAmber, RoundedCornerShape(2.dp))
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "VARIATION ORDERS (${variationLineItems.count { it.vo.tick || it.vo.claimPercent > 0.0 }}/${variationLineItems.size})",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = StatusPendingAmber,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-                        Icon(
-                            imageVector = if (isSection2Expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = MastorInkMuted,
-                            modifier = Modifier.size(18.dp)
+                        BracketLabel(text = "GROSS INVOICE TOTAL", color = MastorInk)
+                        Text(
+                            text = MastorCalculationEngine.formatCurrency(grossInvoiceTotal),
+                            style = MastorFinancialMed.copy(color = MastorCopper)
                         )
-                    }
-
-                    AnimatedVisibility(visible = isSection2Expanded) {
-                        Column(
-                            modifier = Modifier.padding(top = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (variationLineItems.isEmpty()) {
-                                Text(
-                                    text = "No variation orders for this project.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MastorInkMuted
-                                )
-                            } else {
-                                variationLineItems.forEach { item ->
-                                    val vo = item.vo
-                                    VoValuationItemCard(
-                                        vo = vo,
-                                        isDisabled = isInvoiced,
-                                        onToggleTick = { onToggleVo(vo) },
-                                        onDelete = { onRevertVo(vo) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Running Totals Summary Card at bottom of expanded panel
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        color = MastorCream,
-                        border = BorderStroke(1.dp, MastorCreamBorder)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = "VALUATION TOTALS",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorInkMuted,
-                                letterSpacing = 0.5.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            ReceiptRow(
-                                label = "Previously Certified Total",
-                                value = MastorCalculationEngine.formatCurrency(previouslyCertifiedTotal),
-                                isMuted = true
-                            )
-                            ReceiptRow(
-                                label = "This Period Claim",
-                                value = MastorCalculationEngine.formatCurrency(thisPeriodClaimTotal),
-                                isBold = true,
-                                valueColor = MastorCopper
-                            )
-                            ReceiptRow(
-                                label = "Cumulative Certified",
-                                value = MastorCalculationEngine.formatCurrency(cumulativeCertifiedTotal)
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MastorCreamBorder.copy(alpha = 0.6f))
-                            ReceiptRow(
-                                label = "Uplifts on This Period (+${calculatedValuation.uplift1Percent}% / +${calculatedValuation.uplift2Percent}%)",
-                                value = "+ ${MastorCalculationEngine.formatCurrency(upliftsOnThisPeriod)}"
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = MastorCreamBorder)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Gross Invoice Total",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorInk
-                                )
-                                Text(
-                                    text = MastorCalculationEngine.formatCurrency(grossInvoiceTotal),
-                                    style = MastorFinancialLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorCopper
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -1234,10 +951,12 @@ private fun CollapsibleValuationCard(
 }
 
 /**
- * Scope item in valuation with clear base contract badge and full wrap description.
+ * Line item: MastorCard (cream, not dark — contrast against dark valuation card)
+ * Description full wrap, value right-aligned in MastorFinancialSmall MastorCopper, MastorCode style for ref codes.
+ * Remove button: MastorDestructiveButton small variant, only shows when status is Draft.
  */
 @Composable
-private fun ScopeValuationItemCard(
+private fun ScopeValuationItemMastorCard(
     scope: ScopeElement,
     calculatedScope: com.example.domain.calculation.CalculatedScopeElement,
     isClaimed: Boolean,
@@ -1248,182 +967,123 @@ private fun ScopeValuationItemCard(
 ) {
     val thisClaimPercent = (scope.claimPercent - scope.previouslyCertifiedPercent).coerceAtLeast(0.0)
     val thisClaimValue = MastorCalculationEngine.roundMoney(scope.qty * scope.rate * (thisClaimPercent / 100.0))
-    val previouslyCertifiedValue = MastorCalculationEngine.roundMoney(scope.qty * scope.rate * (scope.previouslyCertifiedPercent / 100.0))
-    val cumulativeValue = MastorCalculationEngine.roundMoney(scope.qty * scope.rate * (scope.claimPercent / 100.0))
 
-    Surface(
+    MastorCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("scope_valuation_item_${scope.id}"),
-        shape = RoundedCornerShape(10.dp),
-        color = MastorCreamDark,
-        border = BorderStroke(
-            1.dp,
-            if (isClaimed) StatusClaimedGreen.copy(alpha = 0.35f) else MastorCreamBorder
-        )
+        internalPadding = SpaceMD
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Header Row with Badge, Code and Values
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.weight(1f)
             ) {
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Checkbox(
-                        checked = isClaimed,
-                        onCheckedChange = { if (!isDisabled) onToggleClaim() },
-                        enabled = !isDisabled,
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = StatusClaimedGreen,
-                            uncheckedColor = MastorInkMuted
-                        ),
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = MastorCopper.copy(alpha = 0.12f)
-                            ) {
-                                Text(
-                                    text = "BASE SCOPE",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorCopper,
-                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                                )
-                            }
-                            Text(
-                                text = scope.code,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorInk
-                            )
+                Checkbox(
+                    checked = isClaimed,
+                    onCheckedChange = { if (!isDisabled) onToggleClaim() },
+                    enabled = !isDisabled,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = StatusGreen,
+                        uncheckedColor = MastorInkMuted
+                    ),
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(SpaceXS))
+                Column(modifier = Modifier.weight(1f)) {
+                    // Ref code in MastorCode
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(SpaceXS)
+                    ) {
+                        Text(
+                            text = scope.code,
+                            style = MastorCode.copy(color = MastorCopper, fontSize = 12.sp)
+                        )
+                        if (scope.locationRoom.isNotBlank()) {
                             Text(
                                 text = "• ${scope.locationRoom}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MastorInkMuted
+                                style = MastorBody.copy(color = MastorInkMuted, fontSize = 11.sp)
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Full wrap description — never truncated
-                        Text(
-                            text = scope.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MastorInk,
-                            lineHeight = 18.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        Text(
-                            text = "${scope.qty} ${scope.units} @ ${MastorCalculationEngine.formatCurrency(scope.rate)} (Base: ${MastorCalculationEngine.formatCurrency(calculatedScope.baseCost)})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MastorInkMuted,
-                            fontSize = 12.sp
-                        )
                     }
-                }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
-                Column(horizontalAlignment = Alignment.End) {
+                    // Description full wrap
                     Text(
-                        text = "This Period: ${MastorCalculationEngine.formatCurrency(thisClaimValue)}",
-                        style = MastorFinancialMed,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorCopper
+                        text = scope.description,
+                        style = MastorBody.copy(color = MastorInk, fontSize = 13.sp)
                     )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
                     Text(
-                        text = "Previously Certified: ${MastorCalculationEngine.formatCurrency(previouslyCertifiedValue)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        color = MastorInkMuted
-                    )
-                    Text(
-                        text = "Cumulative: ${MastorCalculationEngine.formatCurrency(cumulativeValue)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        color = MastorInk
-                    )
-                    Text(
-                        text = "${scope.claimPercent.toInt()}% claimed",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isClaimed) StatusClaimedGreen else MastorInkMuted,
-                        fontWeight = FontWeight.SemiBold
+                        text = "${scope.qty} ${scope.units} @ ${MastorCalculationEngine.formatCurrency(scope.rate)}",
+                        style = MastorFinancialSmall.copy(color = MastorInkMuted, fontSize = 11.sp)
                     )
                 }
             }
 
-            if (!isDisabled) {
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = MastorCreamBorder.copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.width(SpaceSM))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(0, 25, 50, 75, 100).forEach { pct ->
-                            val effectivePct = pct.toDouble().coerceAtLeast(scope.previouslyCertifiedPercent)
-                            val isSelected = scope.claimPercent.toInt() == effectivePct.toInt()
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isSelected) MastorCopper else MastorCream,
-                                border = BorderStroke(1.dp, if (isSelected) MastorCopper else MastorCreamBorder),
-                                modifier = Modifier
-                                    .heightIn(min = 36.dp)
-                                    .clickable { onUpdatePercent(effectivePct) }
-                                    .testTag("claim_chip_${scope.id}_$pct")
-                            ) {
-                                Box(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "$pct%",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 11.sp,
-                                        color = if (isSelected) Color.White else MastorInk,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
+            // Value right-aligned in MastorFinancialSmall MastorCopper
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = MastorCalculationEngine.formatCurrency(thisClaimValue),
+                    style = MastorFinancialSmall.copy(color = MastorCopper)
+                )
+                Text(
+                    text = "${scope.claimPercent.toInt()}% claimed",
+                    style = MastorBody.copy(
+                        fontSize = 10.sp,
+                        color = if (isClaimed) StatusGreen else MastorInkMuted
+                    )
+                )
+            }
+        }
 
-                    if (isClaimed) {
-                        TextButton(
-                            onClick = onDelete,
-                            modifier = Modifier.testTag("revert_scope_${scope.id}")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Remove",
-                                tint = MastorInkMuted,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Remove",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MastorInkMuted
-                            )
-                        }
+        if (!isDisabled) {
+            Spacer(modifier = Modifier.height(SpaceSM))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MastorCreamBorder)
+            )
+            Spacer(modifier = Modifier.height(SpaceSM))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Quick claim buttons
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(0, 25, 50, 75, 100).forEach { pct ->
+                        val effectivePct = pct.toDouble().coerceAtLeast(scope.previouslyCertifiedPercent)
+                        val isSelected = scope.claimPercent.toInt() == effectivePct.toInt()
+                        MastorActionChip(
+                            text = "$pct%",
+                            onClick = { onUpdatePercent(effectivePct) },
+                            isSelected = isSelected,
+                            modifier = Modifier.testTag("claim_chip_${scope.id}_$pct")
+                        )
                     }
+                }
+
+                // Remove button: MastorDestructiveButton small variant, only shows when status is Draft
+                if (isClaimed) {
+                    MastorDestructiveButton(
+                        text = "Remove",
+                        onClick = onDelete,
+                        isSmall = true,
+                        modifier = Modifier.testTag("revert_scope_${scope.id}")
+                    )
                 }
             }
         }
@@ -1431,10 +1091,10 @@ private fun ScopeValuationItemCard(
 }
 
 /**
- * Variation Order row in valuation with distinct VO badge and full wrap description.
+ * Variation line item: MastorCard (cream)
  */
 @Composable
-private fun VoValuationItemCard(
+private fun VoValuationItemMastorCard(
     vo: VariationOrder,
     isDisabled: Boolean,
     onToggleTick: () -> Unit,
@@ -1443,178 +1103,106 @@ private fun VoValuationItemCard(
     val effectiveClaimPercent = if (vo.tick && vo.claimPercent <= 0.0) 100.0 else vo.claimPercent
     val thisClaimPercent = (effectiveClaimPercent - vo.previouslyCertifiedPercent).coerceAtLeast(0.0)
     val thisClaimValue = MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (thisClaimPercent / 100.0))
-    val previouslyCertifiedValue = MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (vo.previouslyCertifiedPercent / 100.0))
-    val cumulativeValue = MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (effectiveClaimPercent / 100.0))
 
-    Surface(
+    MastorCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("vo_valuation_item_${vo.id}"),
-        shape = RoundedCornerShape(10.dp),
-        color = MastorCreamDark,
-        border = BorderStroke(
-            1.dp,
-            if (vo.tick || vo.claimPercent > 0.0) StatusClaimedGreen.copy(alpha = 0.35f) else MastorCreamBorder
-        )
+        internalPadding = SpaceMD
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.weight(1f)
             ) {
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Checkbox(
-                        checked = vo.tick || vo.claimPercent > 0.0,
-                        onCheckedChange = { if (!isDisabled) onToggleTick() },
-                        enabled = !isDisabled,
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = StatusClaimedGreen,
-                            uncheckedColor = MastorInkMuted
-                        ),
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = StatusPendingAmber.copy(alpha = 0.15f)
-                            ) {
-                                Text(
-                                    text = "VARIATION ORDER",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = StatusPendingAmber,
-                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                                )
-                            }
+                Checkbox(
+                    checked = vo.tick || vo.claimPercent > 0.0,
+                    onCheckedChange = { if (!isDisabled) onToggleTick() },
+                    enabled = !isDisabled,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = StatusGreen,
+                        uncheckedColor = MastorInkMuted
+                    ),
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(SpaceXS))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(SpaceXS)
+                    ) {
+                        Text(
+                            text = vo.voNumber,
+                            style = MastorCode.copy(color = StatusAmber, fontSize = 12.sp)
+                        )
+                        if (vo.property.isNotBlank()) {
                             Text(
-                                text = "${vo.voNumber} • ${vo.property}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorInk
+                                text = "• ${vo.property}",
+                                style = MastorBody.copy(color = MastorInkMuted, fontSize = 11.sp)
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Full wrap description — never truncated
-                        Text(
-                            text = vo.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MastorInk,
-                            lineHeight = 18.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        Text(
-                            text = "${vo.qty} ${vo.units} @ ${MastorCalculationEngine.formatCurrency(vo.rate)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MastorInkMuted,
-                            fontSize = 12.sp
-                        )
                     }
-                }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
-                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "This Period: ${MastorCalculationEngine.formatCurrency(thisClaimValue)}",
-                        style = MastorFinancialMed,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorCopper
+                        text = vo.description,
+                        style = MastorBody.copy(color = MastorInk, fontSize = 13.sp)
                     )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
                     Text(
-                        text = "Previously Certified: ${MastorCalculationEngine.formatCurrency(previouslyCertifiedValue)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        color = MastorInkMuted
-                    )
-                    Text(
-                        text = "Cumulative: ${MastorCalculationEngine.formatCurrency(cumulativeValue)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        color = MastorInk
-                    )
-                    Text(
-                        text = "${effectiveClaimPercent.toInt()}% claimed",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (vo.claimPercent > 0.0 || vo.tick) StatusClaimedGreen else MastorInkMuted,
-                        fontWeight = FontWeight.SemiBold
+                        text = "${vo.qty} ${vo.units} @ ${MastorCalculationEngine.formatCurrency(vo.rate)}",
+                        style = MastorFinancialSmall.copy(color = MastorInkMuted, fontSize = 11.sp)
                     )
                 }
             }
 
-            if (!isDisabled) {
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = MastorCreamBorder.copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.width(SpaceSM))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(
-                        onClick = onDelete,
-                        modifier = Modifier.testTag("remove_vo_${vo.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Remove",
-                            tint = MastorInkMuted,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Remove",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MastorInkMuted
-                        )
-                    }
-                }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = MastorCalculationEngine.formatCurrency(thisClaimValue),
+                    style = MastorFinancialSmall.copy(color = MastorCopper)
+                )
+                Text(
+                    text = "${effectiveClaimPercent.toInt()}% claimed",
+                    style = MastorBody.copy(
+                        fontSize = 10.sp,
+                        color = if (vo.claimPercent > 0.0 || vo.tick) StatusGreen else MastorInkMuted
+                    )
+                )
             }
         }
-    }
-}
 
-@Composable
-private fun ReceiptRow(
-    label: String,
-    value: String,
-    isBold: Boolean = false,
-    isMuted: Boolean = false,
-    valueColor: Color = MastorInk
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-            color = if (isMuted) MastorInkMuted else MastorInk
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = if (isBold) FontWeight.Bold else FontWeight.SemiBold,
-            color = if (isMuted) MastorInkMuted else valueColor
-        )
+        if (!isDisabled) {
+            Spacer(modifier = Modifier.height(SpaceSM))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MastorCreamBorder)
+            )
+            Spacer(modifier = Modifier.height(SpaceSM))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                MastorDestructiveButton(
+                    text = "Remove",
+                    onClick = onDelete,
+                    isSmall = true,
+                    modifier = Modifier.testTag("remove_vo_${vo.id}")
+                )
+            }
+        }
     }
 }
 
@@ -1632,9 +1220,16 @@ private fun NewValuationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Add, contentDescription = null, tint = MastorCopper) },
-        title = { Text("New Valuation Period") },
+        title = {
+            Text(
+                "New Valuation Period",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MastorInk
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SpaceSM)) {
                 OutlinedTextField(
                     value = valNum,
                     onValueChange = { valNum = it },
@@ -1673,7 +1268,7 @@ private fun NewValuationDialog(
             }
         },
         confirmButton = {
-            MastorButton(
+            MastorPrimaryButton(
                 text = "Create Draft",
                 onClick = {
                     if (valNum.isNotBlank()) {
@@ -1684,7 +1279,7 @@ private fun NewValuationDialog(
             )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text("Cancel", color = MastorInkMuted) }
         }
     )
 }

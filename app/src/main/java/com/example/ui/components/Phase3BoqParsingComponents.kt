@@ -4,9 +4,12 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,30 +29,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.ListAlt
-import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,7 +59,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -73,32 +77,38 @@ import com.example.domain.boq.ParsedBoqResult
 import com.example.domain.boq.ParsedScopeElement
 import com.example.domain.boq.ParsedWorkOrder
 import com.example.domain.calculation.MastorCalculationEngine
-import com.example.ui.components.MastorTopBar
 import com.example.ui.theme.BracketLabel
+import com.example.ui.theme.MastorBody
+import com.example.ui.theme.MastorBracketLabel
 import com.example.ui.theme.MastorCard
-import com.example.ui.theme.MastorFinancialLarge
-import com.example.ui.theme.MastorFinancialMed
-import com.example.ui.theme.MastorPrimaryButton
-import com.example.ui.theme.MastorSecondaryButton
+import com.example.ui.theme.MastorCharcoalLight
+import com.example.ui.theme.MastorCode
 import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCopperCard
 import com.example.ui.theme.MastorCream
 import com.example.ui.theme.MastorCreamBorder
+import com.example.ui.theme.MastorCreamMuted
+import com.example.ui.theme.MastorCreamText
+import com.example.ui.theme.MastorDarkCard
+import com.example.ui.theme.MastorDestructiveButton
+import com.example.ui.theme.MastorFinancialLarge
+import com.example.ui.theme.MastorFinancialMed
+import com.example.ui.theme.MastorFinancialSmall
 import com.example.ui.theme.MastorInk
 import com.example.ui.theme.MastorInkMuted
-import com.example.ui.theme.MastorCreamDark
-import com.example.ui.theme.StatusClaimedBg
-import com.example.ui.theme.StatusClaimedGreen
-import com.example.ui.theme.StatusFlaggedRed
+import com.example.ui.theme.MastorPrimaryButton
+import com.example.ui.theme.MastorSecondaryButton
+import com.example.ui.theme.Space3XL
+import com.example.ui.theme.SpaceLG
+import com.example.ui.theme.SpaceMD
+import com.example.ui.theme.SpaceSM
+import com.example.ui.theme.SpaceXL
+import com.example.ui.theme.SpaceXS
+import com.example.ui.theme.StatusAmber
+import com.example.ui.theme.StatusGreen
+import com.example.ui.theme.StatusRed
 import kotlinx.coroutines.launch
 
-/**
- * Clean Document Upload Screen for BoQ files.
- * Adheres strictly to Design System: Plain document icon, NO wand/sparkle/magic language, no AI iconography.
- */
-/**
- * Unified Single Upload-and-Confirm Screen for BoQ Import.
- * Collapses multi-step review into a single seamless view with mandatory human review step.
- */
 @Composable
 fun BoqUnifiedUploadAndConfirmScreen(
     linkedDocument: LinkedDocument? = null,
@@ -112,7 +122,7 @@ fun BoqUnifiedUploadAndConfirmScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     var pastedText by remember { mutableStateOf("") }
     var localIsParsing by remember { mutableStateOf(false) }
     var localParsedResult by remember { mutableStateOf<ParsedBoqResult?>(null) }
@@ -166,19 +176,18 @@ fun BoqUnifiedUploadAndConfirmScreen(
     val totalBaseCost = parsedResult?.workOrders?.sumOf { wo ->
         wo.scopeElements.sumOf { it.qty * it.rate }
     } ?: 0.0
-    val lowConfidenceCount = parsedResult?.workOrders?.sumOf { wo ->
-        wo.scopeElements.count { it.confidence.equals("LOW", ignoreCase = true) || it.confidence.equals("MEDIUM", ignoreCase = true) || it.flagReason != null }
-    } ?: 0
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .background(MastorCream)
+            .padding(horizontal = SpaceLG),
+        verticalArrangement = Arrangement.spacedBy(SpaceMD)
     ) {
         item {
-            Spacer(modifier = Modifier.height(4.dp))
-            BracketLabel(text = "BILL OF QUANTITIES (BOQ) IMPORT")
+            Spacer(modifier = Modifier.height(SpaceMD))
+            BracketLabel(text = "BILL OF QUANTITIES (BOQ) IMPORT", color = MastorInk)
+            Spacer(modifier = Modifier.height(SpaceXS))
             Text(
                 text = "Upload & Confirm Scope",
                 style = MaterialTheme.typography.headlineSmall,
@@ -187,289 +196,193 @@ fun BoqUnifiedUploadAndConfirmScreen(
             )
             Text(
                 text = "Extract verbatim rates, quantities, and scope lines. Review below before committing to live scope.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MastorInkMuted
+                style = MastorBody.copy(color = MastorInkMuted, fontSize = 13.sp)
             )
         }
 
-        // Cloud Document Section (if linked)
-        if (linkedDocument != null || onOpenCloudPicker != null) {
-            item {
-                LinkedCloudBoqSourceSection(
-                    linkedDocument = linkedDocument,
-                    onOpenPicker = { onOpenCloudPicker?.invoke() },
-                    errorMessage = cloudDocErrorMessage,
-                    onParseLinkedDocument = { doc ->
-                        val contentToParse = when {
-                            !doc.fullContent.isNullOrBlank() -> doc.fullContent
-                            !doc.contentSnippet.isNullOrBlank() -> doc.contentSnippet
-                            else -> null
-                        }
-                        if (contentToParse.isNullOrBlank()) {
-                            cloudDocErrorMessage = "Document content not available — please re-sync from cloud or use the file upload option instead."
-                        } else {
-                            cloudDocErrorMessage = null
-                            localIsParsing = true
-                            coroutineScope.launch {
-                                val res = GeminiBoqParser.parseBoqText(contentToParse)
-                                localParsedResult = res
-                                localIsParsing = false
-                            }
-                        }
-                    },
-                    onUnlinkDocument = onUnlinkDocument
-                )
-            }
-        }
-
-        // Source Selection & Input Card
+        // Upload Component:
+        // MastorDarkCard, dashed border (MastorCharcoalLight, 2dp), MastorCopper icon (48dp),
+        // BracketLabel("UPLOAD BOQ DOCUMENT"), MastorBody supported formats,
+        // MastorPrimaryButton (upload), MastorSecondaryButton (sample).
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
-                border = BorderStroke(1.dp, MastorCreamBorder)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "1. Provide BoQ Data",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorInk
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Real File Picker Button
-                    Button(
-                        onClick = {
-                            filePickerLauncher.launch(
-                                arrayOf(
-                                    "application/pdf",
-                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                    "text/plain",
-                                    "text/csv"
-                                )
+            MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .drawBehind {
+                            val strokeW = 2.dp.toPx()
+                            val stroke = Stroke(
+                                width = strokeW,
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 16f), 0f)
                             )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("upload_file_button"),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MastorCopper,
-                            contentColor = Color.White
-                        )
+                            drawRoundRect(
+                                color = MastorCharcoalLight,
+                                cornerRadius = CornerRadius(12.dp.toPx()),
+                                style = stroke
+                            )
+                        }
+                        .padding(SpaceLG),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(SpaceSM)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.UploadFile,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                            imageVector = Icons.Default.Description,
+                            contentDescription = "Upload Document",
+                            tint = MastorCopper,
+                            modifier = Modifier.size(48.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Upload File",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
 
-                    if (activeGeneralError != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Surface(
-                            color = Color(0xFFFEE2E2),
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                        BracketLabel(
+                            text = "UPLOAD BOQ DOCUMENT",
+                            color = MastorCopper
+                        )
+
+                        Text(
+                            text = "PDF, DOCX, CSV, Excel or plain text schedule supported",
+                            style = MastorBody.copy(color = MastorCreamMuted, fontSize = 13.sp)
+                        )
+
+                        Spacer(modifier = Modifier.height(SpaceXS))
+
+                        MastorPrimaryButton(
+                            text = "Upload File",
+                            onClick = {
+                                filePickerLauncher.launch(
+                                    arrayOf(
+                                        "application/pdf",
+                                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                        "text/plain",
+                                        "text/csv"
+                                    )
+                                )
+                            },
+                            icon = Icons.Default.FileUpload,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .testTag("boq_parsing_error_banner")
+                                .testTag("upload_file_button")
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(SpaceSM)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = Color(0xFFDC2626),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = activeGeneralError,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFF991B1B)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "Or choose sample demo BoQ data:",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MastorInkMuted
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                localIsParsing = true
-                                val res = GeminiBoqParser.getSampleBoqResult1()
-                                localParsedResult = res
-                                localIsParsing = false
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("sample_boq_1_btn")
-                        ) {
-                            Text("Sample 1 (House Refurb)", fontSize = 11.sp, maxLines = 1)
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                localIsParsing = true
-                                val res = GeminiBoqParser.getSampleBoqResult2()
-                                localParsedResult = res
-                                localIsParsing = false
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("sample_boq_2_btn")
-                        ) {
-                            Text("Sample 2 (M&E Fitout)", fontSize = 11.sp, maxLines = 1)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = pastedText,
-                        onValueChange = { pastedText = it },
-                        placeholder = { Text("Or paste BoQ / CSV schedule text here...", fontSize = 12.sp) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(90.dp)
-                            .testTag("boq_text_input"),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
-                    )
-
-                    if (pastedText.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = {
-                                localIsParsing = true
-                                coroutineScope.launch {
-                                    val res = GeminiBoqParser.parseBoqText(pastedText)
+                            MastorSecondaryButton(
+                                text = "Sample 1 (Refurb)",
+                                onClick = {
+                                    localIsParsing = true
+                                    val res = GeminiBoqParser.getSampleBoqResult1()
                                     localParsedResult = res
                                     localIsParsing = false
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("sample_boq_1_btn")
+                            )
+
+                            MastorSecondaryButton(
+                                text = "Sample 2 (M&E)",
+                                onClick = {
+                                    localIsParsing = true
+                                    val res = GeminiBoqParser.getSampleBoqResult2()
+                                    localParsedResult = res
+                                    localIsParsing = false
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("sample_boq_2_btn")
+                            )
+                        }
+
+                        if (activeGeneralError != null) {
+                            Spacer(modifier = Modifier.height(SpaceXS))
+                            Surface(
+                                color = StatusRed.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, StatusRed.copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("boq_parsing_error_banner")
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = StatusRed,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(SpaceSM))
+                                    Text(
+                                        text = activeGeneralError,
+                                        style = MastorBody.copy(color = StatusRed, fontSize = 12.sp)
+                                    )
                                 }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("parse_boq_btn"),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MastorCopper)
-                        ) {
-                            Text("Extract Scope Lines from Text", fontSize = 13.sp)
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Loading State
+        // Parsing state:
+        // MastorDarkCard, BracketLabel("ANALYSING DOCUMENT"), MastorCopper CircularProgressIndicator.
         if (isParsing) {
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
-                    border = BorderStroke(1.dp, MastorCreamBorder)
-                ) {
+                MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(SpaceXL),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(SpaceMD)
                     ) {
                         CircularProgressIndicator(
                             color = MastorCopper,
                             strokeWidth = 3.dp,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(40.dp)
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
+                        BracketLabel(
+                            text = "ANALYSING DOCUMENT",
+                            color = MastorCopper
+                        )
                         Text(
-                            text = "Extracting Verbatim Scope & Rates...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorInk
+                            text = "Extracting verbatim scope lines, quantities, and unit rates...",
+                            style = MastorBody.copy(color = MastorCreamMuted, fontSize = 13.sp)
                         )
                     }
                 }
             }
         }
 
-        // Parsed Review Section (Mandatory Human Review)
+        // Review gate:
+        // MastorCard (cream), BoQ code (MastorCode MastorCopper), description (MastorBody MastorInk),
+        // confidence badge (MastorStatusBadge), metrics (MastorFinancialSmall),
+        // location (MastorCopperCard chip), MastorPrimaryButton (sticky confirm).
         parsedResult?.let { currentResult ->
             item {
-                Surface(
-                    color = MastorCreamDark,
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, MastorCreamBorder),
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            BracketLabel(text = "2. HUMAN REVIEW & CONFIRMATION")
-                            Text(
-                                text = "$totalWorkOrders Work Orders • $totalScopeElements Items",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorInk
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = MastorCalculationEngine.formatCurrency(totalBaseCost),
-                                style = MastorFinancialLarge,
-                                color = MastorInk
-                            )
-                            if (lowConfidenceCount > 0) {
-                                Text(
-                                    text = "$lowConfidenceCount items flagged",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MastorCopper,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
+                    BracketLabel(text = "HUMAN REVIEW & CONFIRMATION", color = MastorInk)
+                    Text(
+                        text = "$totalWorkOrders WOs • $totalScopeElements lines",
+                        style = MastorBody.copy(color = MastorInkMuted, fontSize = 12.sp)
+                    )
                 }
             }
 
-            // Work Order Cards
             items(
                 items = currentResult.workOrders,
                 key = { it.id }
             ) { parsedWo ->
-                ParsedWorkOrderReviewCard(
+                ParsedWorkOrderReviewSection(
                     parsedWo = parsedWo,
                     onUpdateWorkOrder = { updatedWo ->
                         val updatedWos = currentResult.workOrders.map { if (it.id == updatedWo.id) updatedWo else it }
@@ -482,196 +395,112 @@ fun BoqUnifiedUploadAndConfirmScreen(
                 )
             }
 
-            // Confirmation Commit Bar
+            // Sticky Confirm Bar:
+            // MastorPrimaryButton (sticky confirm)
             item {
-                Surface(
-                    color = MastorCreamDark,
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, MastorCreamBorder),
-                    modifier = Modifier.fillMaxWidth()
+                Spacer(modifier = Modifier.height(SpaceSM))
+                MastorPrimaryButton(
+                    text = "Confirm & Import to Scope (${MastorCalculationEngine.formatCurrency(totalBaseCost)})",
+                    onClick = { onConfirmAndImport(currentResult) },
+                    icon = Icons.Default.Check,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("confirm_import_btn")
+                )
+                Spacer(modifier = Modifier.height(SpaceSM))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                localParsedResult = null
-                                parsedResult = null
-                            },
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Reset")
-                        }
-
-                        Button(
-                            onClick = { onConfirmAndImport(currentResult) },
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = StatusClaimedGreen),
-                            modifier = Modifier.testTag("confirm_import_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Confirm & Import to Scope",
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
+                    TextButton(onClick = {
+                        localParsedResult = null
+                        parsedResult = null
+                    }) {
+                        Text("Reset & Upload Different File", color = MastorInkMuted)
                     }
                 }
             }
         }
 
         item {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Space3XL))
         }
     }
 }
 
 /**
- * Review Card for a Parsed Work Order in the Review Pipeline.
+ * Review Section for a Work Order containing line items
  */
 @Composable
-fun ParsedWorkOrderReviewCard(
+private fun ParsedWorkOrderReviewSection(
     parsedWo: ParsedWorkOrder,
     onUpdateWorkOrder: (ParsedWorkOrder) -> Unit,
-    onDeleteWorkOrder: () -> Unit,
-    modifier: Modifier = Modifier
+    onDeleteWorkOrder: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(true) }
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
-        border = BorderStroke(1.dp, MastorCreamBorder)
-    ) {
-        Column {
-            // Header Row
+    Column(verticalArrangement = Arrangement.spacedBy(SpaceSM)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MastorCream)
-                    .padding(14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SpaceSM)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            color = MastorCopper.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = parsedWo.woRef,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorCopper
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = parsedWo.workType,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MastorInkMuted
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = parsedWo.description,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorInk
-                    )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onDeleteWorkOrder) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Work Order",
-                            tint = StatusFlaggedRed,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    IconButton(onClick = { expanded = !expanded }) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = "Toggle scope items",
-                            tint = MastorCopper
-                        )
-                    }
-                }
+                Text(
+                    text = parsedWo.woRef,
+                    style = MastorCode.copy(color = MastorCopper, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                )
+                Text(
+                    text = parsedWo.description,
+                    style = MastorBody.copy(color = MastorInk, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                )
             }
 
-            // Expandable List of Parsed Scope Elements
-            AnimatedVisibility(visible = expanded) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = onDeleteWorkOrder,
+                    modifier = Modifier.size(28.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "PARSED SCOPE LINES (${parsedWo.scopeElements.size})",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorInkMuted
-                        )
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = "Delete Work Order",
+                        tint = StatusRed,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = "Toggle scope items",
+                        tint = MastorInkMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
 
-                        OutlinedButton(
-                            onClick = {
-                                val newItem = ParsedScopeElement(
-                                    woRef = parsedWo.woRef,
-                                    code = "SE-10${parsedWo.scopeElements.size + 1}",
-                                    locationRoom = "General",
-                                    description = "New scope element",
-                                    qty = 1.0,
-                                    units = "item",
-                                    rate = 100.0,
-                                    confidence = "HIGH"
-                                )
-                                onUpdateWorkOrder(parsedWo.copy(scopeElements = parsedWo.scopeElements + newItem))
-                            },
-                            shape = RoundedCornerShape(100.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 2.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add Line", style = MaterialTheme.typography.labelSmall)
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(SpaceSM)) {
+                parsedWo.scopeElements.forEachIndexed { index, elem ->
+                    ParsedScopeElementCard(
+                        element = elem,
+                        onUpdateElement = { updatedElem ->
+                            val updatedList = parsedWo.scopeElements.toMutableList()
+                            updatedList[index] = updatedElem
+                            onUpdateWorkOrder(parsedWo.copy(scopeElements = updatedList))
+                        },
+                        onDeleteElement = {
+                            val updatedList = parsedWo.scopeElements.toMutableList()
+                            updatedList.removeAt(index)
+                            onUpdateWorkOrder(parsedWo.copy(scopeElements = updatedList))
                         }
-                    }
-
-                    parsedWo.scopeElements.forEachIndexed { index, elem ->
-                        ParsedScopeElementReviewRow(
-                            element = elem,
-                            onUpdateElement = { updatedElem ->
-                                val updatedList = parsedWo.scopeElements.toMutableList()
-                                updatedList[index] = updatedElem
-                                onUpdateWorkOrder(parsedWo.copy(scopeElements = updatedList))
-                            },
-                            onDeleteElement = {
-                                val updatedList = parsedWo.scopeElements.toMutableList()
-                                updatedList.removeAt(index)
-                                onUpdateWorkOrder(parsedWo.copy(scopeElements = updatedList))
-                            }
-                        )
-                    }
+                    )
                 }
             }
         }
@@ -679,22 +508,22 @@ fun ParsedWorkOrderReviewCard(
 }
 
 /**
- * Review Row for an Individual Parsed Scope Line.
- * Low confidence lines flagged with calm "Needs review" badge in accent colour with flagReason shown inline.
- * Every field editable inline!
+ * Review gate item:
+ * MastorCard (cream), BoQ code (MastorCode MastorCopper), description (MastorBody MastorInk),
+ * confidence badge (MastorStatusBadge), metrics (MastorFinancialSmall),
+ * location (MastorCopperCard chip), edit/delete actions.
  */
 @Composable
-fun ParsedScopeElementReviewRow(
+private fun ParsedScopeElementCard(
     element: ParsedScopeElement,
     onUpdateElement: (ParsedScopeElement) -> Unit,
-    onDeleteElement: () -> Unit,
-    modifier: Modifier = Modifier
+    onDeleteElement: () -> Unit
 ) {
     val isNeedsReview = element.confidence.equals("LOW", ignoreCase = true) ||
-            element.confidence.equals("MEDIUM", ignoreCase = true) ||
-            element.flagReason != null
+        element.confidence.equals("MEDIUM", ignoreCase = true) ||
+        element.flagReason != null
 
-    var isEditing by remember { mutableStateOf(isNeedsReview) }
+    var isEditing by remember { mutableStateOf(false) }
 
     var code by remember(element) { mutableStateOf(element.code) }
     var room by remember(element) { mutableStateOf(element.locationRoom) }
@@ -705,50 +534,108 @@ fun ParsedScopeElementReviewRow(
 
     val baseCost = (qtyText.toDoubleOrNull() ?: 0.0) * (rateText.toDoubleOrNull() ?: 0.0)
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MastorCreamDark,
-        border = BorderStroke(
-            1.dp,
-            if (isNeedsReview) MastorCopper.copy(alpha = 0.5f) else MastorCreamBorder
-        )
+    MastorCard(
+        modifier = Modifier.fillMaxWidth(),
+        internalPadding = SpaceMD
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Needs Review Calm Accent Badge (per design requirement: calm accent colour, NOT alarming red)
-            if (isNeedsReview) {
-                Surface(
-                    color = MastorCopper.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
+        if (!isEditing) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    // Top header: BoQ code (MastorCode MastorCopper) + confidence badge (MastorStatusBadge) + location (MastorCopperCard chip)
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(SpaceSM)
                     ) {
                         Text(
-                            text = "NEEDS REVIEW",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorCopper,
-                            fontSize = 9.sp
+                            text = element.code,
+                            style = MastorCode.copy(color = MastorCopper, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         )
-                        if (!element.flagReason.isNull0rBlank()) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "•  ${element.flagReason}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MastorInk,
-                                fontSize = 11.sp
+
+                        MastorStatusBadge(
+                            status = if (isNeedsReview) "Needs Review" else "VO Completed"
+                        )
+
+                        if (element.locationRoom.isNotBlank()) {
+                            MastorCopperCard(
+                                internalPadding = 4.dp
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = MastorCopper,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(
+                                        text = element.locationRoom,
+                                        style = MastorBracketLabel.copy(fontSize = 9.sp, color = MastorCopper)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(SpaceXS))
+
+                    // Description: MastorBody MastorInk
+                    Text(
+                        text = element.description,
+                        style = MastorBody.copy(color = MastorInk, fontSize = 13.sp)
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    // Metrics: MastorFinancialSmall
+                    Text(
+                        text = "${element.qty} ${element.units} @ ${MastorCalculationEngine.formatCurrency(element.rate)}",
+                        style = MastorFinancialSmall.copy(color = MastorInkMuted, fontSize = 11.sp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(SpaceSM))
+
+                // Total metric + action icons
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = MastorCalculationEngine.formatCurrency(baseCost),
+                        style = MastorFinancialSmall.copy(color = MastorCopper, fontWeight = FontWeight.Bold)
+                    )
+
+                    Row {
+                        IconButton(
+                            onClick = { isEditing = true },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit",
+                                tint = MastorInkMuted,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = onDeleteElement,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = "Delete",
+                                tint = StatusRed,
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                     }
                 }
             }
-
-            if (isEditing) {
-                // Editable Inline Mode
-                Row(modifier = Modifier.fillMaxWidth()) {
+        } else {
+            // Edit Mode
+            Column(verticalArrangement = Arrangement.spacedBy(SpaceSM)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(SpaceSM)) {
                     OutlinedTextField(
                         value = code,
                         onValueChange = {
@@ -756,23 +643,28 @@ fun ParsedScopeElementReviewRow(
                             onUpdateElement(element.copy(code = it))
                         },
                         label = { Text("Code") },
-                        modifier = Modifier.weight(0.8f),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
+                        ),
+                        modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
                         value = room,
                         onValueChange = {
                             room = it
                             onUpdateElement(element.copy(locationRoom = it))
                         },
-                        label = { Text("Room / Area") },
-                        modifier = Modifier.weight(1.2f),
-                        singleLine = true
+                        label = { Text("Location") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
+                        ),
+                        modifier = Modifier.weight(1f)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(6.dp))
 
                 OutlinedTextField(
                     value = desc,
@@ -781,12 +673,14 @@ fun ParsedScopeElementReviewRow(
                         onUpdateElement(element.copy(description = it))
                     },
                     label = { Text("Description") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MastorCopper,
+                        unfocusedBorderColor = MastorCreamBorder
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(SpaceSM)) {
                     OutlinedTextField(
                         value = qtyText,
                         onValueChange = { input ->
@@ -795,11 +689,14 @@ fun ParsedScopeElementReviewRow(
                             onUpdateElement(element.copy(qty = parsed))
                         },
                         label = { Text("Qty") },
+                        singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
+                        ),
+                        modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
                     OutlinedTextField(
                         value = units,
                         onValueChange = {
@@ -807,10 +704,13 @@ fun ParsedScopeElementReviewRow(
                             onUpdateElement(element.copy(units = it))
                         },
                         label = { Text("Units") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
+                        ),
+                        modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
                     OutlinedTextField(
                         value = rateText,
                         onValueChange = { input ->
@@ -818,85 +718,26 @@ fun ParsedScopeElementReviewRow(
                             val parsed = input.toDoubleOrNull() ?: 0.0
                             onUpdateElement(element.copy(rate = parsed))
                         },
-                        label = { Text("Base Rate (£)") },
+                        label = { Text("Rate (£)") },
+                        singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1.2f),
-                        singleLine = true
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder
+                        ),
+                        modifier = Modifier.weight(1.2f)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Text(
-                        text = "Calculated Base Cost: ${MastorCalculationEngine.formatCurrency(baseCost)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorInk
-                    )
-
-                    Row {
-                        IconButton(onClick = onDeleteElement) {
-                            Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = StatusFlaggedRed)
-                        }
-                        IconButton(onClick = { isEditing = false }) {
-                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Done Editing", tint = StatusClaimedGreen)
-                        }
-                    }
-                }
-            } else {
-                // Collapsed Read View
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "${element.code} • ${element.locationRoom}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorCopper
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = element.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MastorInk
-                        )
-                        Text(
-                            text = "${element.qty} ${element.units} @ ${MastorCalculationEngine.formatCurrency(element.rate)} Base Rate",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MastorInkMuted
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = MastorCalculationEngine.formatCurrency(baseCost),
-                            style = MastorFinancialMed,
-                            color = MastorInk
-                        )
-                        Row {
-                            IconButton(onClick = { isEditing = true }) {
-                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = MastorInkMuted, modifier = Modifier.size(16.dp))
-                            }
-                            IconButton(onClick = onDeleteElement) {
-                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = StatusFlaggedRed, modifier = Modifier.size(16.dp))
-                            }
-                        }
+                    TextButton(onClick = { isEditing = false }) {
+                        Text("Done", color = MastorCopper, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
     }
 }
-
-private fun String?.isNull0rBlank(): Boolean = this == null || this.isBlank()

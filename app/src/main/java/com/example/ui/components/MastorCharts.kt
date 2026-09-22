@@ -52,7 +52,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.entity.SiteDiaryEntry
 import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.theme.MastorCopper
-import com.example.ui.theme.MastorCopper
+import com.example.ui.theme.MastorCharcoalLight
+import com.example.ui.theme.StatusAmber
 import com.example.ui.theme.MastorCreamBorder
 import com.example.ui.theme.MastorInk
 import com.example.ui.theme.MastorInkMuted
@@ -620,10 +621,10 @@ fun ScopeStatusSummaryRingChart(
                         } else {
                             var currentAngle = -90f
 
-                            // Not Started (Slate)
+                            // Not Started (Charcoal Light)
                             if (notStartedAngle > 0f) {
                                 drawArc(
-                                    color = MastorInkMuted,
+                                    color = MastorCharcoalLight,
                                     startAngle = currentAngle,
                                     sweepAngle = notStartedAngle,
                                     useCenter = false,
@@ -637,7 +638,7 @@ fun ScopeStatusSummaryRingChart(
                             // In Progress (Amber)
                             if (inProgressAngle > 0f) {
                                 drawArc(
-                                    color = StatusPendingAmber,
+                                    color = StatusAmber,
                                     startAngle = currentAngle,
                                     sweepAngle = inProgressAngle,
                                     useCenter = false,
@@ -648,7 +649,7 @@ fun ScopeStatusSummaryRingChart(
                                 currentAngle += inProgressAngle
                             }
 
-                            // Claimed (Gold)
+                            // Claimed (Copper)
                             if (claimedAngle > 0f) {
                                 drawArc(
                                     color = MastorCopper,
@@ -692,13 +693,13 @@ fun ScopeStatusSummaryRingChart(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     ScopeLegendRow(
-                        color = MastorInkMuted,
+                        color = MastorCharcoalLight,
                         label = "Not Started",
                         count = notStartedCount,
                         total = total
                     )
                     ScopeLegendRow(
-                        color = StatusPendingAmber,
+                        color = StatusAmber,
                         label = "In Progress",
                         count = inProgressCount,
                         total = total

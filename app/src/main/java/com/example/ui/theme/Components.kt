@@ -220,37 +220,37 @@ fun MastorDestructiveButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    isSmall: Boolean = false
 ) {
     Button(
         onClick = onClick,
         enabled = enabled,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(if (isSmall) 8.dp else 12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = StatusRed,
             contentColor = Color.White,
             disabledContainerColor = StatusRed.copy(alpha = 0.4f),
             disabledContentColor = Color.White.copy(alpha = 0.6f)
         ),
-        contentPadding = PaddingValues(horizontal = SpaceLG, vertical = SpaceMD),
+        contentPadding = if (isSmall) PaddingValues(horizontal = SpaceMD, vertical = SpaceXS) else PaddingValues(horizontal = SpaceLG, vertical = SpaceMD),
         modifier = modifier
-            .heightIn(min = 56.dp)
-            .fillMaxWidth()
+            .then(if (isSmall) Modifier.heightIn(min = 36.dp) else Modifier.heightIn(min = 56.dp).fillMaxWidth())
     ) {
         if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(if (isSmall) 16.dp else 20.dp),
                 tint = Color.White
             )
-            Spacer(modifier = Modifier.width(SpaceSM))
+            Spacer(modifier = Modifier.width(if (isSmall) SpaceXS else SpaceSM))
         }
         Text(
             text = text,
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 15.sp,
+            fontSize = if (isSmall) 12.sp else 15.sp,
             color = Color.White
         )
     }
