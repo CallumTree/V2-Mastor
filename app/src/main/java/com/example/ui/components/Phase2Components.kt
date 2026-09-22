@@ -10,14 +10,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachFile
@@ -71,17 +74,7 @@ import com.example.data.entity.ScopeElement
 import com.example.data.entity.WorkOrder
 import com.example.domain.calculation.CalculatedWorkOrder
 import com.example.domain.calculation.MastorCalculationEngine
-import com.example.ui.theme.MastorFinancialLarge
-import com.example.ui.theme.MastorFinancialMed
-import com.example.ui.theme.MastorCopper
-import com.example.ui.theme.MastorCream
-import com.example.ui.theme.MastorCreamBorder
-import com.example.ui.theme.MastorInk
-import com.example.ui.theme.MastorInkMuted
-import com.example.ui.theme.MastorCreamDark
-import com.example.ui.theme.StatusClaimedBg
-import com.example.ui.theme.StatusClaimedGreen
-import com.example.ui.theme.StatusFlaggedRed
+import com.example.ui.theme.*
 
 /**
  * Compact Single Control Combining Tick (Instant 100%) + Numeric % Claim Input.
@@ -1209,63 +1202,53 @@ fun ProjectSetupForm(
 
     var saveSuccessMessage by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = modifier.padding(16.dp)) {
-        Text(
-            text = "PROJECT SETUP & CONFIGURATION",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MastorInkMuted,
-            letterSpacing = 1.sp
-        )
-        Text(
-            text = "Master Contract & Central Uplift Settings",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MastorInk
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (saveSuccessMessage != null) {
-            Surface(
-                color = StatusClaimedBg,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            ) {
-                Text(
-                    text = saveSuccessMessage ?: "",
-                    color = StatusClaimedGreen,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-        }
-
-        // Central Uplifts Cards (Prominently featured per brief requirement)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
-            border = BorderStroke(1.5.dp, MastorCopper.copy(alpha = 0.5f))
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = SpaceLG, vertical = SpaceMD)
+                .padding(bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(SpaceMD)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = MastorCopper.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(8.dp)
+            BracketLabel("PROJECT SETUP & CONFIGURATION", color = MastorInkMuted)
+            Text(
+                text = "Master Contract & Central Uplift Settings",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MastorInk
+            )
+
+            if (saveSuccessMessage != null) {
+                Surface(
+                    color = StatusClaimedBg,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(SpaceMD),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = StatusClaimedGreen,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(SpaceSM))
                         Text(
-                            text = "CENTRAL PROJECT MARKUP",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorCopper
+                            text = saveSuccessMessage ?: "",
+                            style = MastorBody.copy(color = StatusClaimedGreen, fontWeight = FontWeight.SemiBold)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Central Uplifts Card: MastorCopperCard
+            MastorCopperCard(modifier = Modifier.fillMaxWidth()) {
+                BracketLabel("CENTRAL PROJECT MARKUP", color = MastorInk)
+                Spacer(modifier = Modifier.height(SpaceXS))
                 Text(
                     text = "Project Uplift Percentages",
                     style = MaterialTheme.typography.titleMedium,
@@ -1274,13 +1257,15 @@ fun ProjectSetupForm(
                 )
                 Text(
                     text = "Rule 2: Base rate only on scope lines; uplift applied once, centrally, at the project level.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MastorInkMuted
+                    style = MastorBody.copy(color = MastorInkMuted, fontSize = 12.sp)
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(SpaceMD))
 
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SpaceMD)
+                ) {
                     OutlinedTextField(
                         value = uplift1Text,
                         onValueChange = { uplift1Text = it },
@@ -1289,10 +1274,15 @@ fun ProjectSetupForm(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder,
+                            focusedTextColor = MastorInk,
+                            unfocusedTextColor = MastorInk,
+                            focusedContainerColor = Color.White.copy(alpha = 0.6f),
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.4f)
+                        )
                     )
-
-                    Spacer(modifier = Modifier.width(12.dp))
 
                     OutlinedTextField(
                         value = uplift2Text,
@@ -1302,105 +1292,169 @@ fun ProjectSetupForm(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MastorCopper)
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder,
+                            focusedTextColor = MastorInk,
+                            unfocusedTextColor = MastorInk,
+                            focusedContainerColor = Color.White.copy(alpha = 0.6f),
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.4f)
+                        )
                     )
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Project General Fields
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
-            border = BorderStroke(1.dp, MastorCreamBorder)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Contract & Location Details",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MastorInk
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
+            // Project General Fields
+            MastorCard(modifier = Modifier.fillMaxWidth(), internalPadding = SpaceLG) {
+                BracketLabel("CONTRACT & LOCATION DETAILS", color = MastorCopper)
+                Spacer(modifier = Modifier.height(SpaceMD))
 
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Project Name") },
-                    modifier = Modifier.fillMaxWidth()
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MastorCopper,
+                        unfocusedBorderColor = MastorCreamBorder,
+                        focusedTextColor = MastorInk,
+                        unfocusedTextColor = MastorInk
+                    )
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(SpaceSM))
 
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SpaceSM)
+                ) {
                     OutlinedTextField(
                         value = client,
                         onValueChange = { client = it },
                         label = { Text("Client Name") },
-                        modifier = Modifier.weight(1f)
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder,
+                            focusedTextColor = MastorInk,
+                            unfocusedTextColor = MastorInk
+                        )
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
                         value = contractRef,
                         onValueChange = { contractRef = it },
                         label = { Text("Contract Reference") },
-                        modifier = Modifier.weight(1f)
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder,
+                            focusedTextColor = MastorInk,
+                            unfocusedTextColor = MastorInk
+                        )
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(SpaceSM))
 
                 OutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
                     label = { Text("Site Address") },
-                    modifier = Modifier.fillMaxWidth()
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MastorCopper,
+                        unfocusedBorderColor = MastorCreamBorder,
+                        focusedTextColor = MastorInk,
+                        unfocusedTextColor = MastorInk
+                    )
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(SpaceSM))
 
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SpaceSM)
+                ) {
                     OutlinedTextField(
                         value = siteManager,
                         onValueChange = { siteManager = it },
                         label = { Text("Site Manager") },
-                        modifier = Modifier.weight(1f)
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder,
+                            focusedTextColor = MastorInk,
+                            unfocusedTextColor = MastorInk
+                        )
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
                         value = surveyor,
                         onValueChange = { surveyor = it },
                         label = { Text("Quantity Surveyor") },
-                        modifier = Modifier.weight(1f)
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder,
+                            focusedTextColor = MastorInk,
+                            unfocusedTextColor = MastorInk
+                        )
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(SpaceSM))
 
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SpaceSM)
+                ) {
                     OutlinedTextField(
                         value = workType,
                         onValueChange = { workType = it },
-                        label = { Text("Work Type (PPR / Internal Works)") },
-                        modifier = Modifier.weight(1f)
+                        label = { Text("Work Type (PPR / Internal)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder,
+                            focusedTextColor = MastorInk,
+                            unfocusedTextColor = MastorInk
+                        )
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
                         value = contractValueText,
                         onValueChange = { contractValueText = it },
                         label = { Text("Contract Value (£)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f)
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCreamBorder,
+                            focusedTextColor = MastorInk,
+                            unfocusedTextColor = MastorInk
+                        )
                     )
                 }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Button(
+        // Sticky save button at bottom
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            color = MastorCream,
+            border = BorderStroke(1.dp, MastorCreamBorder)
+        ) {
+            Box(modifier = Modifier.padding(SpaceLG)) {
+                MastorPrimaryButton(
+                    text = "Save Project Configuration",
                     onClick = {
                         val up1 = uplift1Text.toDoubleOrNull() ?: project.uplift1Percent
                         val up2 = uplift2Text.toDoubleOrNull() ?: project.uplift2Percent
@@ -1421,12 +1475,10 @@ fun ProjectSetupForm(
                         onSaveProject(updated)
                         saveSuccessMessage = "Project settings & central uplifts updated successfully!"
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(100.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MastorCopper)
-                ) {
-                    Text("Save Project Settings")
-                }
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("save_project_setup_button")
+                )
             }
         }
     }

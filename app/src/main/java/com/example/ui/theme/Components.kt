@@ -19,9 +19,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ripple
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -35,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -54,7 +58,10 @@ import androidx.compose.ui.unit.sp
 fun BracketLabel(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = MastorInkMuted
+    color: Color = MastorInkMuted,
+    fontSize: TextUnit = 11.sp,
+    letterSpacing: TextUnit = 2.sp,
+    fontWeight: FontWeight = FontWeight.Medium
 ) {
     val cleanText = text.trim()
     val formatted = if (cleanText.startsWith("[") && cleanText.endsWith("]")) {
@@ -65,9 +72,149 @@ fun BracketLabel(
 
     Text(
         text = formatted,
-        style = MastorBracketLabel.copy(color = color),
+        style = MastorBracketLabel.copy(
+            color = color,
+            fontSize = fontSize,
+            letterSpacing = letterSpacing,
+            fontWeight = fontWeight
+        ),
         modifier = modifier
     )
+}
+
+// ------------------------------------------------------------------------
+// 1b. Standardized States: Empty, Loading, and Error
+// ------------------------------------------------------------------------
+
+/**
+ * Standardized Empty State Component:
+ * MastorDarkCard container, 48dp icon at 40% opacity, centered BracketLabel, and optional CTA button.
+ */
+@Composable
+fun MastorEmptyState(
+    label: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    actionText: String? = null,
+    onActionClick: (() -> Unit)? = null
+) {
+    MastorDarkCard(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = SpaceXL, horizontal = SpaceLG),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MastorCreamMuted.copy(alpha = 0.4f),
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(SpaceMD))
+            BracketLabel(
+                text = label,
+                color = MastorCreamMuted
+            )
+            if (actionText != null && onActionClick != null) {
+                Spacer(modifier = Modifier.height(SpaceLG))
+                MastorSecondaryButton(
+                    text = actionText,
+                    onClick = onActionClick,
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Standardized Loading State Component:
+ * MastorDarkCard with MastorCopper spinner, MastorCharcoalLight track, 3dp stroke, and BracketLabel.
+ */
+@Composable
+fun MastorLoadingCard(
+    label: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null
+) {
+    MastorDarkCard(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = SpaceXL, horizontal = SpaceLG),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(36.dp),
+                color = MastorCopper,
+                trackColor = MastorCharcoalLight,
+                strokeWidth = 3.dp
+            )
+            Spacer(modifier = Modifier.height(SpaceMD))
+            BracketLabel(
+                text = label,
+                color = MastorCopper
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(SpaceXS))
+                Text(
+                    text = subtitle,
+                    style = MastorBody.copy(color = MastorCreamMuted, fontSize = 13.sp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Standardized Error State Banner:
+ * MastorDarkCard with 3dp StatusRed left border, 20dp StatusRed Warning icon, MastorBody MastorCreamText, optional retry.
+ */
+@Composable
+fun MastorErrorBanner(
+    message: String,
+    modifier: Modifier = Modifier,
+    onRetry: (() -> Unit)? = null,
+    retryText: String = "Retry"
+) {
+    MastorDarkCard(
+        modifier = modifier.fillMaxWidth(),
+        accentLeftColor = StatusRed,
+        accentLeftWidth = 3.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = "Error",
+                tint = StatusRed,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(SpaceMD))
+            Text(
+                text = message,
+                style = MastorBody.copy(color = MastorCreamText),
+                modifier = Modifier.weight(1f)
+            )
+            if (onRetry != null) {
+                Spacer(modifier = Modifier.width(SpaceSM))
+                MastorSecondaryButton(
+                    text = retryText,
+                    onClick = onRetry,
+                    modifier = Modifier.width(100.dp).heightIn(min = 36.dp)
+                )
+            }
+        }
+    }
 }
 
 // ------------------------------------------------------------------------

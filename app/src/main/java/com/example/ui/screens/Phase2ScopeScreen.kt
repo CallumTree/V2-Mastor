@@ -128,6 +128,8 @@ import com.example.domain.cloud.CloudStorageService
 import com.example.ui.components.MastorBottomNavBar
 import com.example.ui.components.SubcontractorProcurementComponent
 import com.example.ui.theme.BracketLabel
+import com.example.ui.theme.MastorEmptyState
+import com.example.ui.theme.MastorLoadingCard
 import com.example.ui.theme.MastorFinancialLarge
 import com.example.ui.theme.MastorFinancialMed
 import com.example.ui.theme.MastorPrimaryButton
@@ -138,6 +140,10 @@ import com.example.ui.theme.MastorCreamBorder
 import com.example.ui.theme.MastorInk
 import com.example.ui.theme.MastorInkMuted
 import com.example.ui.theme.MastorCreamDark
+import com.example.ui.theme.SpaceLG
+import com.example.ui.theme.SpaceMD
+import com.example.ui.theme.SpaceSM
+import com.example.ui.theme.SpaceXS
 import com.example.ui.theme.StatusClaimedGreen
 import com.example.ui.viewmodel.Phase1ViewModel
 
@@ -221,18 +227,15 @@ fun Phase2ScopeScreen(
 
     if (uiState.isLoading) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MastorCream),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(color = MastorCopper)
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Loading Mastor Phase 2 Scope Data...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MastorInkMuted
-                )
-            }
+            MastorLoadingCard(
+                label = "LOADING PROJECT DATA...",
+                modifier = Modifier.padding(SpaceLG)
+            )
         }
         return
     }
@@ -251,7 +254,7 @@ fun Phase2ScopeScreen(
                     surveyor = surveyor,
                     contractValue = contractValue,
                     workType = workType,
-                    imageUrl = imageUrl,
+                    imageUrl = imageUrl ?: "",
                     uplift1Percent = uplift1,
                     uplift2Percent = uplift2,
                     onCreated = { newId -> viewModel.selectProject(newId) }
@@ -567,37 +570,41 @@ fun Phase2ScopeScreen(
 
                         Phase2Tab.PROJECT_SETUP -> {
                             val linkedDoc = uiState.linkedDocuments.firstOrNull { it.isPrimaryBoq } ?: uiState.linkedDocuments.firstOrNull()
-                            LazyColumn(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    .background(MastorCream)
                             ) {
-                                item {
-                                    BracketLabel(text = "LINKED CLOUD DOCUMENT (PHASE 7)")
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    LinkedDocumentCard(
-                                        linkedDocument = linkedDoc,
-                                        onOpenPicker = { showCloudPickerModal = true },
-                                        onSyncNow = {
-                                            linkedDoc?.let { viewModel.syncCloudDocument(it.id) }
-                                        },
-                                        onParseInPhase3 = {
-                                            selectedTab = Phase2Tab.BOQ_IMPORT
-                                        },
-                                        onUnlinkDocument = { doc ->
-                                            viewModel.unlinkCloudDocument(doc.id)
-                                        }
-                                    )
+                                if (linkedDoc != null) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = SpaceLG, vertical = SpaceSM)
+                                    ) {
+                                        BracketLabel(text = "LINKED CLOUD DOCUMENT (PHASE 7)")
+                                        Spacer(modifier = Modifier.height(SpaceXS))
+                                        LinkedDocumentCard(
+                                            linkedDocument = linkedDoc,
+                                            onOpenPicker = { showCloudPickerModal = true },
+                                            onSyncNow = {
+                                                viewModel.syncCloudDocument(linkedDoc.id)
+                                            },
+                                            onParseInPhase3 = {
+                                                selectedTab = Phase2Tab.BOQ_IMPORT
+                                            },
+                                            onUnlinkDocument = { doc ->
+                                                viewModel.unlinkCloudDocument(doc.id)
+                                            }
+                                        )
+                                    }
                                 }
-                                item {
-                                    ProjectSetupForm(
-                                        project = proj,
-                                        onSaveProject = { updatedProj ->
-                                            viewModel.saveProject(updatedProj)
-                                        }
-                                    )
-                                }
+                                ProjectSetupForm(
+                                    project = proj,
+                                    onSaveProject = { updatedProj ->
+                                        viewModel.saveProject(updatedProj)
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
                         }
 
@@ -727,25 +734,13 @@ fun Phase2ScopeScreen(
 
                                     if (uiState.workOrders.isEmpty()) {
                                         item {
-                                            Surface(
-                                                shape = RoundedCornerShape(16.dp),
-                                                color = MastorCreamDark,
-                                                border = BorderStroke(1.dp, MastorCreamBorder),
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(32.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = "No Work Orders defined yet. Tap 'New Work Order' to create scope packages.",
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        color = MastorInkMuted
-                                                    )
-                                                }
-                                            }
+                                            MastorEmptyState(
+                                                label = "NO WORK ORDERS DEFINED",
+                                                icon = Icons.Default.Description,
+                                                actionText = "New Work Order",
+                                                onActionClick = { showCreateWoDialog = true },
+                                                modifier = Modifier.padding(vertical = SpaceLG)
+                                            )
                                         }
                                     } else {
                                         items(
@@ -915,18 +910,22 @@ fun Phase2ScopeScreen(
                                 ) {
                                     if (filteredElements.isEmpty()) {
                                         item {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 32.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = if (scopeSearchQuery.isNotBlank()) "No scope items matching \"$scopeSearchQuery\"" else "No scope items added yet. Tap 'Add Item' to start.",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = MastorInkMuted
-                                                )
-                                            }
+                                            MastorEmptyState(
+                                                label = if (scopeSearchQuery.isNotBlank()) "NO MATCHING SCOPE ITEMS" else "NO SCOPE ITEMS YET",
+                                                icon = Icons.Default.Description,
+                                                actionText = if (scopeSearchQuery.isNotBlank()) null else "Add Scope Item",
+                                                onActionClick = if (scopeSearchQuery.isNotBlank()) null else {
+                                                    {
+                                                        val defaultWo = uiState.workOrders.firstOrNull()?.entity?.woRef
+                                                        if (defaultWo != null) {
+                                                            addingScopeToWoRef = defaultWo
+                                                        } else {
+                                                            showCreateWoDialog = true
+                                                        }
+                                                    }
+                                                },
+                                                modifier = Modifier.padding(vertical = SpaceLG)
+                                            )
                                         }
                                     } else {
                                         items(

@@ -97,31 +97,19 @@ import com.example.domain.audio.SiteAudioRecorder
 import com.example.domain.audio.SiteDiaryAudioAnalysis
 import com.example.domain.audio.SiteDiaryAudioTranscriber
 import com.example.domain.audio.VoiceNoteSample
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.graphics.graphicsLayer
 import com.example.domain.calculation.CalculatedWorkOrder
 import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.components.MastorInput
 import com.example.ui.components.MastorTopBar
-import com.example.ui.theme.BracketLabel
-import com.example.ui.theme.MastorCard
-import com.example.ui.theme.MastorCopper
-import com.example.ui.theme.MastorCopperLight
-import com.example.ui.theme.MastorCream
-import com.example.ui.theme.MastorCreamBorder
-import com.example.ui.theme.MastorCreamDark
-import com.example.ui.theme.MastorDarkButton
-import com.example.ui.theme.MastorInk
-import com.example.ui.theme.MastorInkMuted
-import com.example.ui.theme.MastorPrimaryButton
-import com.example.ui.theme.MastorSecondaryButton
-import com.example.ui.theme.MastorStatusBadge
-import com.example.ui.theme.StatusClaimedBg
-import com.example.ui.theme.StatusClaimedGreen
-import com.example.ui.theme.StatusFlaggedBg
-import com.example.ui.theme.StatusFlaggedRed
-import com.example.ui.theme.StatusIdentifiedBg
-import com.example.ui.theme.StatusIdentifiedSky
-import com.example.ui.theme.StatusPendingAmber
-import com.example.ui.theme.StatusPendingBg
+import com.example.ui.theme.*
 import com.example.ui.viewmodel.Phase1ViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -309,51 +297,79 @@ fun SiteDiaryScreen(
                 item {
                     val summary = lastMatchSummary!!
                     val isSuccess = summary.matched > 0
-                    val bannerBg = if (isSuccess) StatusClaimedBg else StatusPendingBg
-                    val bannerBorder = if (isSuccess) StatusClaimedGreen.copy(alpha = 0.4f) else StatusPendingAmber.copy(alpha = 0.4f)
-                    val bannerIconColor = if (isSuccess) StatusClaimedGreen else StatusPendingAmber
-                    val bannerTextColor = if (isSuccess) MastorInk else MastorInk
 
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("scope_match_summary_banner"),
-                        shape = RoundedCornerShape(12.dp),
-                        color = bannerBg,
-                        border = BorderStroke(1.dp, bannerBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                    if (isSuccess) {
+                        MastorCopperCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("scope_match_summary_banner"),
+                            accentLeftColor = StatusGreen,
+                            accentLeftWidth = 3.dp
                         ) {
-                            Icon(
-                                imageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.AssignmentTurnedIn,
-                                contentDescription = null,
-                                tint = bannerIconColor,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = if (isSuccess) {
-                                    "✓ ${summary.matched} scope items updated from your site diary — check Valuations tab"
-                                } else {
-                                    "No scope items matched automatically — update manually in Scope tab"
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = bannerTextColor,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(
-                                onClick = { viewModel.clearMatchSummary() },
-                                modifier = Modifier.size(28.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Dismiss",
-                                    tint = MastorInkMuted,
-                                    modifier = Modifier.size(16.dp)
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = StatusGreen,
+                                    modifier = Modifier.size(20.dp)
                                 )
+                                Spacer(modifier = Modifier.width(SpaceMD))
+                                Text(
+                                    text = "✓ ${summary.matched} scope items updated from your site diary — check Valuations tab",
+                                    style = MastorBody.copy(color = MastorCreamText, fontWeight = FontWeight.SemiBold),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { viewModel.clearMatchSummary() },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Dismiss",
+                                        tint = MastorCreamMuted,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        MastorDarkCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("scope_match_summary_banner"),
+                            accentLeftColor = StatusAmber,
+                            accentLeftWidth = 3.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AssignmentTurnedIn,
+                                    contentDescription = null,
+                                    tint = StatusAmber,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(SpaceMD))
+                                Text(
+                                    text = "No scope items matched automatically — update manually in Scope tab",
+                                    style = MastorBody.copy(color = MastorCreamText),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { viewModel.clearMatchSummary() },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Dismiss",
+                                        tint = MastorCreamMuted,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -368,56 +384,11 @@ fun SiteDiaryScreen(
             // Permission Denied Explanation Banner
             if (permissionDeniedMessage != null) {
                 item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = StatusFlaggedBg,
-                        border = BorderStroke(1.dp, StatusFlaggedRed.copy(alpha = 0.3f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MicOff,
-                                contentDescription = "Permission Denied",
-                                tint = StatusFlaggedRed,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Microphone Permission Required",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = StatusFlaggedRed
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = permissionDeniedMessage ?: "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MastorInk
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            MastorPrimaryButton(
-                                text = "Grant",
-                                onClick = { micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
-                                modifier = Modifier.testTag("retry_mic_permission_btn")
-                            )
-                            IconButton(
-                                onClick = { permissionDeniedMessage = null },
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Dismiss",
-                                    tint = MastorInkMuted,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                    }
+                    MastorErrorBanner(
+                        message = "Microphone Permission Required: ${permissionDeniedMessage ?: ""}",
+                        onRetry = { micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
@@ -425,40 +396,41 @@ fun SiteDiaryScreen(
             // 1. THREE LARGE ACTION BUTTONS (FULL WIDTH, STACKED, MINIMUM 56-64DP HEIGHT)
             // =========================================================================
 
-            // 1) 🎙️ Record Voice Diary
             item {
-                MastorPrimaryButton(
-                    text = "Record Voice Diary",
-                    icon = Icons.Default.Mic,
-                    onClick = { startVoiceRecordingFlow() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("voice_site_log_button")
-                )
-            }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(SpaceMD)
+                ) {
+                    // 1) 🎙️ Record Voice Diary
+                    MastorPrimaryButton(
+                        text = "Record Voice Diary",
+                        icon = Icons.Default.Mic,
+                        onClick = { startVoiceRecordingFlow() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("voice_site_log_button")
+                    )
 
-            // 2) 📷 Photo Log
-            item {
-                MastorDarkButton(
-                    text = "Photo Log",
-                    icon = Icons.Default.CameraAlt,
-                    onClick = { showPhotoModal = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("photo_site_log_button")
-                )
-            }
+                    // 2) 📷 Photo Log
+                    MastorDarkButton(
+                        text = "Photo Log",
+                        icon = Icons.Default.CameraAlt,
+                        onClick = { showPhotoModal = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("photo_site_log_button")
+                    )
 
-            // 3) 🎥 Video Diary
-            item {
-                MastorDarkButton(
-                    text = "Video Diary",
-                    icon = Icons.Default.Videocam,
-                    onClick = { showVideoModal = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("video_site_log_button")
-                )
+                    // 3) 🎥 Video Diary
+                    MastorDarkButton(
+                        text = "Video Diary",
+                        icon = Icons.Default.Videocam,
+                        onClick = { showVideoModal = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("video_site_log_button")
+                    )
+                }
             }
 
             // =========================================================================
@@ -483,18 +455,20 @@ fun SiteDiaryScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "AI Analyzing...",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 11.sp,
-                                color = MastorCopper,
-                                fontWeight = FontWeight.SemiBold
+                                style = MastorBody.copy(
+                                    fontSize = 11.sp,
+                                    color = MastorCopper,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             )
                         }
                     } else if (entries.isNotEmpty()) {
                         Text(
                             text = "${entries.size} recorded",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 11.sp,
-                            color = MastorInkMuted
+                            style = MastorBody.copy(
+                                fontSize = 11.sp,
+                                color = MastorInkMuted
+                            )
                         )
                     }
                 }
@@ -502,45 +476,13 @@ fun SiteDiaryScreen(
 
             if (entries.isEmpty()) {
                 item {
-                    MastorCard(
+                    MastorEmptyState(
+                        label = "NO DIARY ENTRIES YET",
+                        icon = Icons.Default.CalendarMonth,
+                        actionText = "Record Voice Diary",
+                        onActionClick = { startVoiceRecordingFlow() },
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(54.dp)
-                                    .clip(CircleShape)
-                                    .background(MastorCopper.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Mic,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MastorCopper
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Text(
-                                text = "No Diary Entries Yet",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorInk
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Tap Record Voice Diary, Photo Log or Video Diary above to capture your first site update in seconds.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MastorInkMuted,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                    }
+                    )
                 }
             } else {
                 items(entries, key = { it.id }) { entry ->
@@ -660,12 +602,13 @@ fun SiteDiaryCard(
 
     val headlineText = entry.geminiSummary?.takeIf { it.isNotBlank() } ?: entry.notes
 
-    MastorCard(
+    MastorDarkCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable { expanded = !expanded }
             .testTag("site_diary_card_${entry.id}"),
-        borderColor = if (isHighlighted) MastorCopper else MastorCreamBorder
+        accentLeftColor = if (isHighlighted) MastorCopper else null,
+        accentLeftWidth = if (isHighlighted) 3.dp else 0.dp
     ) {
         Column(modifier = Modifier.padding(0.dp)) {
             // Header Row: Date bold at top + expand chevron
@@ -677,17 +620,15 @@ fun SiteDiaryCard(
                 Column {
                     Text(
                         text = entry.dateDisplay,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = MastorInk
+                        style = MastorFinancialSmall.copy(color = MastorCopper)
                     )
                     if (entry.author.isNotBlank()) {
                         Text(
                             text = entry.author,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 11.sp,
-                            color = MastorInkMuted
+                            style = MastorBody.copy(
+                                fontSize = 11.sp,
+                                color = MastorCreamMuted
+                            )
                         )
                     }
                 }
@@ -698,7 +639,7 @@ fun SiteDiaryCard(
                     Icon(
                         imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = if (expanded) "Collapse" else "Expand",
-                        tint = MastorInkMuted,
+                        tint = MastorCreamMuted,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -709,8 +650,7 @@ fun SiteDiaryCard(
             // Headline / Summary Below
             Text(
                 text = headlineText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MastorInk,
+                style = MastorTitle.copy(color = MastorCreamText),
                 lineHeight = 20.sp,
                 maxLines = if (expanded) Int.MAX_VALUE else 2,
                 overflow = TextOverflow.Ellipsis
@@ -725,114 +665,39 @@ fun SiteDiaryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (entry.isVoiceTranscribed) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MastorCopper.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, MastorCopper.copy(alpha = 0.3f))
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Mic,
-                                contentDescription = "Voice Log",
-                                tint = MastorCopper,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Voice Log",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorCopper
-                            )
-                        }
-                    }
+                    MastorActionChip(
+                        text = "Voice Log",
+                        icon = Icons.Default.Mic,
+                        isSelected = true,
+                        onClick = {}
+                    )
                 }
 
                 if (entry.photoUrl.isNotBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MastorCopperLight,
-                        border = BorderStroke(1.dp, MastorCopper.copy(alpha = 0.25f))
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "Photo Attached",
-                                tint = MastorCopper,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Photo Log",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorCopper
-                            )
-                        }
-                    }
+                    MastorActionChip(
+                        text = "Photo Log",
+                        icon = Icons.Default.CameraAlt,
+                        isSelected = false,
+                        onClick = {}
+                    )
                 }
 
                 if (entry.laborCount > 0) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MastorCream,
-                        border = BorderStroke(1.dp, MastorCreamBorder)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Groups,
-                                contentDescription = null,
-                                tint = MastorInk,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${entry.laborCount} Operatives",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MastorInk
-                            )
-                        }
-                    }
+                    MastorActionChip(
+                        text = "${entry.laborCount} Operatives",
+                        icon = Icons.Default.Groups,
+                        isSelected = false,
+                        onClick = {}
+                    )
                 }
 
                 if (!entry.weatherNotes.isNullOrBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MastorCream,
-                        border = BorderStroke(1.dp, MastorCreamBorder)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Cloud,
-                                contentDescription = null,
-                                tint = MastorInkMuted,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = entry.weatherNotes,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.5.sp,
-                                color = MastorInkMuted
-                            )
-                        }
-                    }
+                    MastorActionChip(
+                        text = entry.weatherNotes,
+                        icon = Icons.Default.Cloud,
+                        isSelected = false,
+                        onClick = {}
+                    )
                 }
             }
 
@@ -848,7 +713,7 @@ fun SiteDiaryCard(
                                 .fillMaxWidth()
                                 .height(200.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(MastorCream)
+                                .background(MastorCharcoal)
                         ) {
                             AsyncImage(
                                 model = entry.photoUrl,
@@ -862,17 +727,14 @@ fun SiteDiaryCard(
 
                     // Full Detailed Notes
                     if (entry.notes.isNotBlank()) {
-                        Text(
-                            text = "Site Notes:",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorInkMuted
+                        BracketLabel(
+                            text = "SITE NOTES",
+                            color = MastorCreamMuted
                         )
-                        Spacer(modifier = Modifier.height(3.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = entry.notes,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MastorInk,
+                            style = MastorBody.copy(color = MastorCreamText),
                             lineHeight = 19.sp
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -880,74 +742,59 @@ fun SiteDiaryCard(
 
                     // Audio Transcript
                     if (!entry.audioTranscript.isNullOrBlank()) {
-                        Surface(
+                        MastorDarkCard(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            color = MastorCream,
-                            border = BorderStroke(1.dp, MastorCreamBorder)
+                            accentLeftColor = MastorTeal,
+                            accentLeftWidth = 3.dp
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Mic, contentDescription = null, tint = MastorCopper, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Audio Transcript",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MastorCopper
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = entry.audioTranscript,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MastorInk,
-                                    lineHeight = 18.sp
-                                )
-                            }
+                            BracketLabel(
+                                text = "AUDIO TRANSCRIPT",
+                                color = MastorTeal
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = entry.audioTranscript,
+                                style = MastorBody.copy(color = MastorCreamText),
+                                lineHeight = 18.sp
+                            )
                         }
                         Spacer(modifier = Modifier.height(10.dp))
                     }
 
                     // Gemini AI Summary
                     if (!entry.geminiSummary.isNullOrBlank()) {
-                        Surface(
+                        MastorDarkCard(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            color = MastorCopperLight.copy(alpha = 0.4f),
-                            border = BorderStroke(1.dp, MastorCopper.copy(alpha = 0.2f))
+                            accentLeftColor = MastorCopper,
+                            accentLeftWidth = 3.dp
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MastorCopper, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "AI Site Summary",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MastorCopper
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = onReAnalyze,
-                                        modifier = Modifier.size(20.dp)
-                                    ) {
-                                        Icon(Icons.Default.Refresh, contentDescription = "Re-analyze", tint = MastorInkMuted, modifier = Modifier.size(13.dp))
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = entry.geminiSummary,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MastorInk,
-                                    lineHeight = 18.sp
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                BracketLabel(
+                                    text = "AI SITE SUMMARY",
+                                    color = MastorCopper
                                 )
+                                IconButton(
+                                    onClick = onReAnalyze,
+                                    modifier = Modifier.size(20.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        contentDescription = "Re-analyze",
+                                        tint = MastorCreamMuted,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = entry.geminiSummary,
+                                style = MastorBody.copy(color = MastorCreamText),
+                                lineHeight = 18.sp
+                            )
                         }
                         Spacer(modifier = Modifier.height(10.dp))
                     }
@@ -955,44 +802,49 @@ fun SiteDiaryCard(
                     // Structured Voice Insights (Tasks / To-Dos / Finished)
                     if (hasVoiceInsights) {
                         if (finishedList.isNotEmpty()) {
-                            Text("Completed Items:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusClaimedGreen)
+                            BracketLabel(
+                                text = "COMPLETED ITEMS",
+                                color = StatusGreen
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
                             finishedList.forEach { item ->
                                 Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(vertical = 1.dp)) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusClaimedGreen, modifier = Modifier.size(13.dp).padding(top = 2.dp))
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusGreen, modifier = Modifier.size(13.dp).padding(top = 2.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text(item, style = MaterialTheme.typography.bodySmall, color = MastorInk)
+                                    Text(item, style = MastorBody.copy(color = MastorCreamText, fontSize = 12.sp))
                                 }
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                         }
 
                         if (todosList.isNotEmpty()) {
-                            Text("Action Items / To-Dos:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusPendingAmber)
+                            BracketLabel(
+                                text = "ACTION ITEMS / TO-DOS",
+                                color = StatusAmber
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
                             todosList.forEach { item ->
                                 Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(vertical = 1.dp)) {
-                                    Text("→", fontWeight = FontWeight.Bold, color = StatusPendingAmber, modifier = Modifier.padding(end = 6.dp))
-                                    Text(item, style = MaterialTheme.typography.bodySmall, color = MastorInk)
+                                    Text("→", fontWeight = FontWeight.Bold, color = StatusAmber, modifier = Modifier.padding(end = 6.dp))
+                                    Text(item, style = MastorBody.copy(color = MastorCreamText, fontSize = 12.sp))
                                 }
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                         }
 
                         if (!entry.audioValuationNotes.isNullOrBlank()) {
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = MastorCopper.copy(alpha = 0.08f),
-                                border = BorderStroke(1.dp, MastorCopper.copy(alpha = 0.25f)),
-                                modifier = Modifier.fillMaxWidth()
+                            MastorDarkCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                accentLeftColor = MastorCopper,
+                                accentLeftWidth = 2.dp
                             ) {
-                                Column(modifier = Modifier.padding(8.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.PriceCheck, contentDescription = null, tint = MastorCopper, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Valuation Note", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorCopper)
-                                    }
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(entry.audioValuationNotes, style = MaterialTheme.typography.bodySmall, color = MastorInk)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.PriceCheck, contentDescription = null, tint = MastorCopper, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    BracketLabel("VALUATION NOTE", color = MastorCopper)
                                 }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(entry.audioValuationNotes, style = MastorBody.copy(color = MastorCreamText, fontSize = 12.sp))
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                         }
@@ -1012,7 +864,7 @@ fun SiteDiaryCard(
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete site log",
-                                tint = StatusFlaggedRed.copy(alpha = 0.8f),
+                                tint = StatusRed,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -1179,10 +1031,22 @@ fun AudioSiteLogModal(
         }
     }
 
+    val infiniteTransition = rememberInfiniteTransition(label = "recording_pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_scale"
+    )
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MastorCreamDark,
+            color = MastorCharcoalMid,
+            border = BorderStroke(1.dp, MastorCharcoalLight),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
@@ -1199,31 +1063,16 @@ fun AudioSiteLogModal(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(MastorCopper.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Mic,
-                                    contentDescription = null,
-                                    tint = MastorCopper,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            BracketLabel("VOICE SITE DIARY", color = MastorCopper)
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Voice Site Diary",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorInk
+                                style = MastorHeadline.copy(color = MastorCreamText)
                             )
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorInkMuted)
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorCreamMuted)
                         }
                     }
                 }
@@ -1231,49 +1080,25 @@ fun AudioSiteLogModal(
                 // Error Message Banner
                 if (errorMessage != null) {
                     item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            color = StatusFlaggedBg,
-                            border = BorderStroke(1.dp, StatusFlaggedRed.copy(alpha = 0.4f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = null,
-                                    tint = StatusFlaggedRed,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = errorMessage ?: "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = StatusFlaggedRed,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
+                        MastorErrorBanner(
+                            message = errorMessage ?: "",
+                            onRetry = { errorMessage = null },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
 
                 // Recording Status Card
                 item {
-                    Surface(
+                    MastorDarkCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (isRecording) StatusFlaggedBg else MastorCream,
-                        border = BorderStroke(
-                            1.dp,
-                            if (isRecording) StatusFlaggedRed.copy(alpha = 0.4f) else MastorCreamBorder
-                        )
+                        accentLeftColor = if (isRecording) MastorTeal else MastorCopper,
+                        accentLeftWidth = 3.dp
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(18.dp),
+                                .padding(6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             if (isRecording) {
@@ -1284,15 +1109,13 @@ fun AudioSiteLogModal(
                                     Icon(
                                         imageVector = Icons.Default.Mic,
                                         contentDescription = null,
-                                        tint = StatusFlaggedRed,
+                                        tint = MastorTeal,
                                         modifier = Modifier.size(22.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = "Recording Voice Note... (${recordingSeconds / 60}:${(recordingSeconds % 60).toString().padStart(2, '0')})",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = StatusFlaggedRed
+                                        style = MastorTitle.copy(color = MastorTeal, fontWeight = FontWeight.Bold)
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(14.dp))
@@ -1300,20 +1123,20 @@ fun AudioSiteLogModal(
                                     text = "Stop & Transcribe (Gemini AI)",
                                     onClick = { stopLiveRecording() },
                                     icon = Icons.Default.Stop,
-                                    modifier = Modifier.testTag("stop_voice_recording_btn")
+                                    modifier = Modifier
+                                        .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale)
+                                        .testTag("stop_voice_recording_btn")
                                 )
                             } else if (isProcessing) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(26.dp),
-                                    color = MastorCopper,
+                                    color = MastorTeal,
                                     strokeWidth = 2.5.dp
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Text(
                                     text = "Transcribing audio with Gemini 2.0 Flash...",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MastorCopper,
-                                    fontWeight = FontWeight.Medium
+                                    style = MastorBody.copy(color = MastorTeal, fontWeight = FontWeight.Medium)
                                 )
                             } else {
                                 Row(
@@ -1323,15 +1146,13 @@ fun AudioSiteLogModal(
                                     Icon(
                                         imageVector = Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = StatusClaimedGreen,
+                                        tint = StatusGreen,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "Audio Transcribed & Analyzed",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = StatusClaimedGreen
+                                        style = MastorTitle.copy(color = StatusGreen)
                                     )
                                 }
                             }
@@ -1341,12 +1162,7 @@ fun AudioSiteLogModal(
 
                 // Sample QS Voice Presets
                 item {
-                    Text(
-                        text = "Or tap a sample site update to test:",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MastorInkMuted
-                    )
+                    BracketLabel("SAMPLE SITE PRESETS", color = MastorCreamMuted)
                     Spacer(modifier = Modifier.height(6.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1355,8 +1171,8 @@ fun AudioSiteLogModal(
                         items(SiteAudioRecorder.sampleVoiceNotes) { sample ->
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = MastorCreamDark,
-                                border = BorderStroke(1.dp, MastorCreamBorder),
+                                color = MastorCharcoal,
+                                border = BorderStroke(1.dp, MastorCharcoalLight),
                                 modifier = Modifier.clickable {
                                     processSamplePreset(sample)
                                 }
@@ -1374,9 +1190,7 @@ fun AudioSiteLogModal(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = sample.title,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MastorInk
+                                        style = MastorBody.copy(fontSize = 12.sp, color = MastorCreamText)
                                     )
                                 }
                             }
@@ -1388,40 +1202,40 @@ fun AudioSiteLogModal(
                     val analysis = analysisResult!!
 
                     item {
-                        Text(
-                            text = "Headline Summary",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorInkMuted
-                        )
+                        BracketLabel("HEADLINE SUMMARY", color = MastorCreamMuted)
                         Spacer(modifier = Modifier.height(4.dp))
                         OutlinedTextField(
                             value = editableHeadline,
                             onValueChange = { editableHeadline = it },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MastorCharcoal,
+                                unfocusedContainerColor = MastorCharcoal,
+                                disabledContainerColor = MastorCharcoal,
+                                focusedBorderColor = MastorCopper,
+                                unfocusedBorderColor = MastorCharcoalLight,
+                                focusedTextColor = MastorCreamText,
+                                unfocusedTextColor = MastorCreamText,
+                                cursorColor = MastorCopper,
+                                focusedLabelColor = MastorCopper,
+                                unfocusedLabelColor = MastorCreamMuted
+                            )
                         )
                     }
 
                     item {
-                        Text(
-                            text = "Audio Transcript",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorInkMuted
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MastorCream,
-                            border = BorderStroke(1.dp, MastorCreamBorder),
-                            modifier = Modifier.fillMaxWidth()
+                        MastorDarkCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            accentLeftColor = MastorTeal,
+                            accentLeftWidth = 3.dp
                         ) {
+                            BracketLabel("LIVE TRANSCRIPT", color = MastorTeal)
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = transcriptText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MastorInk,
-                                modifier = Modifier.padding(10.dp)
+                                style = MastorBody.copy(color = MastorCreamText),
+                                modifier = Modifier.padding(2.dp)
                             )
                         }
                     }
@@ -1429,35 +1243,24 @@ fun AudioSiteLogModal(
                     // Extracted Tasks / Finished / To-Dos Chips
                     if (analysis.tasks.isNotEmpty() || analysis.todos.isNotEmpty()) {
                         item {
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = StatusClaimedBg,
-                                border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.3f)),
-                                modifier = Modifier.fillMaxWidth()
+                            MastorDarkCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                accentLeftColor = StatusGreen,
+                                accentLeftWidth = 3.dp
                             ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
+                                BracketLabel("AI EXTRACTED ACTIONS & PROGRESS", color = StatusGreen)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                for (task in analysis.tasks) {
                                     Text(
-                                        text = "AI Extracted Actions & Progress:",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = StatusClaimedGreen
+                                        text = "• Done: $task",
+                                        style = MastorBody.copy(color = MastorCreamText, fontSize = 12.sp)
                                     )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    for (task in analysis.tasks) {
-                                        Text(
-                                            text = "• Done: $task",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MastorInk
-                                        )
-                                    }
-                                    for (todo in analysis.todos) {
-                                        Text(
-                                            text = "• To-Do: $todo",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MastorInk,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
+                                }
+                                for (todo in analysis.todos) {
+                                    Text(
+                                        text = "• To-Do: $todo",
+                                        style = MastorBody.copy(color = MastorCreamText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    )
                                 }
                             }
                         }
@@ -1466,16 +1269,16 @@ fun AudioSiteLogModal(
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
+                            horizontalArrangement = Arrangement.spacedBy(SpaceMD),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             MastorSecondaryButton(
                                 text = "Cancel",
-                                onClick = onDismiss
+                                onClick = onDismiss,
+                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
                             MastorPrimaryButton(
-                                text = "Save to Site Diary",
+                                text = "Save to Diary",
                                 onClick = {
                                     onSaveVoiceEntry(
                                         selectedWoRef,
@@ -1495,7 +1298,9 @@ fun AudioSiteLogModal(
                                     )
                                 },
                                 icon = Icons.Default.CheckCircle,
-                                modifier = Modifier.testTag("save_voice_diary_btn")
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("save_voice_diary_btn")
                             )
                         }
                     }
@@ -1563,8 +1368,8 @@ fun PhotoLogModal(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MastorCreamDark,
-            shadowElevation = 8.dp,
+            color = MastorCharcoalMid,
+            border = BorderStroke(1.dp, MastorCharcoalLight),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp)
@@ -1582,31 +1387,16 @@ fun PhotoLogModal(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(MastorCopper.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CameraAlt,
-                                    contentDescription = null,
-                                    tint = MastorCopper,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            BracketLabel("PHOTO SITE LOG", color = MastorCopper)
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Site Photo Log",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorInk
+                                text = "Add Site Photo",
+                                style = MastorHeadline.copy(color = MastorCreamText)
                             )
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorInkMuted)
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorCreamMuted)
                         }
                     }
                 }
@@ -1614,31 +1404,11 @@ fun PhotoLogModal(
                 // Camera Error Banner
                 if (cameraError != null) {
                     item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            color = StatusFlaggedBg,
-                            border = BorderStroke(1.dp, StatusFlaggedRed.copy(alpha = 0.4f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = null,
-                                    tint = StatusFlaggedRed,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = cameraError ?: "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = StatusFlaggedRed,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
+                        MastorErrorBanner(
+                            message = cameraError ?: "",
+                            onRetry = { cameraError = null },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
 
@@ -1651,8 +1421,8 @@ fun PhotoLogModal(
                                     .fillMaxWidth()
                                     .height(180.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .border(1.dp, MastorCreamBorder, RoundedCornerShape(12.dp))
-                                    .background(MastorCream)
+                                    .border(1.dp, MastorCharcoalLight, RoundedCornerShape(12.dp))
+                                    .background(MastorCharcoal)
                             ) {
                                 AsyncImage(
                                     model = capturedPhotoUri,
@@ -1671,15 +1441,17 @@ fun PhotoLogModal(
                                     Icon(
                                         imageVector = Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = StatusClaimedGreen,
+                                        tint = StatusGreen,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "Photo captured from device camera",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = StatusClaimedGreen,
-                                        fontWeight = FontWeight.Bold
+                                        style = MastorBody.copy(
+                                            color = StatusGreen,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
                                     )
                                 }
                                 MastorSecondaryButton(
@@ -1698,7 +1470,7 @@ fun PhotoLogModal(
                                     BorderStroke(1.5.dp, MastorCopper.copy(alpha = 0.5f)),
                                     RoundedCornerShape(12.dp)
                                 )
-                                .background(MastorCopperLight.copy(alpha = 0.3f))
+                                .background(MastorCharcoal)
                                 .clickable { openCamera() }
                                 .testTag("open_camera_capture_btn"),
                             color = Color.Transparent
@@ -1725,15 +1497,14 @@ fun PhotoLogModal(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "Tap to Open Camera & Take Site Photo",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorCopper
+                                    style = MastorTitle.copy(color = MastorCopper)
                                 )
                                 Text(
                                     text = "Uses Android device camera intent",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp,
-                                    color = MastorInkMuted
+                                    style = MastorBody.copy(
+                                        fontSize = 11.sp,
+                                        color = MastorCreamMuted
+                                    )
                                 )
                             }
                         }
@@ -1741,31 +1512,43 @@ fun PhotoLogModal(
                 }
 
                 item {
-                    Text("Photo Notes & Observations", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorInkMuted)
+                    BracketLabel("PHOTO NOTES & OBSERVATIONS", color = MastorCreamMuted)
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
-                        placeholder = { Text("What progress, delivery or defect does this photo show?") },
+                        placeholder = { Text("What progress, delivery or defect does this photo show?", style = MastorBody.copy(color = MastorCreamMuted)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(84.dp)
                             .testTag("site_log_notes_input"),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MastorCharcoal,
+                            unfocusedContainerColor = MastorCharcoal,
+                            disabledContainerColor = MastorCharcoal,
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCharcoalLight,
+                            focusedTextColor = MastorCreamText,
+                            unfocusedTextColor = MastorCreamText,
+                            cursorColor = MastorCopper,
+                            focusedLabelColor = MastorCopper,
+                            unfocusedLabelColor = MastorCreamMuted
+                        )
                     )
                 }
 
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.spacedBy(SpaceMD),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         MastorSecondaryButton(
                             text = "Cancel",
-                            onClick = onDismiss
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
                         MastorPrimaryButton(
                             text = "Save Photo Log",
                             onClick = {
@@ -1782,7 +1565,9 @@ fun PhotoLogModal(
                                 )
                             },
                             icon = Icons.Default.CameraAlt,
-                            modifier = Modifier.testTag("submit_photo_log_button")
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("submit_photo_log_button")
                         )
                     }
                 }
@@ -1861,8 +1646,8 @@ fun VideoLogModal(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MastorCreamDark,
-            shadowElevation = 8.dp,
+            color = MastorCharcoalMid,
+            border = BorderStroke(1.dp, MastorCharcoalLight),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp)
@@ -1880,31 +1665,16 @@ fun VideoLogModal(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(StatusPendingAmber.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Videocam,
-                                    contentDescription = null,
-                                    tint = StatusPendingAmber,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            BracketLabel("VIDEO SITE DIARY", color = MastorCopper)
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Site Video Diary",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MastorInk
+                                style = MastorHeadline.copy(color = MastorCreamText)
                             )
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorInkMuted)
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorCreamMuted)
                         }
                     }
                 }
@@ -1912,47 +1682,24 @@ fun VideoLogModal(
                 // Video Error Banner
                 if (videoError != null) {
                     item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            color = StatusFlaggedBg,
-                            border = BorderStroke(1.dp, StatusFlaggedRed.copy(alpha = 0.4f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = null,
-                                    tint = StatusFlaggedRed,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = videoError ?: "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = StatusFlaggedRed,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
+                        MastorErrorBanner(
+                            message = videoError ?: "",
+                            onRetry = { videoError = null },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
 
                 // Video Capture / Video Thumbnail Area
                 item {
                     if (capturedVideoUri != null) {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MastorCream,
-                            border = BorderStroke(1.dp, MastorCreamBorder)
+                        MastorDarkCard(
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(14.dp),
+                                    .padding(8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 if (videoThumbnailBitmap != null) {
@@ -1970,7 +1717,7 @@ fun VideoLogModal(
                                     Icon(
                                         imageVector = Icons.Default.Videocam,
                                         contentDescription = null,
-                                        tint = StatusClaimedGreen,
+                                        tint = StatusGreen,
                                         modifier = Modifier.size(36.dp)
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
@@ -1979,14 +1726,11 @@ fun VideoLogModal(
                                 val durationFormatted = "${videoDurationSeconds / 60}:${(videoDurationSeconds % 60).toString().padStart(2, '0')}"
                                 Text(
                                     text = "Site Video Recorded ($durationFormatted)",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorInk
+                                    style = MastorTitle.copy(color = MastorCreamText)
                                 )
                                 Text(
                                     text = "Ready to attach to daily site diary entry",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MastorInkMuted
+                                    style = MastorBody.copy(color = MastorCreamMuted, fontSize = 12.sp)
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 MastorSecondaryButton(
@@ -2002,10 +1746,10 @@ fun VideoLogModal(
                                 .height(130.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .border(
-                                    BorderStroke(1.5.dp, StatusPendingAmber.copy(alpha = 0.5f)),
+                                    BorderStroke(1.5.dp, MastorCopper.copy(alpha = 0.5f)),
                                     RoundedCornerShape(12.dp)
                                 )
-                                .background(StatusPendingAmber.copy(alpha = 0.08f))
+                                .background(MastorCharcoal)
                                 .clickable { openVideoCamera() }
                                 .testTag("open_video_capture_btn"),
                             color = Color.Transparent
@@ -2019,28 +1763,27 @@ fun VideoLogModal(
                                     modifier = Modifier
                                         .size(46.dp)
                                         .clip(CircleShape)
-                                        .background(StatusPendingAmber.copy(alpha = 0.15f)),
+                                        .background(MastorCopper.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Videocam,
                                         contentDescription = "Record Video",
-                                        tint = StatusPendingAmber,
+                                        tint = MastorCopper,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "Tap to Record Site Video Diary",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MastorInk
+                                    style = MastorTitle.copy(color = MastorCopper)
                                 )
                                 Text(
                                     text = "Uses Android video capture intent",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp,
-                                    color = MastorInkMuted
+                                    style = MastorBody.copy(
+                                        fontSize = 11.sp,
+                                        color = MastorCreamMuted
+                                    )
                                 )
                             }
                         }
@@ -2048,31 +1791,43 @@ fun VideoLogModal(
                 }
 
                 item {
-                    Text("Walkthrough Notes & Key Focus Areas", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MastorInkMuted)
+                    BracketLabel("WALKTHROUGH NOTES & KEY FOCUS AREAS", color = MastorCreamMuted)
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
-                        placeholder = { Text("e.g. Structural steel alignments and ceiling service voids inspection...") },
+                        placeholder = { Text("e.g. Structural steel alignments and ceiling service voids inspection...", style = MastorBody.copy(color = MastorCreamMuted)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(84.dp)
                             .testTag("video_log_notes_input"),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MastorCharcoal,
+                            unfocusedContainerColor = MastorCharcoal,
+                            disabledContainerColor = MastorCharcoal,
+                            focusedBorderColor = MastorCopper,
+                            unfocusedBorderColor = MastorCharcoalLight,
+                            focusedTextColor = MastorCreamText,
+                            unfocusedTextColor = MastorCreamText,
+                            cursorColor = MastorCopper,
+                            focusedLabelColor = MastorCopper,
+                            unfocusedLabelColor = MastorCreamMuted
+                        )
                     )
                 }
 
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.spacedBy(SpaceMD),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         MastorSecondaryButton(
                             text = "Cancel",
-                            onClick = onDismiss
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
                         MastorPrimaryButton(
                             text = "Save Video Diary",
                             onClick = {
@@ -2089,7 +1844,9 @@ fun VideoLogModal(
                                 )
                             },
                             icon = Icons.Default.Videocam,
-                            modifier = Modifier.testTag("submit_video_log_button")
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("submit_video_log_button")
                         )
                     }
                 }

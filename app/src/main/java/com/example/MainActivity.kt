@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
                                 surveyor = surveyor,
                                 contractValue = contractValue,
                                 workType = workType,
-                                imageUrl = imageUrl,
+                                imageUrl = imageUrl ?: "",
                                 uplift1Percent = uplift1,
                                 uplift2Percent = uplift2,
                                 onCreated = { newId -> viewModel.selectProject(newId) }

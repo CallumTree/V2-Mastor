@@ -88,17 +88,7 @@ import com.example.ui.components.MastorIcon
 import com.example.ui.components.MastorTopBar
 import com.example.ui.components.MastorWordmark
 import com.example.ui.illustrations.MastorProjectHeroCard
-import com.example.ui.theme.BracketLabel
-import com.example.ui.theme.MastorFinancialMed
-import com.example.ui.theme.MastorStatusBadge
-import com.example.ui.theme.MastorCopper
-import com.example.ui.theme.MastorCream
-import com.example.ui.theme.MastorCreamBorder
-import com.example.ui.theme.MastorInk
-import com.example.ui.theme.MastorInkMuted
-import com.example.ui.theme.MastorCreamDark
-import com.example.ui.theme.StatusClaimedBg
-import com.example.ui.theme.StatusClaimedGreen
+import com.example.ui.theme.*
 import java.io.File
 
 @Composable
@@ -312,7 +302,8 @@ fun NewJobDialog(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .clip(RoundedCornerShape(20.dp)),
-            color = MastorCreamDark,
+            color = MastorCharcoalMid,
+            border = BorderStroke(1.dp, MastorCharcoalLight),
             tonalElevation = 6.dp
         ) {
             Column(
@@ -327,22 +318,17 @@ fun NewJobDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text(
+                        BracketLabel(
                             text = "NEW CONSTRUCTION JOB",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorCopper,
-                            letterSpacing = 1.sp
+                            color = MastorCopper
                         )
                         Text(
                             text = "Create Project Directory",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MastorInk
+                            style = MastorHeadline.copy(color = MastorCreamText)
                         )
                     }
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorInkMuted)
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MastorCreamMuted)
                     }
                 }
 
@@ -725,14 +711,16 @@ fun NewJobDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
+                    horizontalArrangement = Arrangement.spacedBy(SpaceMD),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = MastorInkMuted)
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
+                    MastorSecondaryButton(
+                        text = "Cancel",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+                    MastorPrimaryButton(
+                        text = "Create Job",
                         onClick = {
                             val valDbl = contractValueStr.toDoubleOrNull() ?: 250000.0
                             val up1 = uplift1Str.toDoubleOrNull() ?: 15.0
@@ -753,14 +741,10 @@ fun NewJobDialog(
                                 up2
                             )
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = MastorCopper),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.testTag("save_new_job_btn")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Create Job", fontWeight = FontWeight.Bold, color = Color.White)
-                    }
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("save_new_job_btn")
+                    )
                 }
             }
         }

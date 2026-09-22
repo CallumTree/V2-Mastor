@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Warning
@@ -71,6 +72,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.entity.Project
@@ -82,39 +84,8 @@ import com.example.ui.components.ExcelExportConfirmationModal
 import com.example.ui.components.ExportToExcelButton
 import com.example.ui.components.MastorButton
 import com.example.ui.components.MastorSegmentedTabs
-import com.example.ui.components.MastorStatusBadge
 import com.example.ui.components.MastorTabItem
-import com.example.ui.theme.BracketLabel
-import com.example.ui.theme.MastorActionChip
-import com.example.ui.theme.MastorBody
-import com.example.ui.theme.MastorBracketLabel
-import com.example.ui.theme.MastorCard
-import com.example.ui.theme.MastorCharcoalLight
-import com.example.ui.theme.MastorCode
-import com.example.ui.theme.MastorCopper
-import com.example.ui.theme.MastorCopperCard
-import com.example.ui.theme.MastorCream
-import com.example.ui.theme.MastorCreamBorder
-import com.example.ui.theme.MastorCreamMuted
-import com.example.ui.theme.MastorCreamText
-import com.example.ui.theme.MastorDarkCard
-import com.example.ui.theme.MastorDestructiveButton
-import com.example.ui.theme.MastorFinancialLarge
-import com.example.ui.theme.MastorFinancialMed
-import com.example.ui.theme.MastorFinancialSmall
-import com.example.ui.theme.MastorInk
-import com.example.ui.theme.MastorInkMuted
-import com.example.ui.theme.MastorPrimaryButton
-import com.example.ui.theme.MastorSecondaryButton
-import com.example.ui.theme.Space3XL
-import com.example.ui.theme.SpaceLG
-import com.example.ui.theme.SpaceMD
-import com.example.ui.theme.SpaceSM
-import com.example.ui.theme.SpaceXL
-import com.example.ui.theme.SpaceXS
-import com.example.ui.theme.StatusAmber
-import com.example.ui.theme.StatusGreen
-import com.example.ui.theme.StatusRed
+import com.example.ui.theme.*
 import com.example.ui.viewmodel.Phase1ViewModel
 
 sealed class ValuationLineItem {
@@ -425,35 +396,11 @@ fun ValuationsScreen(
 
             invoiceError?.let { err ->
                 Spacer(modifier = Modifier.height(SpaceSM))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    color = StatusRed.copy(alpha = 0.1f),
-                    border = BorderStroke(1.dp, StatusRed.copy(alpha = 0.5f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = err,
-                            style = MastorBody.copy(color = StatusRed, fontSize = 13.sp),
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            onClick = { viewModel.clearInvoiceError() },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Dismiss error",
-                                tint = StatusRed,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                    }
-                }
+                MastorErrorBanner(
+                    message = err,
+                    onRetry = { viewModel.clearInvoiceError() },
+                    retryText = "Dismiss"
+                )
             }
 
             Spacer(modifier = Modifier.height(SpaceSM))
@@ -477,19 +424,11 @@ fun ValuationsScreen(
 
         if (filteredValuations.isEmpty()) {
             item {
-                MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(SpaceXL),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        BracketLabel(
-                            text = "NO VALUATIONS UNDER THIS TAB",
-                            color = MastorCreamMuted
-                        )
-                    }
-                }
+                MastorEmptyState(
+                    label = "NO VALUATIONS UNDER THIS TAB",
+                    icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         } else {
             items(filteredValuations, key = { it.entity.id }) { calcVal ->
@@ -840,8 +779,8 @@ private fun MastorValuationCard(
 
                 Spacer(modifier = Modifier.height(SpaceXL))
 
-                // Expanded panel sections use BracketLabel headers: [ VARIATION ORDERS ]
-                BracketLabel(text = "VARIATION ORDERS", color = StatusAmber)
+                // Expanded panel sections use BracketLabel headers: [ VARIATIONS ]
+                BracketLabel(text = "VARIATIONS", color = StatusAmber)
                 Spacer(modifier = Modifier.height(SpaceSM))
 
                 if (variationLineItems.isEmpty()) {
@@ -945,15 +884,25 @@ private fun MastorValuationCard(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(SpaceLG))
+
+                // "Export to Excel" button: MastorPrimaryButton, full width at bottom of expanded card
+                MastorPrimaryButton(
+                    text = "Export to Excel",
+                    onClick = onExportExcel,
+                    icon = Icons.Default.Description,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("export_excel_button_${valuation.id}")
+                )
             }
         }
     }
 }
 
 /**
- * Line item: MastorCard (cream, not dark — contrast against dark valuation card)
- * Description full wrap, value right-aligned in MastorFinancialSmall MastorCopper, MastorCode style for ref codes.
- * Remove button: MastorDestructiveButton small variant, only shows when status is Draft.
+ * Scope Line item: MastorDarkCard with subtle left-edge indicator
  */
 @Composable
 private fun ScopeValuationItemMastorCard(
@@ -968,11 +917,12 @@ private fun ScopeValuationItemMastorCard(
     val thisClaimPercent = (scope.claimPercent - scope.previouslyCertifiedPercent).coerceAtLeast(0.0)
     val thisClaimValue = MastorCalculationEngine.roundMoney(scope.qty * scope.rate * (thisClaimPercent / 100.0))
 
-    MastorCard(
+    MastorDarkCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("scope_valuation_item_${scope.id}"),
-        internalPadding = SpaceMD
+        internalPadding = SpaceMD,
+        accentLeftColor = if (isClaimed) StatusGreen else MastorCharcoalLight
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -989,7 +939,7 @@ private fun ScopeValuationItemMastorCard(
                     enabled = !isDisabled,
                     colors = CheckboxDefaults.colors(
                         checkedColor = StatusGreen,
-                        uncheckedColor = MastorInkMuted
+                        uncheckedColor = MastorCreamMuted
                     ),
                     modifier = Modifier.size(28.dp)
                 )
@@ -1007,7 +957,7 @@ private fun ScopeValuationItemMastorCard(
                         if (scope.locationRoom.isNotBlank()) {
                             Text(
                                 text = "• ${scope.locationRoom}",
-                                style = MastorBody.copy(color = MastorInkMuted, fontSize = 11.sp)
+                                style = MastorBody.copy(color = MastorCreamMuted, fontSize = 11.sp)
                             )
                         }
                     }
@@ -1017,14 +967,14 @@ private fun ScopeValuationItemMastorCard(
                     // Description full wrap
                     Text(
                         text = scope.description,
-                        style = MastorBody.copy(color = MastorInk, fontSize = 13.sp)
+                        style = MastorBody.copy(color = MastorCreamText, fontSize = 13.sp)
                     )
 
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
                         text = "${scope.qty} ${scope.units} @ ${MastorCalculationEngine.formatCurrency(scope.rate)}",
-                        style = MastorFinancialSmall.copy(color = MastorInkMuted, fontSize = 11.sp)
+                        style = MastorFinancialSmall.copy(color = MastorCreamMuted, fontSize = 11.sp)
                     )
                 }
             }
@@ -1041,7 +991,7 @@ private fun ScopeValuationItemMastorCard(
                     text = "${scope.claimPercent.toInt()}% claimed",
                     style = MastorBody.copy(
                         fontSize = 10.sp,
-                        color = if (isClaimed) StatusGreen else MastorInkMuted
+                        color = if (isClaimed) StatusGreen else MastorCreamMuted
                     )
                 )
             }
@@ -1053,7 +1003,7 @@ private fun ScopeValuationItemMastorCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(MastorCreamBorder)
+                    .background(MastorCharcoalLight)
             )
             Spacer(modifier = Modifier.height(SpaceSM))
 
@@ -1091,7 +1041,7 @@ private fun ScopeValuationItemMastorCard(
 }
 
 /**
- * Variation line item: MastorCard (cream)
+ * Variation line item: MastorDarkCard with subtle left-edge indicator
  */
 @Composable
 private fun VoValuationItemMastorCard(
@@ -1104,11 +1054,12 @@ private fun VoValuationItemMastorCard(
     val thisClaimPercent = (effectiveClaimPercent - vo.previouslyCertifiedPercent).coerceAtLeast(0.0)
     val thisClaimValue = MastorCalculationEngine.roundMoney(vo.qty * vo.rate * (thisClaimPercent / 100.0))
 
-    MastorCard(
+    MastorDarkCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("vo_valuation_item_${vo.id}"),
-        internalPadding = SpaceMD
+        internalPadding = SpaceMD,
+        accentLeftColor = if (vo.tick || vo.claimPercent > 0.0) StatusAmber else MastorCharcoalLight
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1124,8 +1075,8 @@ private fun VoValuationItemMastorCard(
                     onCheckedChange = { if (!isDisabled) onToggleTick() },
                     enabled = !isDisabled,
                     colors = CheckboxDefaults.colors(
-                        checkedColor = StatusGreen,
-                        uncheckedColor = MastorInkMuted
+                        checkedColor = StatusAmber,
+                        uncheckedColor = MastorCreamMuted
                     ),
                     modifier = Modifier.size(28.dp)
                 )
@@ -1142,7 +1093,7 @@ private fun VoValuationItemMastorCard(
                         if (vo.property.isNotBlank()) {
                             Text(
                                 text = "• ${vo.property}",
-                                style = MastorBody.copy(color = MastorInkMuted, fontSize = 11.sp)
+                                style = MastorBody.copy(color = MastorCreamMuted, fontSize = 11.sp)
                             )
                         }
                     }
@@ -1151,14 +1102,14 @@ private fun VoValuationItemMastorCard(
 
                     Text(
                         text = vo.description,
-                        style = MastorBody.copy(color = MastorInk, fontSize = 13.sp)
+                        style = MastorBody.copy(color = MastorCreamText, fontSize = 13.sp)
                     )
 
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
                         text = "${vo.qty} ${vo.units} @ ${MastorCalculationEngine.formatCurrency(vo.rate)}",
-                        style = MastorFinancialSmall.copy(color = MastorInkMuted, fontSize = 11.sp)
+                        style = MastorFinancialSmall.copy(color = MastorCreamMuted, fontSize = 11.sp)
                     )
                 }
             }
@@ -1174,7 +1125,7 @@ private fun VoValuationItemMastorCard(
                     text = "${effectiveClaimPercent.toInt()}% claimed",
                     style = MastorBody.copy(
                         fontSize = 10.sp,
-                        color = if (vo.claimPercent > 0.0 || vo.tick) StatusGreen else MastorInkMuted
+                        color = if (vo.claimPercent > 0.0 || vo.tick) StatusAmber else MastorCreamMuted
                     )
                 )
             }
@@ -1186,7 +1137,7 @@ private fun VoValuationItemMastorCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(MastorCreamBorder)
+                    .background(MastorCharcoalLight)
             )
             Spacer(modifier = Modifier.height(SpaceSM))
 
@@ -1217,27 +1168,32 @@ private fun NewValuationDialog(
     var valDate by remember { mutableStateOf("17 Aug 2026") }
     var surveyor by remember { mutableStateOf(defaultSurveyor) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Add, contentDescription = null, tint = MastorCopper) },
-        title = {
-            Text(
-                "New Valuation Period",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MastorInk
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(SpaceSM)) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MastorCharcoalMid,
+            border = BorderStroke(1.dp, MastorCharcoalLight),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(SpaceLG),
+                verticalArrangement = Arrangement.spacedBy(SpaceMD)
+            ) {
+                BracketLabel("NEW VALUATION PERIOD", color = MastorCopper)
+
                 OutlinedTextField(
                     value = valNum,
                     onValueChange = { valNum = it },
-                    label = { Text("Valuation Ref") },
+                    label = { Text("Valuation Ref", color = MastorCreamMuted) },
                     singleLine = true,
+                    textStyle = MastorBody.copy(color = MastorCreamText),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MastorCopper,
-                        unfocusedBorderColor = MastorCreamBorder
+                        unfocusedBorderColor = MastorCharcoalLight,
+                        focusedTextColor = MastorCreamText,
+                        unfocusedTextColor = MastorCreamText,
+                        focusedContainerColor = MastorCharcoal,
+                        unfocusedContainerColor = MastorCharcoal
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1245,11 +1201,16 @@ private fun NewValuationDialog(
                 OutlinedTextField(
                     value = valDate,
                     onValueChange = { valDate = it },
-                    label = { Text("Date") },
+                    label = { Text("Date", color = MastorCreamMuted) },
                     singleLine = true,
+                    textStyle = MastorBody.copy(color = MastorCreamText),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MastorCopper,
-                        unfocusedBorderColor = MastorCreamBorder
+                        unfocusedBorderColor = MastorCharcoalLight,
+                        focusedTextColor = MastorCreamText,
+                        unfocusedTextColor = MastorCreamText,
+                        focusedContainerColor = MastorCharcoal,
+                        unfocusedContainerColor = MastorCharcoal
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1257,29 +1218,44 @@ private fun NewValuationDialog(
                 OutlinedTextField(
                     value = surveyor,
                     onValueChange = { surveyor = it },
-                    label = { Text("Surveyor") },
+                    label = { Text("Surveyor", color = MastorCreamMuted) },
                     singleLine = true,
+                    textStyle = MastorBody.copy(color = MastorCreamText),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MastorCopper,
-                        unfocusedBorderColor = MastorCreamBorder
+                        unfocusedBorderColor = MastorCharcoalLight,
+                        focusedTextColor = MastorCreamText,
+                        unfocusedTextColor = MastorCreamText,
+                        focusedContainerColor = MastorCharcoal,
+                        unfocusedContainerColor = MastorCharcoal
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(SpaceXS))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SpaceMD)
+                ) {
+                    MastorSecondaryButton(
+                        text = "Cancel",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+                    MastorPrimaryButton(
+                        text = "Create Draft",
+                        onClick = {
+                            if (valNum.isNotBlank()) {
+                                onCreate(valNum.trim(), valDate.trim(), surveyor.trim())
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("submit_create_valuation_button")
+                    )
+                }
             }
-        },
-        confirmButton = {
-            MastorPrimaryButton(
-                text = "Create Draft",
-                onClick = {
-                    if (valNum.isNotBlank()) {
-                        onCreate(valNum.trim(), valDate.trim(), surveyor.trim())
-                    }
-                },
-                modifier = Modifier.testTag("submit_create_valuation_button")
-            )
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel", color = MastorInkMuted) }
         }
-    )
+    }
 }

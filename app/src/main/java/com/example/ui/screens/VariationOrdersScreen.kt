@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.AlertDialog
@@ -66,41 +67,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.entity.Project
 import com.example.data.entity.VariationOrder
 import com.example.domain.calculation.MastorCalculationEngine
-import com.example.ui.components.MastorStatusBadge
 import com.example.ui.components.VariationSegmentedSummaryBar
-import com.example.ui.theme.BracketLabel
-import com.example.ui.theme.MastorBody
-import com.example.ui.theme.MastorBracketLabel
-import com.example.ui.theme.MastorCard
-import com.example.ui.theme.MastorCharcoal
-import com.example.ui.theme.MastorCharcoalLight
-import com.example.ui.theme.MastorCode
-import com.example.ui.theme.MastorCopper
-import com.example.ui.theme.MastorCopperCard
-import com.example.ui.theme.MastorCream
-import com.example.ui.theme.MastorCreamBorder
-import com.example.ui.theme.MastorCreamDark
-import com.example.ui.theme.MastorCreamMuted
-import com.example.ui.theme.MastorCreamText
-import com.example.ui.theme.MastorDarkCard
-import com.example.ui.theme.MastorDestructiveButton
-import com.example.ui.theme.MastorFinancialLarge
-import com.example.ui.theme.MastorFinancialMed
-import com.example.ui.theme.MastorFinancialSmall
-import com.example.ui.theme.MastorInk
-import com.example.ui.theme.MastorInkMuted
-import com.example.ui.theme.MastorPrimaryButton
-import com.example.ui.theme.MastorSecondaryButton
-import com.example.ui.theme.Space3XL
-import com.example.ui.theme.SpaceLG
-import com.example.ui.theme.SpaceMD
-import com.example.ui.theme.SpaceSM
-import com.example.ui.theme.SpaceXL
-import com.example.ui.theme.SpaceXS
-import com.example.ui.theme.StatusAmber
-import com.example.ui.theme.StatusGreen
-import com.example.ui.theme.StatusRed
-import com.example.ui.theme.StatusSlate
+import com.example.ui.theme.*
 import com.example.ui.viewmodel.Phase1ViewModel
 import kotlinx.coroutines.delay
 
@@ -395,19 +363,16 @@ fun VariationOrdersScreen(
 
         if (groupedTickets.isEmpty()) {
             item {
-                MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(SpaceXL),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        BracketLabel(
-                            text = "NO VARIATION ORDERS RAISED",
-                            color = MastorCreamMuted
-                        )
+                MastorEmptyState(
+                    label = "NO VARIATION ORDERS RAISED",
+                    icon = Icons.Default.Description,
+                    actionText = "New Variation Order",
+                    onActionClick = {
+                        presetVoNumberForNewItem = "VO-" + String.format("%03d", groupedTickets.size + 1)
+                        presetPropertyForNewItem = ""
+                        showCreateDialog = true
                     }
-                }
+                )
             }
         } else {
             items(groupedTickets.keys.toList(), key = { it }) { voNumber ->
@@ -994,11 +959,7 @@ private fun CreateVoLineDialog(
                 verticalArrangement = Arrangement.spacedBy(SpaceSM)
             ) {
                 if (errorMessage != null) {
-                    Text(
-                        text = errorMessage!!,
-                        color = StatusRed,
-                        style = MastorBody.copy(fontWeight = FontWeight.Bold)
-                    )
+                    MastorErrorBanner(message = errorMessage!!)
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(SpaceSM)) {

@@ -77,36 +77,7 @@ import com.example.domain.boq.ParsedBoqResult
 import com.example.domain.boq.ParsedScopeElement
 import com.example.domain.boq.ParsedWorkOrder
 import com.example.domain.calculation.MastorCalculationEngine
-import com.example.ui.theme.BracketLabel
-import com.example.ui.theme.MastorBody
-import com.example.ui.theme.MastorBracketLabel
-import com.example.ui.theme.MastorCard
-import com.example.ui.theme.MastorCharcoalLight
-import com.example.ui.theme.MastorCode
-import com.example.ui.theme.MastorCopper
-import com.example.ui.theme.MastorCopperCard
-import com.example.ui.theme.MastorCream
-import com.example.ui.theme.MastorCreamBorder
-import com.example.ui.theme.MastorCreamMuted
-import com.example.ui.theme.MastorCreamText
-import com.example.ui.theme.MastorDarkCard
-import com.example.ui.theme.MastorDestructiveButton
-import com.example.ui.theme.MastorFinancialLarge
-import com.example.ui.theme.MastorFinancialMed
-import com.example.ui.theme.MastorFinancialSmall
-import com.example.ui.theme.MastorInk
-import com.example.ui.theme.MastorInkMuted
-import com.example.ui.theme.MastorPrimaryButton
-import com.example.ui.theme.MastorSecondaryButton
-import com.example.ui.theme.Space3XL
-import com.example.ui.theme.SpaceLG
-import com.example.ui.theme.SpaceMD
-import com.example.ui.theme.SpaceSM
-import com.example.ui.theme.SpaceXL
-import com.example.ui.theme.SpaceXS
-import com.example.ui.theme.StatusAmber
-import com.example.ui.theme.StatusGreen
-import com.example.ui.theme.StatusRed
+import com.example.ui.theme.*
 import kotlinx.coroutines.launch
 
 @Composable
@@ -298,31 +269,12 @@ fun BoqUnifiedUploadAndConfirmScreen(
 
                         if (activeGeneralError != null) {
                             Spacer(modifier = Modifier.height(SpaceXS))
-                            Surface(
-                                color = StatusRed.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(8.dp),
-                                border = BorderStroke(1.dp, StatusRed.copy(alpha = 0.5f)),
+                            MastorErrorBanner(
+                                message = activeGeneralError,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("boq_parsing_error_banner")
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = null,
-                                        tint = StatusRed,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(SpaceSM))
-                                    Text(
-                                        text = activeGeneralError,
-                                        style = MastorBody.copy(color = StatusRed, fontSize = 12.sp)
-                                    )
-                                }
-                            }
+                            )
                         }
                     }
                 }
@@ -333,29 +285,11 @@ fun BoqUnifiedUploadAndConfirmScreen(
         // MastorDarkCard, BracketLabel("ANALYSING DOCUMENT"), MastorCopper CircularProgressIndicator.
         if (isParsing) {
             item {
-                MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(SpaceXL),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(SpaceMD)
-                    ) {
-                        CircularProgressIndicator(
-                            color = MastorCopper,
-                            strokeWidth = 3.dp,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        BracketLabel(
-                            text = "ANALYSING DOCUMENT",
-                            color = MastorCopper
-                        )
-                        Text(
-                            text = "Extracting verbatim scope lines, quantities, and unit rates...",
-                            style = MastorBody.copy(color = MastorCreamMuted, fontSize = 13.sp)
-                        )
-                    }
-                }
+                MastorLoadingCard(
+                    label = "ANALYSING DOCUMENT",
+                    subtitle = "Extracting verbatim scope lines, quantities, and unit rates...",
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
