@@ -23,12 +23,31 @@ data class SiteDiaryAudioAnalysis(
     val todos: List<String>,
     val finishedItems: List<String>,
     val valuationNotes: String,
-    val taskScheduling: String
+    val taskScheduling: String,
+    /** Extra works found on site that are NOT in the original scope — candidate variations. */
+    val variations: List<DetectedVariation> = emptyList(),
+    /**
+     * False when the AI call failed and this is a local keyword-only result.
+     * UI must tell the user; nothing in a failed result may be auto-claimed.
+     */
+    val aiSucceeded: Boolean = true
 ) {
     fun tasksAsJson(): String = JSONArray(tasks).toString()
     fun todosAsJson(): String = JSONArray(todos).toString()
     fun finishedItemsAsJson(): String = JSONArray(finishedItems).toString()
 }
+
+/**
+ * A candidate variation heard in the site diary. Quantities are only ever what
+ * the speaker actually said — never estimated by the model.
+ */
+data class DetectedVariation(
+    val description: String,
+    val locationRoom: String,
+    val qty: Double?,
+    val unit: String?,
+    val reason: String
+)
 
 // Legacy alias for compatibility
 typealias AudioDiaryAnalysis = SiteDiaryAudioAnalysis
@@ -39,25 +58,44 @@ object SiteDiaryAudioTranscriber {
 
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(120, TimeUnit.SECONDS)
         .build()
 
     private const val SYSTEM_PROMPT = """
-You are an expert UK Quantity Surveyor and Site Construction Manager audio transcription and commercial intelligence agent.
-When provided with an audio recording or speech text from a site manager:
-1. Transcribe verbatim what was spoken into 'rawTranscription'.
-2. Extract structured construction diary insights:
-   - headline: Brief descriptive title of today's trade activities (e.g., 'Plastering & First Fix Chasing').
-   - suggestedWoRef: Suggested Work Order code if discernible (e.g., 'WO-001' or 'WO-002').
-   - suggestedStatus: 'Progress On Track', 'Material Delay', 'Weather Stoppage', or 'Safety Inspection Flag'.
-   - weatherNotes: Observed site weather conditions (e.g., 'Overcast, 15°C', 'Light rain, 12°C', 'Dry & sunny, 20°C').
-   - laborCount: Integer number of operatives or tradespeople mentioned on site (default to 4 if unstated).
-   - tasks: Array of ongoing physical site tasks mentioned.
-   - todos: Array of immediate action items, subbie follow-ups, or material orders.
-   - finishedItems: Array of completed milestone items ready for QS measurement or payment certification.
-   - valuationNotes: Specific observations relevant to interim valuations, milestone percentages, or £ values.
-   - taskScheduling: Trade sequencing and next trade handover advice.
+You are a UK construction site diary assistant for a contractor delivering Schedule of Rates
+(SoR) repair and refurbishment works for local authorities. You receive a site manager's
+spoken walk-round. The diary is a contractual record — accuracy matters more than completeness.
+
+ABSOLUTE RULES
+- Only record what the speaker actually said. Never invent tasks, items, quantities, weather,
+  labour numbers or money figures. If something was not said, leave it empty.
+- rawTranscription: verbatim transcript of what was spoken.
+
+FIELDS
+- headline: short title of today's activity, from what was said.
+- suggestedWoRef: a works order reference only if one was spoken, else empty string.
+- suggestedStatus: one of 'Progress On Track', 'Material Delay', 'Weather Stoppage',
+  'Safety Inspection Flag' — pick based on what was said.
+- weatherNotes: only if weather was mentioned, else empty string.
+- laborCount: number of operatives only if stated, else 0.
+- tasks: work in progress that was mentioned.
+- todos: actions, orders, follow-ups the speaker said need doing.
+- finishedItems: ONLY work the speaker explicitly said is complete, done, finished, fitted,
+  hung, signed off, or a stated percentage. Include the room and any stated percentage in
+  the text, e.g. "Bathroom wall tiling complete", "Bedroom 1 skim 50%". Never infer completion.
+- valuationNotes: only money/valuation comments actually spoken, else empty string.
+- taskScheduling: only sequencing comments actually spoken, else empty string.
+- variations: EXTRA work discovered on site that is outside the original job — e.g.
+  "found rotten joists under the bath", "client wants an extra socket", "ceiling came down
+  when we stripped it", "need to replace the cill as well". For each:
+    description: what the extra work is, in plain trade language
+    locationRoom: the room/area if said, else empty string
+    qty: number ONLY if the speaker gave one, else null
+    unit: unit ONLY if said or obvious from the stated qty (m, m2, nr, lm, item), else null
+    reason: why it's needed, from what was said
+  Do NOT list normal scoped work as a variation. If unsure whether it's extra, still include
+  it — the site manager will review every variation before it goes anywhere.
 
 Respond strictly in JSON matching the schema.
 """
@@ -83,7 +121,7 @@ Respond strictly in JSON matching the schema.
             }
         }
 
-        val textToAnalyze = speechTextFallback ?: "Site diary update: daily trade progress and milestone inspection recorded."
+        val textToAnalyze = speechTextFallback ?: ""
         return@withContext fallbackAnalysis(textToAnalyze)
     }
 
@@ -125,8 +163,22 @@ Respond strictly in JSON matching the schema.
                 })
                 put("valuationNotes", JSONObject().put("type", "STRING"))
                 put("taskScheduling", JSONObject().put("type", "STRING"))
+                put("variations", JSONObject().apply {
+                    put("type", "ARRAY")
+                    put("items", JSONObject().apply {
+                        put("type", "OBJECT")
+                        put("properties", JSONObject().apply {
+                            put("description", JSONObject().put("type", "STRING"))
+                            put("locationRoom", JSONObject().put("type", "STRING"))
+                            put("qty", JSONObject().put("type", "NUMBER").put("nullable", true))
+                            put("unit", JSONObject().put("type", "STRING").put("nullable", true))
+                            put("reason", JSONObject().put("type", "STRING"))
+                        })
+                        put("required", JSONArray(listOf("description", "locationRoom", "reason")))
+                    })
+                })
             })
-            put("required", JSONArray(listOf("headline", "rawTranscription", "weatherNotes", "laborCount", "tasks", "todos", "finishedItems", "valuationNotes", "taskScheduling")))
+            put("required", JSONArray(listOf("headline", "rawTranscription", "weatherNotes", "laborCount", "tasks", "todos", "finishedItems", "valuationNotes", "taskScheduling", "variations")))
         }
 
         val partsArray = JSONArray()
@@ -140,7 +192,7 @@ Respond strictly in JSON matching the schema.
             }
             partsArray.put(audioInline)
             partsArray.put(JSONObject().apply {
-                put("text", "Please transcribe this site manager audio recording and extract all structured construction progress, weather, labor, and valuation insights.")
+                put("text", "Transcribe this site manager's recording and extract the diary fields. Only record what was actually said.")
             })
         } else if (!speechText.isNullOrBlank()) {
             partsArray.put(JSONObject().apply {
@@ -187,118 +239,76 @@ Respond strictly in JSON matching the schema.
             ?.optString("text") ?: return null
 
         val obj = JSONObject(textResponse)
-        val headline = obj.optString("headline", "Site Daily Voice Log")
-        val woRef = if (obj.has("suggestedWoRef") && !obj.isNull("suggestedWoRef")) obj.getString("suggestedWoRef") else "WO-001"
-        val status = obj.optString("suggestedStatus", "Progress On Track")
-        val rawTranscription = obj.optString("rawTranscription", speechText ?: "Site voice audio processed.")
-        val weatherNotes = obj.optString("weatherNotes", "Overcast, 15°C")
-        val laborCount = obj.optInt("laborCount", 4)
 
-        val tasks = mutableListOf<String>()
-        val tasksArr = obj.optJSONArray("tasks")
-        if (tasksArr != null) {
-            for (i in 0 until tasksArr.length()) tasks.add(tasksArr.getString(i))
+        fun strList(key: String): List<String> {
+            val arr = obj.optJSONArray(key) ?: return emptyList()
+            return (0 until arr.length()).mapNotNull { i ->
+                arr.optString(i).trim().takeIf { it.isNotBlank() }
+            }
         }
 
-        val todos = mutableListOf<String>()
-        val todosArr = obj.optJSONArray("todos")
-        if (todosArr != null) {
-            for (i in 0 until todosArr.length()) todos.add(todosArr.getString(i))
+        val variations = mutableListOf<DetectedVariation>()
+        obj.optJSONArray("variations")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val v = arr.optJSONObject(i) ?: continue
+                val desc = v.optString("description").trim()
+                if (desc.isBlank()) continue
+                val qty = if (v.has("qty") && !v.isNull("qty")) v.optDouble("qty").takeIf { !it.isNaN() && it > 0 } else null
+                val unit = if (v.has("unit") && !v.isNull("unit")) v.optString("unit").trim().takeIf { it.isNotBlank() } else null
+                variations.add(
+                    DetectedVariation(
+                        description = desc,
+                        locationRoom = v.optString("locationRoom").trim(),
+                        qty = qty,
+                        unit = unit,
+                        reason = v.optString("reason").trim()
+                    )
+                )
+            }
         }
 
-        val finished = mutableListOf<String>()
-        val finishedArr = obj.optJSONArray("finishedItems")
-        if (finishedArr != null) {
-            for (i in 0 until finishedArr.length()) finished.add(finishedArr.getString(i))
-        }
-
-        val valNotes = obj.optString("valuationNotes", "Milestone progress recorded for QS valuation claim.")
-        val scheduling = obj.optString("taskScheduling", "Sequence next trade upon completion.")
+        val woRef = obj.optString("suggestedWoRef").trim().takeIf { it.isNotBlank() && it != "null" }
 
         return SiteDiaryAudioAnalysis(
-            headline = headline,
+            headline = obj.optString("headline").trim().ifBlank { "Site Diary Entry" },
             suggestedWoRef = woRef,
-            suggestedStatus = status,
-            rawTranscription = rawTranscription,
-            weatherNotes = weatherNotes,
-            laborCount = if (laborCount <= 0) 4 else laborCount,
-            tasks = if (tasks.isEmpty()) listOf("Ongoing site works") else tasks,
-            todos = if (todos.isEmpty()) listOf("Monitor site progress") else todos,
-            finishedItems = finished,
-            valuationNotes = valNotes,
-            taskScheduling = scheduling
+            suggestedStatus = obj.optString("suggestedStatus").trim().ifBlank { "Progress On Track" },
+            rawTranscription = obj.optString("rawTranscription").trim().ifBlank { speechText ?: "" },
+            weatherNotes = obj.optString("weatherNotes").trim(),
+            laborCount = obj.optInt("laborCount", 0).coerceAtLeast(0),
+            tasks = strList("tasks"),
+            todos = strList("todos"),
+            finishedItems = strList("finishedItems"),
+            valuationNotes = obj.optString("valuationNotes").trim(),
+            taskScheduling = obj.optString("taskScheduling").trim(),
+            variations = variations,
+            aiSucceeded = true
         )
     }
 
+    /**
+     * Used only when the AI call fails (no signal, API error, no key).
+     *
+     * Deliberately does NOT extract finished items, variations, weather, labour or money.
+     * A site diary is a contractual record: a failed AI call must never produce invented
+     * entries, and nothing from this result may be auto-claimed against scope.
+     * The raw text (if any) is kept so the site manager can review and re-analyse later.
+     */
     fun fallbackAnalysis(voiceInput: String): SiteDiaryAudioAnalysis {
-        val lower = voiceInput.lowercase()
-        val isDryliningOrPlaster = lower.contains("plaster") || lower.contains("drylining") || lower.contains("board") || lower.contains("skim")
-        val isMAndE = lower.contains("m&e") || lower.contains("pipe") || lower.contains("wire") || lower.contains("electric") || lower.contains("chasing")
-        val isDemo = lower.contains("strip") || lower.contains("demolition") || lower.contains("waste")
-
-        val headline = when {
-            isDryliningOrPlaster -> "Drylining & Plastering Progress"
-            isMAndE -> "M&E First Fix & Pipework"
-            isDemo -> "Demolition & Strip-Out Phase"
-            else -> "General Site Progress & Observations"
-        }
-
-        val tasks = mutableListOf<String>()
-        val todos = mutableListOf<String>()
-        val finished = mutableListOf<String>()
-
-        if (lower.contains("progressing") || lower.contains("underway") || lower.contains("skim")) {
-            tasks.add("Multi-finish plaster skim coat progressing across room partitions")
-        }
-        if (tasks.isEmpty()) {
-            tasks.add("Active trade operations underway as per contract programme")
-        }
-
-        if (lower.contains("signed off") || lower.contains("completed") || lower.contains("clear")) {
-            finished.add("Corridor B metal stud framing signed off with building control")
-        }
-        if (finished.isEmpty() && isDemo) {
-            finished.add("Kitchen and wet area strip out completed ready for first fix")
-        }
-
-        if (lower.contains("order") || lower.contains("sheets") || lower.contains("need")) {
-            todos.add("Order 30 sheets of 15mm SoundBloc plasterboard for acoustic ceilings")
-        }
-        if (lower.contains("chase") || lower.contains("subby") || lower.contains("pressure")) {
-            todos.add("Chase M&E subcontractor for pipe pressure test certificate")
-        }
-        if (todos.isEmpty()) {
-            todos.add("Verify delivery schedules with trade suppliers")
-        }
-
-        val valNotes = "50% milestone achieved on internal partitions (£1,250 claim ready for next interim valuation certificate)."
-        val scheduling = "Handover to 2nd fix carpentry once plaster drying time completes in 48 hours."
-
-        val labor = when {
-            lower.contains("4 joiners") || lower.contains("4 ") -> 4
-            lower.contains("6 ") -> 6
-            lower.contains("plasterers") -> 3
-            else -> 4
-        }
-
-        val weather = when {
-            lower.contains("rain") -> "Light rain, 12°C"
-            lower.contains("sunny") || lower.contains("clear") -> "Sunny & clear, 18°C"
-            else -> "Overcast, 15°C"
-        }
-
         return SiteDiaryAudioAnalysis(
-            headline = headline,
-            suggestedWoRef = "WO-001",
+            headline = "Site Diary Entry (AI unavailable — review needed)",
+            suggestedWoRef = null,
             suggestedStatus = "Progress On Track",
             rawTranscription = voiceInput,
-            weatherNotes = weather,
-            laborCount = labor,
-            tasks = tasks,
-            todos = todos,
-            finishedItems = finished,
-            valuationNotes = valNotes,
-            taskScheduling = scheduling
+            weatherNotes = "",
+            laborCount = 0,
+            tasks = emptyList(),
+            todos = emptyList(),
+            finishedItems = emptyList(),
+            valuationNotes = "",
+            taskScheduling = "",
+            variations = emptyList(),
+            aiSucceeded = false
         )
     }
 }

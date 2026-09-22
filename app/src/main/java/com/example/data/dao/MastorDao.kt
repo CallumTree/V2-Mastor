@@ -124,6 +124,9 @@ interface MastorDao {
 
 
     // --- Variation Orders ---
+    @Query("SELECT vo_number FROM variation_orders WHERE project_id = :projectId")
+    suspend fun getVoNumbersForProject(projectId: String): List<String>
+
     @Query("SELECT * FROM variation_orders WHERE project_id = :projectId ORDER BY vo_number ASC")
     fun getVariationOrdersForProject(projectId: String): Flow<List<VariationOrder>>
 

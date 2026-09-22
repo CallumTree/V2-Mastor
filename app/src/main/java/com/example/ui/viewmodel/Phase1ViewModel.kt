@@ -87,7 +87,9 @@ data class ScopeMatchSummary(
     val finishedItemsCount: Int = matched + skipped,
     val matchedElementsCount: Int = matched,
     val appliedCount: Int = matched,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val variationsRaised: Int = 0,
+    val aiFailed: Boolean = false
 )
 
 class Phase1ViewModel(application: Application) : AndroidViewModel(application) {
@@ -495,7 +497,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 id = "se_" + System.currentTimeMillis(),
                 woRef = woRef,
                 locationRoom = locationRoom.ifBlank { "General" },
-                code = code.ifBlank { "SE-" + (100..999).random() },
+                code = code.trim(),
                 description = description,
                 qty = qty.coerceAtLeast(0.0),
                 units = units.ifBlank { "item" },
@@ -550,7 +552,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                         id = "se_" + System.currentTimeMillis() + "_" + (1000..9999).random(),
                         woRef = pWo.woRef,
                         locationRoom = pElem.locationRoom.ifBlank { "General" },
-                        code = pElem.code.ifBlank { "SE-" + (100..999).random() },
+                        code = pElem.code.trim(),
                         description = pElem.description,
                         qty = pElem.qty.coerceAtLeast(0.0),
                         units = pElem.units.ifBlank { "item" },
@@ -594,6 +596,47 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private fun todayUk(): String =
+        java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.UK).format(java.util.Date())
+
+    /**
+     * Raises candidate variations heard in a voice diary as unpriced "VO Identified" drafts.
+     * Safe to auto-create: Identified VOs carry no rate, are not linked to any valuation and
+     * claim nothing until the site manager prices and approves them.
+     * Returns the number raised.
+     */
+    private suspend fun raiseDetectedVariations(
+        variations: List<com.example.domain.audio.DetectedVariation>,
+        diaryDate: String
+    ): Int {
+        var raised = 0
+        for (v in variations) {
+            val qtyNote = if (v.qty == null) "Qty not stated — measure on site. " else ""
+            val vo = VariationOrder(
+                id = "vo_" + java.util.UUID.randomUUID().toString(),
+                projectId = projectId,
+                voNumber = repository.nextVoNumber(projectId),
+                externalVoNumber = "",
+                status = "VO Identified",
+                property = "",
+                locationRoom = v.locationRoom.ifBlank { "General" },
+                code = "",
+                description = v.description,
+                qty = v.qty ?: 0.0,
+                units = v.unit ?: "item",
+                rate = 0.0,
+                notes = qtyNote + "Raised from site diary $diaryDate" +
+                    if (v.reason.isNotBlank()) ": ${v.reason}" else "",
+                dateRaised = todayUk(),
+                tick = false,
+                currentValuationId = null
+            )
+            repository.insertVariationOrder(vo)
+            raised++
+        }
+        return raised
+    }
+
     fun createVariationOrderLine(
         voNumber: String,
         externalVoNumber: String,
@@ -609,22 +652,25 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
     ) {
         viewModelScope.launch {
             val newVo = VariationOrder(
-                id = "vo_" + System.currentTimeMillis() + "_" + (100..999).random(),
+                id = "vo_" + java.util.UUID.randomUUID().toString(),
                 projectId = projectId,
-                voNumber = voNumber.ifBlank { "VO-" + (100..999).random() },
-                externalVoNumber = externalVoNumber.ifBlank { "EXT-VO-" + (100..999).random() },
+                // Sequential per project. Never random — this is the contractor's VO register.
+                voNumber = voNumber.ifBlank { repository.nextVoNumber(projectId) },
+                // Client/council reference: blank until the client actually issues one.
+                externalVoNumber = externalVoNumber.trim(),
                 status = status,
-                property = property.ifBlank { "Main Site" },
+                property = property,
                 locationRoom = locationRoom.ifBlank { "General" },
-                code = code.ifBlank { "VO-" + (100..999).random() },
+                code = code.trim(),
                 description = description,
                 qty = qty.coerceAtLeast(0.0),
                 units = units.ifBlank { "item" },
                 rate = rate.coerceAtLeast(0.0),
                 notes = notes,
-                dateRaised = "09 Aug 2026",
+                dateRaised = todayUk(),
                 tick = false,
-                currentValuationId = valuationId
+                // Not linked to any valuation until it is approved to one.
+                currentValuationId = null
             )
             repository.insertVariationOrder(newVo)
         }
@@ -878,7 +924,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 weatherNotes = weatherNotes?.ifBlank { null },
                 laborCount = laborCount,
                 notes = notes,
-                photoUrl = photoUrl.ifBlank { "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?auto=format&fit=crop&w=800&q=80" },
+                photoUrl = photoUrl,
                 geminiSummary = summary,
                 createdAtTimestamp = System.currentTimeMillis(),
                 isCachedOffline = true,
@@ -905,7 +951,9 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
         audioTodosJson: String,
         audioFinishedItemsJson: String,
         audioValuationNotes: String,
-        audioSchedulingNotes: String
+        audioSchedulingNotes: String,
+        detectedVariations: List<com.example.domain.audio.DetectedVariation> = emptyList(),
+        aiSucceeded: Boolean = true
     ) {
         viewModelScope.launch {
             _isAnalyzingDiary.value = true
@@ -928,13 +976,13 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 projectId = projectId,
                 workOrderId = workOrderId,
                 workOrderTitle = workOrderTitle,
-                author = author.ifBlank { "Dave Jenkins (Site Manager)" },
+                author = author.ifBlank { uiState.value.project?.siteManager?.ifBlank { null } ?: "Site Manager" },
                 dateDisplay = dateStr,
                 statusUpdate = statusUpdate,
                 weatherNotes = weatherNotes?.ifBlank { null },
                 laborCount = laborCount,
                 notes = notes,
-                photoUrl = photoUrl.ifBlank { "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?auto=format&fit=crop&w=800&q=80" },
+                photoUrl = photoUrl,
                 geminiSummary = summary,
                 isVoiceTranscribed = true,
                 audioTranscript = audioTranscript,
@@ -957,7 +1005,19 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 (0 until arr.length()).map { arr.getString(it) }
             } catch (e: Exception) { emptyList() }
 
-            if (finishedList.isNotEmpty()) {
+            // Nothing from a failed AI result is ever auto-claimed (fallback has no finished items,
+            // but guard explicitly so a future fallback change can't reintroduce auto-claiming).
+            val variationsRaised = if (aiSucceeded && detectedVariations.isNotEmpty()) {
+                raiseDetectedVariations(detectedVariations, dateStr)
+            } else 0
+
+            if (!aiSucceeded) {
+                _lastMatchSummary.value = ScopeMatchSummary(aiFailed = true)
+            } else if (finishedList.isEmpty() && variationsRaised > 0) {
+                _lastMatchSummary.value = ScopeMatchSummary(variationsRaised = variationsRaised)
+            }
+
+            if (aiSucceeded && finishedList.isNotEmpty()) {
                 val scopeElements = repository.getScopeElementsForProject(projectId)
                 val matchResults = ScopeMatcher.matchFinishedItems(finishedList, scopeElements)
 
@@ -989,7 +1049,8 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 _lastMatchSummary.value = ScopeMatchSummary(
                     matched = matchedCount,
                     skipped = skippedCount,
-                    results = matchResults
+                    results = matchResults,
+                    variationsRaised = variationsRaised
                 )
             }
 
@@ -1121,7 +1182,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val existing = uiState.value.linkedDocuments.find { it.id == id }
             if (existing != null) {
-                val updated = existing.copy(lastSyncedAt = "09 Aug 2026, Just Now")
+                val updated = existing.copy(lastSyncedAt = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.UK).format(java.util.Date()))
                 repository.insertLinkedDocument(updated)
             }
         }
@@ -1390,7 +1451,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 id = newElementId,
                 woRef = woRef.ifBlank { "WO-01" },
                 locationRoom = locationRoom.ifBlank { "General" },
-                code = code.ifBlank { "SE-" + (100..999).random() },
+                code = code.trim(),
                 description = description,
                 qty = qty.coerceAtLeast(0.0),
                 units = units.ifBlank { "item" },

@@ -294,6 +294,14 @@ class MastorRepository(private val dao: MastorDao) {
         }
     }
 
+    /** Next sequential VO number for a project: VO-001, VO-002 ... */
+    suspend fun nextVoNumber(projectId: String): String {
+        val max = dao.getVoNumbersForProject(projectId)
+            .mapNotNull { Regex("""(\d+)""").find(it)?.value?.toIntOrNull() }
+            .maxOrNull() ?: 0
+        return "VO-" + (max + 1).toString().padStart(3, '0')
+    }
+
     suspend fun insertVariationOrder(vo: VariationOrder) {
         withContext(Dispatchers.IO) {
             dao.insertVariationOrder(vo)

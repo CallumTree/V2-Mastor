@@ -140,48 +140,50 @@ class SiteDiaryTest {
     }
 
     @Test
-    fun testAudioTranscription_ExtractsTasksTodosFinishedAndValuationNotes() {
-        val voiceInput = "Drylining and plastering in Flat 3 underway. Multi-finish plaster skim coat progressing well. Signed off Corridor B metal stud framing with building control. Need to order 30 sheets of 15mm SoundBloc plasterboard and chase M&E subby for pipe pressure test."
+    fun testFallbackAnalysis_NeverInventsDiaryContent() {
+        // When the AI call fails, the fallback must NOT fabricate completed work, variations,
+        // weather, labour or money — the diary is a contractual record and finished items
+        // would otherwise be auto-claimed against scope.
+        val voiceInput = "Signed off Corridor B metal stud framing. Found rotten joists under the bath. Raining."
 
         val analysis = com.example.domain.audio.SiteDiaryAudioTranscriber.fallbackAnalysis(voiceInput)
 
-        assertNotNull(analysis)
-        assertTrue("Headline should reflect trade context", analysis.headline.contains("Plaster") || analysis.headline.contains("Drylining"))
-        assertEquals("WO-001", analysis.suggestedWoRef)
-        assertTrue("Tasks list should be populated", analysis.tasks.isNotEmpty())
-        assertTrue("Finished items should be extracted", analysis.finishedItems.isNotEmpty())
-        assertTrue("To-Dos should be extracted", analysis.todos.isNotEmpty())
-        assertTrue("Valuation notes should include financial milestone context", analysis.valuationNotes.contains("£") || analysis.valuationNotes.contains("%"))
-        assertTrue("Scheduling notes should contain trade handover sequencing", analysis.taskScheduling.isNotBlank())
+        assertTrue("Fallback must be flagged as AI failure", !analysis.aiSucceeded)
+        assertEquals("Raw text must be preserved for later review", voiceInput, analysis.rawTranscription)
+        assertTrue("No finished items may be invented", analysis.finishedItems.isEmpty())
+        assertTrue("No variations may be invented", analysis.variations.isEmpty())
+        assertTrue("No tasks may be invented", analysis.tasks.isEmpty())
+        assertTrue("No todos may be invented", analysis.todos.isEmpty())
+        assertEquals("Labour must be 0 (unknown), not guessed", 0, analysis.laborCount)
+        assertTrue("Weather must be blank, not guessed", analysis.weatherNotes.isBlank())
+        assertTrue("No money figures may be invented", analysis.valuationNotes.isBlank())
+        assertEquals("No work order may be guessed", null, analysis.suggestedWoRef)
+    }
 
-        // Test Room Entity serialization helpers
+    @Test
+    fun testDiaryEntry_SerialisesAnalysisLists() {
         val entry = SiteDiaryEntry(
             id = "diary_voice_test",
             projectId = "proj_101",
-            workOrderId = analysis.suggestedWoRef,
-            workOrderTitle = "Work Order WO-01",
-            author = "Marcus Vance",
+            workOrderId = null,
+            workOrderTitle = null,
+            author = "Site Manager",
             dateDisplay = "17 Aug 2026",
-            statusUpdate = analysis.suggestedStatus,
-            notes = analysis.rawTranscription,
-            photoUrl = "https://example.com/site.jpg",
+            statusUpdate = "Progress On Track",
+            notes = "Bathroom tiling complete",
+            photoUrl = "",
             isVoiceTranscribed = true,
-            audioTranscript = analysis.rawTranscription,
-            audioTasksJson = analysis.tasksAsJson(),
-            audioTodosJson = analysis.todosAsJson(),
-            audioFinishedItemsJson = analysis.finishedItemsAsJson(),
-            audioValuationNotes = analysis.valuationNotes,
-            audioSchedulingNotes = analysis.taskScheduling
+            audioTranscript = "Bathroom tiling complete",
+            audioTasksJson = org.json.JSONArray(listOf("Kitchen first fix")).toString(),
+            audioTodosJson = org.json.JSONArray(listOf("Order skirting")).toString(),
+            audioFinishedItemsJson = org.json.JSONArray(listOf("Bathroom wall tiling complete")).toString(),
+            audioValuationNotes = "",
+            audioSchedulingNotes = ""
         )
 
-        val deserializedTasks = entry.getTasksList()
-        val deserializedTodos = entry.getTodosList()
-        val deserializedFinished = entry.getFinishedItemsList()
-
-        assertEquals(analysis.tasks.size, deserializedTasks.size)
-        assertEquals(analysis.todos.size, deserializedTodos.size)
-        assertEquals(analysis.finishedItems.size, deserializedFinished.size)
-        assertEquals(analysis.valuationNotes, entry.audioValuationNotes)
+        assertEquals(1, entry.getTasksList().size)
+        assertEquals(1, entry.getTodosList().size)
+        assertEquals(listOf("Bathroom wall tiling complete"), entry.getFinishedItemsList())
     }
 
     @Test

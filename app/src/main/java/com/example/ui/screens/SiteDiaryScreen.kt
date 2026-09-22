@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
@@ -95,6 +96,10 @@ import com.example.data.entity.SiteDiaryEntry
 import com.example.domain.audio.AudioRecordingState
 import com.example.domain.audio.SiteAudioRecorder
 import com.example.domain.audio.SiteDiaryAudioAnalysis
+import com.example.domain.audio.DetectedVariation
+import com.example.BuildConfig
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import com.example.domain.audio.SiteDiaryAudioTranscriber
 import com.example.domain.audio.VoiceNoteSample
 import androidx.compose.animation.core.LinearEasing
@@ -156,7 +161,7 @@ fun SiteDiaryScreen(
     // 5-second auto-dismissing timer for scope match summary banner
     LaunchedEffect(lastMatchSummary) {
         if (lastMatchSummary != null) {
-            delay(5000L)
+            delay(10_000L)
             viewModel.clearMatchSummary()
         }
     }
@@ -196,7 +201,7 @@ fun SiteDiaryScreen(
                 SiteAudioRecorder.stopRecording()
                 showAudioModal = false
             },
-            onSaveVoiceEntry = { woId, woTitle, author, status, weather, labor, notes, photoUrl, transcript, tasksJson, todosJson, finishedJson, valNotes, schedNotes ->
+            onSaveVoiceEntry = { woId, woTitle, author, status, weather, labor, notes, photoUrl, transcript, tasksJson, todosJson, finishedJson, valNotes, schedNotes, variations, aiOk ->
                 viewModel.createVoiceSiteDiaryEntry(
                     workOrderId = woId,
                     workOrderTitle = woTitle,
@@ -211,7 +216,9 @@ fun SiteDiaryScreen(
                     audioTodosJson = todosJson,
                     audioFinishedItemsJson = finishedJson,
                     audioValuationNotes = valNotes,
-                    audioSchedulingNotes = schedNotes
+                    audioSchedulingNotes = schedNotes,
+                    detectedVariations = variations,
+                    aiSucceeded = aiOk
                 )
                 showAudioModal = false
             }
@@ -296,7 +303,15 @@ fun SiteDiaryScreen(
             if (lastMatchSummary != null) {
                 item {
                     val summary = lastMatchSummary!!
-                    val isSuccess = summary.matched > 0
+                    val isSuccess = !summary.aiFailed && (summary.matched > 0 || summary.variationsRaised > 0)
+                    val successText = listOfNotNull(
+                        if (summary.matched > 0) "✓ ${summary.matched} scope item${if (summary.matched == 1) "" else "s"} marked complete" else null,
+                        if (summary.variationsRaised > 0) "${summary.variationsRaised} variation${if (summary.variationsRaised == 1) "" else "s"} raised for pricing in VOs" else null
+                    ).joinToString(" · ")
+                    val otherText = if (summary.aiFailed)
+                        "Diary saved. AI was unavailable, so nothing was marked complete or raised — update Scope and VOs manually."
+                    else
+                        "Diary saved. Nothing matched to scope — update manually in Scope if needed."
 
                     if (isSuccess) {
                         MastorCopperCard(
@@ -318,7 +333,7 @@ fun SiteDiaryScreen(
                                 )
                                 Spacer(modifier = Modifier.width(SpaceMD))
                                 Text(
-                                    text = "✓ ${summary.matched} scope items updated from your site diary — check Valuations tab",
+                                    text = successText,
                                     style = MastorBody.copy(color = MastorCreamText, fontWeight = FontWeight.SemiBold),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -355,7 +370,7 @@ fun SiteDiaryScreen(
                                 )
                                 Spacer(modifier = Modifier.width(SpaceMD))
                                 Text(
-                                    text = "No scope items matched automatically — update manually in Scope tab",
+                                    text = otherText,
                                     style = MastorBody.copy(color = MastorCreamText),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -925,7 +940,9 @@ fun AudioSiteLogModal(
         todosJson: String,
         finishedJson: String,
         valNotes: String,
-        schedNotes: String
+        schedNotes: String,
+        variations: List<DetectedVariation>,
+        aiSucceeded: Boolean
     ) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -938,7 +955,10 @@ fun AudioSiteLogModal(
     var editableHeadline by remember { mutableStateOf("") }
     var selectedWoRef by remember { mutableStateOf<String?>(null) }
     var selectedWoTitle by remember { mutableStateOf<String?>(null) }
-    var author by remember { mutableStateOf("Dave Jenkins (Site Manager)") }
+    var author by remember { mutableStateOf("") }
+    // Human review gate: indices the site manager has UNticked (excluded) before saving.
+    var excludedFinished by remember(analysisResult) { mutableStateOf(setOf<Int>()) }
+    var excludedVariations by remember(analysisResult) { mutableStateOf(setOf<Int>()) }
     var selectedStatus by remember { mutableStateOf("Progress On Track") }
     var selectedPhotoUrl by remember { mutableStateOf("") }
 
@@ -1144,15 +1164,15 @@ fun AudioSiteLogModal(
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.CheckCircle,
+                                        imageVector = if (analysisResult?.aiSucceeded == false) Icons.Default.Warning else Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = StatusGreen,
+                                        tint = if (analysisResult?.aiSucceeded == false) StatusAmber else StatusGreen,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Audio Transcribed & Analyzed",
-                                        style = MastorTitle.copy(color = StatusGreen)
+                                        text = if (analysisResult?.aiSucceeded == false) "Recorded — AI analysis unavailable" else "Transcribed & analysed",
+                                        style = MastorTitle.copy(color = if (analysisResult?.aiSucceeded == false) StatusAmber else StatusGreen)
                                     )
                                 }
                             }
@@ -1160,9 +1180,9 @@ fun AudioSiteLogModal(
                     }
                 }
 
-                // Sample QS Voice Presets
-                item {
-                    BracketLabel("SAMPLE SITE PRESETS", color = MastorCreamMuted)
+                // Sample voice presets — debug builds only. Never allow canned text into a real diary.
+                if (BuildConfig.DEBUG) item {
+                    BracketLabel("SAMPLE SITE PRESETS (DEBUG)", color = MastorCreamMuted)
                     Spacer(modifier = Modifier.height(6.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1240,27 +1260,110 @@ fun AudioSiteLogModal(
                         }
                     }
 
-                    // Extracted Tasks / Finished / To-Dos Chips
-                    if (analysis.tasks.isNotEmpty() || analysis.todos.isNotEmpty()) {
+                    // ---------------- REVIEW GATE ----------------
+                    if (!analysis.aiSucceeded) {
                         item {
                             MastorDarkCard(
                                 modifier = Modifier.fillMaxWidth(),
-                                accentLeftColor = StatusGreen,
+                                accentLeftColor = StatusAmber,
                                 accentLeftWidth = 3.dp
                             ) {
-                                BracketLabel("AI EXTRACTED ACTIONS & PROGRESS", color = StatusGreen)
+                                BracketLabel("AI COULDN'T ANALYSE THIS RECORDING", color = StatusAmber)
                                 Spacer(modifier = Modifier.height(6.dp))
-                                for (task in analysis.tasks) {
-                                    Text(
-                                        text = "• Done: $task",
-                                        style = MastorBody.copy(color = MastorCreamText, fontSize = 12.sp)
+                                Text(
+                                    text = "Probably no signal. The entry will save, but nothing will be marked complete or raised as a variation. Update scope and variations manually, or record again when you have signal.",
+                                    style = MastorBody.copy(color = MastorCreamText, fontSize = 13.sp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (analysis.finishedItems.isNotEmpty()) {
+                        item {
+                            MastorDarkCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                accentLeftColor = MastorCopper,
+                                accentLeftWidth = 3.dp
+                            ) {
+                                BracketLabel("WILL MARK COMPLETE", color = MastorCopper)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Matched to your scope and added to the draft valuation. Untick anything that isn't right.",
+                                    style = MastorBody.copy(color = MastorCreamMuted, fontSize = 12.sp)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                analysis.finishedItems.forEachIndexed { i, item ->
+                                    ReviewCheckRow(
+                                        checked = i !in excludedFinished,
+                                        onCheckedChange = { checked ->
+                                            excludedFinished = if (checked) excludedFinished - i else excludedFinished + i
+                                        },
+                                        title = item,
+                                        subtitle = null,
+                                        tint = MastorCopper
                                     )
                                 }
-                                for (todo in analysis.todos) {
-                                    Text(
-                                        text = "• To-Do: $todo",
-                                        style = MastorBody.copy(color = MastorCreamText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    if (analysis.variations.isNotEmpty()) {
+                        item {
+                            MastorDarkCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                accentLeftColor = StatusAmber,
+                                accentLeftWidth = 3.dp
+                            ) {
+                                BracketLabel("POSSIBLE VARIATIONS (${analysis.variations.size})", color = StatusAmber)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Raised as unpriced drafts in VOs for you to price and approve. Untick anything that's already in scope.",
+                                    style = MastorBody.copy(color = MastorCreamMuted, fontSize = 12.sp)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                analysis.variations.forEachIndexed { i, v ->
+                                    val qtyText = if (v.qty != null) {
+                                        val q = if (v.qty % 1.0 == 0.0) v.qty.toInt().toString() else v.qty.toString()
+                                        "$q ${v.unit ?: ""}".trim()
+                                    } else "qty not stated"
+                                    val where = v.locationRoom.ifBlank { "Location not stated" }
+                                    ReviewCheckRow(
+                                        checked = i !in excludedVariations,
+                                        onCheckedChange = { checked ->
+                                            excludedVariations = if (checked) excludedVariations - i else excludedVariations + i
+                                        },
+                                        title = v.description,
+                                        subtitle = "$where · $qtyText" + if (v.reason.isNotBlank()) " · ${v.reason}" else "",
+                                        tint = StatusAmber
                                     )
+                                }
+                            }
+                        }
+                    }
+
+                    if (analysis.tasks.isNotEmpty() || analysis.todos.isNotEmpty()) {
+                        item {
+                            MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
+                                if (analysis.tasks.isNotEmpty()) {
+                                    BracketLabel("IN PROGRESS", color = MastorCreamMuted)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    for (task in analysis.tasks) {
+                                        Text(
+                                            text = "• $task",
+                                            style = MastorBody.copy(color = MastorCreamText, fontSize = 13.sp)
+                                        )
+                                    }
+                                }
+                                if (analysis.todos.isNotEmpty()) {
+                                    if (analysis.tasks.isNotEmpty()) Spacer(modifier = Modifier.height(10.dp))
+                                    BracketLabel("TO DO", color = MastorCreamMuted)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    for (todo in analysis.todos) {
+                                        Text(
+                                            text = "• $todo",
+                                            style = MastorBody.copy(color = MastorCreamText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1292,9 +1395,13 @@ fun AudioSiteLogModal(
                                         transcriptText,
                                         analysis.tasksAsJson(),
                                         analysis.todosAsJson(),
-                                        analysis.finishedItemsAsJson(),
+                                        org.json.JSONArray(
+                                            analysis.finishedItems.filterIndexed { i, _ -> i !in excludedFinished }
+                                        ).toString(),
                                         analysis.valuationNotes,
-                                        analysis.taskScheduling
+                                        analysis.taskScheduling,
+                                        analysis.variations.filterIndexed { i, _ -> i !in excludedVariations },
+                                        analysis.aiSucceeded
                                     )
                                 },
                                 icon = Icons.Default.CheckCircle,
@@ -1897,3 +2004,48 @@ private fun launchVideoCamera(
     }
 }
 
+
+/** One tickable line in the voice-diary review gate. */
+@Composable
+private fun ReviewCheckRow(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    title: String,
+    subtitle: String?,
+    tint: androidx.compose.ui.graphics.Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = CheckboxDefaults.colors(
+                checkedColor = tint,
+                uncheckedColor = MastorCreamMuted,
+                checkmarkColor = MastorCharcoal
+            )
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Column(modifier = Modifier.weight(1f).padding(top = 12.dp)) {
+            Text(
+                text = title,
+                style = MastorBody.copy(
+                    color = if (checked) MastorCreamText else MastorCreamMuted,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MastorBody.copy(color = MastorCreamMuted, fontSize = 12.sp)
+                )
+            }
+        }
+    }
+}
