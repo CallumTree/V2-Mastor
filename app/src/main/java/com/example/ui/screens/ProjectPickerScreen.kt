@@ -201,7 +201,8 @@ fun ProjectPickerScreen(
                             contractValue = proj.contractValue,
                             status = proj.status,
                             contractRef = proj.contractRef,
-                            onClick = { onSelectProject(proj.id) }
+                            onClick = { onSelectProject(proj.id) },
+                            sitePhotoUrl = proj.imageUrl
                         )
                     }
                 }

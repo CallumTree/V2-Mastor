@@ -38,6 +38,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material3.Icon
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.material3.IconButton
 import com.example.data.entity.Project
 import com.example.ui.theme.MastorBracketLabel
@@ -107,7 +116,16 @@ object ProjectIllustrationPicker {
         return abs(projectId.hashCode()) % variantCount
     }
 
-    fun resolveIllustration(projectId: String, projectType: String?): @Composable () -> Unit {
+    /**
+     * @param animateActive True only for a job with status "Active" — draws a looping copper
+     * light sweep across the illustration's own linework. Dormant/complete jobs get the plain
+     * static drawing, which doubles as a free at-a-glance status signal.
+     */
+    fun resolveIllustration(
+        projectId: String,
+        projectType: String?,
+        animateActive: Boolean = false
+    ): @Composable () -> Unit {
         val type = getType(projectType)
         val index = when (type) {
             ProjectIllustrationType.RESIDENTIAL_PPR -> getVariantIndex(projectId, 5)
@@ -116,12 +134,12 @@ object ProjectIllustrationPicker {
         }
         return {
             when (type) {
-                ProjectIllustrationType.RESIDENTIAL_PPR -> ResidentialPprIllustration(variant = index, modifier = Modifier.fillMaxSize())
-                ProjectIllustrationType.COMMERCIAL -> CommercialIllustration(variant = index, modifier = Modifier.fillMaxSize())
-                ProjectIllustrationType.ROOFING -> RoofingIllustration(variant = index, modifier = Modifier.fillMaxSize())
-                ProjectIllustrationType.INTERNAL_WORKS -> InternalWorksIllustration(variant = index, modifier = Modifier.fillMaxSize())
-                ProjectIllustrationType.EXTERNAL_WORKS -> ExternalWorksIllustration(variant = index, modifier = Modifier.fillMaxSize())
-                ProjectIllustrationType.UNKNOWN -> UnknownIllustration(variant = index, modifier = Modifier.fillMaxSize())
+                ProjectIllustrationType.RESIDENTIAL_PPR -> ResidentialPprIllustration(variant = index, modifier = Modifier.fillMaxSize(), animateActive = animateActive)
+                ProjectIllustrationType.COMMERCIAL -> CommercialIllustration(variant = index, modifier = Modifier.fillMaxSize(), animateActive = animateActive)
+                ProjectIllustrationType.ROOFING -> RoofingIllustration(variant = index, modifier = Modifier.fillMaxSize(), animateActive = animateActive)
+                ProjectIllustrationType.INTERNAL_WORKS -> InternalWorksIllustration(variant = index, modifier = Modifier.fillMaxSize(), animateActive = animateActive)
+                ProjectIllustrationType.EXTERNAL_WORKS -> ExternalWorksIllustration(variant = index, modifier = Modifier.fillMaxSize(), animateActive = animateActive)
+                ProjectIllustrationType.UNKNOWN -> UnknownIllustration(variant = index, modifier = Modifier.fillMaxSize(), animateActive = animateActive)
             }
         }
     }
@@ -133,8 +151,29 @@ object ProjectIllustrationPicker {
 @Composable
 private fun ScaledCanvasIllustration(
     modifier: Modifier = Modifier,
+    /**
+     * "Active job" signature — a soft band of copper light sweeps across the drawing on a loop,
+     * only lighting up the linework it passes over (masked to the illustration's own alpha via
+     * BlendMode.SrcAtop, so it never bleeds outside the drawn shapes). Static/dormant jobs get
+     * no animation at all, which doubles as a free status signal.
+     */
+    animateActive: Boolean = false,
     drawIllustration: DrawScope.() -> Unit
 ) {
+    val sweepProgress = if (animateActive) {
+        val infiniteTransition = rememberInfiniteTransition(label = "illustrationSweep")
+        val progress by infiniteTransition.animateFloat(
+            initialValue = -0.35f,
+            targetValue = 1.35f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "sweepProgress"
+        )
+        progress
+    } else 0f
+
     Canvas(modifier = modifier.fillMaxSize()) {
         val logicalWidth = 400f
         val logicalHeight = 200f
@@ -143,14 +182,41 @@ private fun ScaledCanvasIllustration(
         val scaleY = size.height / logicalHeight
         val scaleFactor = maxOf(scaleX, scaleY) // Fill viewport proportionally
 
-        // Draw the vector illustration centered & scaled
-        scale(scaleFactor, pivot = Offset(size.width / 2f, size.height / 2f)) {
-            // Center the 400x200 box in canvas
-            val offsetX = (size.width / scaleFactor - logicalWidth) / 2f
-            val offsetY = (size.height / scaleFactor - logicalHeight) / 2f
-            drawContext.transform.translate(offsetX, offsetY)
-            drawIllustration()
-            drawContext.transform.translate(-offsetX, -offsetY)
+        // Draw the vector illustration into its own layer so the sweep can be masked to it.
+        drawIntoCanvas { canvas ->
+            val layerBounds = androidx.compose.ui.geometry.Rect(Offset.Zero, size)
+            canvas.saveLayer(layerBounds, Paint())
+
+            scale(scaleFactor, pivot = Offset(size.width / 2f, size.height / 2f)) {
+                val offsetX = (size.width / scaleFactor - logicalWidth) / 2f
+                val offsetY = (size.height / scaleFactor - logicalHeight) / 2f
+                drawContext.transform.translate(offsetX, offsetY)
+                drawIllustration()
+                drawContext.transform.translate(-offsetX, -offsetY)
+            }
+
+            if (animateActive) {
+                // Diagonal copper sweep, masked to only the pixels the illustration already drew.
+                val bandWidth = size.width * 0.28f
+                val centreX = size.width * sweepProgress
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            MastorCopper.copy(alpha = 0.55f),
+                            MastorCopperLight.copy(alpha = 0.75f),
+                            MastorCopper.copy(alpha = 0.55f),
+                            Color.Transparent
+                        ),
+                        start = Offset(centreX - bandWidth, 0f),
+                        end = Offset(centreX + bandWidth, size.height)
+                    ),
+                    size = size,
+                    blendMode = BlendMode.SrcAtop
+                )
+            }
+
+            canvas.restore()
         }
 
         // Subtle gradient overlay from transparent to MastorCharcoal at 60% opacity at bottom
@@ -174,12 +240,12 @@ private fun ScaledCanvasIllustration(
 // Warm terracotta tones (#C97B3F at 15-25% opacity base, #C97B3F / #EDE6D8 for line work)
 // =============================================================================
 @Composable
-fun ResidentialPprIllustration(variant: Int, modifier: Modifier = Modifier) {
+fun ResidentialPprIllustration(variant: Int, modifier: Modifier = Modifier, animateActive: Boolean = false) {
     val terracottaBase = Color(0xFFC97B3F).copy(alpha = 0.20f)
     val terracottaAccent = Color(0xFFC97B3F).copy(alpha = 0.35f)
     val lineStroke = Color(0xFFEDE6D8).copy(alpha = 0.45f)
 
-    ScaledCanvasIllustration(modifier = modifier) {
+    ScaledCanvasIllustration(modifier = modifier, animateActive = animateActive) {
         // Base ground line
         drawLine(
             color = lineStroke.copy(alpha = 0.6f),
@@ -449,12 +515,12 @@ fun ResidentialPprIllustration(variant: Int, modifier: Modifier = Modifier) {
 // Cool slate tones (#252540 at 20% opacity base, #2DD4BF accent lines)
 // =============================================================================
 @Composable
-fun CommercialIllustration(variant: Int, modifier: Modifier = Modifier) {
+fun CommercialIllustration(variant: Int, modifier: Modifier = Modifier, animateActive: Boolean = false) {
     val slateBase = Color(0xFF252540).copy(alpha = 0.22f)
     val slateMid = Color(0xFF252540).copy(alpha = 0.38f)
     val tealAccent = Color(0xFF2DD4BF)
 
-    ScaledCanvasIllustration(modifier = modifier) {
+    ScaledCanvasIllustration(modifier = modifier, animateActive = animateActive) {
         // Ground datum
         drawLine(slateMid, Offset(0f, 175f), Offset(400f, 175f), strokeWidth = 2f)
 
@@ -616,12 +682,12 @@ fun CommercialIllustration(variant: Int, modifier: Modifier = Modifier) {
 // Deep charcoal tones (#1A1A2E at 30% opacity, slate texture suggestion)
 // =============================================================================
 @Composable
-fun RoofingIllustration(variant: Int, modifier: Modifier = Modifier) {
+fun RoofingIllustration(variant: Int, modifier: Modifier = Modifier, animateActive: Boolean = false) {
     val charcoalBase = Color(0xFF2E2E4A).copy(alpha = 0.45f)
     val charcoalMid = Color(0xFFEDE6D8).copy(alpha = 0.40f)
     val copperHighlight = MastorCopper
 
-    ScaledCanvasIllustration(modifier = modifier) {
+    ScaledCanvasIllustration(modifier = modifier, animateActive = animateActive) {
         drawLine(charcoalMid, Offset(0f, 175f), Offset(400f, 175f), strokeWidth = 1.5f)
 
         when (variant % 4) {
@@ -803,13 +869,13 @@ fun RoofingIllustration(variant: Int, modifier: Modifier = Modifier) {
 // Warm amber tones (#F59E0B at 10% opacity base)
 // =============================================================================
 @Composable
-fun InternalWorksIllustration(variant: Int, modifier: Modifier = Modifier) {
+fun InternalWorksIllustration(variant: Int, modifier: Modifier = Modifier, animateActive: Boolean = false) {
     val amberBase = Color(0xFFF59E0B).copy(alpha = 0.15f)
     val amberMid = Color(0xFFF59E0B).copy(alpha = 0.45f)
     val lineStroke = Color(0xFFEDE6D8).copy(alpha = 0.45f)
     val amberAccent = Color(0xFFF59E0B)
 
-    ScaledCanvasIllustration(modifier = modifier) {
+    ScaledCanvasIllustration(modifier = modifier, animateActive = animateActive) {
         when (variant % 4) {
             // Variant 0: Floor plan grid — room layout suggestion, walls as thick lines, door swings
             0 -> {
@@ -1003,13 +1069,13 @@ fun InternalWorksIllustration(variant: Int, modifier: Modifier = Modifier) {
 // Muted sage tones (#22C55E at 10% opacity base)
 // =============================================================================
 @Composable
-fun ExternalWorksIllustration(variant: Int, modifier: Modifier = Modifier) {
+fun ExternalWorksIllustration(variant: Int, modifier: Modifier = Modifier, animateActive: Boolean = false) {
     val sageBase = Color(0xFF22C55E).copy(alpha = 0.15f)
     val sageMid = Color(0xFF22C55E).copy(alpha = 0.40f)
     val sageAccent = Color(0xFF22C55E)
     val lineStroke = Color(0xFFEDE6D8).copy(alpha = 0.45f)
 
-    ScaledCanvasIllustration(modifier = modifier) {
+    ScaledCanvasIllustration(modifier = modifier, animateActive = animateActive) {
         when (variant % 4) {
             // Variant 0: Site plan overhead — plot boundary, building footprint, path, gate
             0 -> {
@@ -1188,11 +1254,11 @@ fun ExternalWorksIllustration(variant: Int, modifier: Modifier = Modifier) {
 // Geometric patterns using MastorCopper at 15% opacity
 // =============================================================================
 @Composable
-fun UnknownIllustration(variant: Int, modifier: Modifier = Modifier) {
+fun UnknownIllustration(variant: Int, modifier: Modifier = Modifier, animateActive: Boolean = false) {
     val copperTint = MastorCopper.copy(alpha = 0.20f)
     val copperLine = MastorCopper.copy(alpha = 0.50f)
 
-    ScaledCanvasIllustration(modifier = modifier) {
+    ScaledCanvasIllustration(modifier = modifier, animateActive = animateActive) {
         when (variant % 3) {
             // Variant 0: Grid of construction crosses (+) arranged in a regular pattern
             0 -> {
@@ -1285,9 +1351,16 @@ fun MastorProjectHeroCard(
     status: String,
     contractRef: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Real site photo path/URI. When set, replaces the drawn illustration entirely — a
+     * photo has no lines to animate, so this and the copper sweep are mutually exclusive. */
+    sitePhotoUrl: String = ""
 ) {
-    val illustrationComposable = ProjectIllustrationPicker.resolveIllustration(projectId, projectType)
+    val isActive = status.equals("Active", ignoreCase = true)
+    val hasPhoto = sitePhotoUrl.isNotBlank()
+    val illustrationComposable = ProjectIllustrationPicker.resolveIllustration(
+        projectId, projectType, animateActive = isActive && !hasPhoto
+    )
 
     Box(
         modifier = modifier
@@ -1298,12 +1371,21 @@ fun MastorProjectHeroCard(
             .clickable { onClick() }
             .testTag("job_card_$projectId")
     ) {
-        // 1. Background Illustration filling full card
+        // 1. Background: real site photo if the job has one, else the drawn illustration
         Box(modifier = Modifier
             .fillMaxSize()
             .clipToBounds()
         ) {
-            illustrationComposable()
+            if (hasPhoto) {
+                coil.compose.AsyncImage(
+                    model = sitePhotoUrl,
+                    contentDescription = "$projectName site photo",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                illustrationComposable()
+            }
         }
 
         // 2. Bottom 60% Gradient Overlay (transparent -> charcoal at 60% opacity)
@@ -1414,9 +1496,12 @@ fun MastorDashboardHero(
     onQuickDiary: (() -> Unit)? = null,
     onQuickVariation: (() -> Unit)? = null
 ) {
+    val heroIsActive = project.status.equals("Active", ignoreCase = true)
+    val heroHasPhoto = project.imageUrl.isNotBlank()
     val illustration = ProjectIllustrationPicker.resolveIllustration(
         projectId = project.id,
-        projectType = project.workType
+        projectType = project.workType,
+        animateActive = heroIsActive && !heroHasPhoto
     )
 
     Box(
@@ -1425,12 +1510,21 @@ fun MastorDashboardHero(
             .height(220.dp)
             .background(MastorCharcoal)
     ) {
-        // 1. Vector Illustration backdrop scaled to fill entire panel
+        // 1. Background: real site photo if set, else the drawn illustration (animated while Active)
         Box(modifier = Modifier
             .fillMaxSize()
             .clipToBounds()
         ) {
-            illustration()
+            if (heroHasPhoto) {
+                coil.compose.AsyncImage(
+                    model = project.imageUrl,
+                    contentDescription = "${project.name} site photo",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                illustration()
+            }
         }
 
         // 2. Top gradient overlay: MastorCharcoal 50% opacity over top 40% (88dp)
