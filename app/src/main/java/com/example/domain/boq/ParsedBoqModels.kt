@@ -2,7 +2,9 @@ package com.example.domain.boq
 
 data class ParsedBoqResult(
     val projectReference: String? = null,
-    val workOrders: List<ParsedWorkOrder> = emptyList()
+    val workOrders: List<ParsedWorkOrder> = emptyList(),
+    /** Non-null when nothing could be parsed. Callers must show this and import nothing. */
+    val failureReason: String? = null
 )
 
 data class ParsedWorkOrder(

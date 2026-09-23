@@ -478,7 +478,11 @@ fun Phase2ScopeScreen(
                                                 boqFileExtractionError = "No readable text could be extracted from the selected file."
                                             } else {
                                                 val parsed = GeminiBoqParser.parseBoqText(extracted)
-                                                parsedBoqData = parsed
+                                                if (parsed.failureReason != null) {
+                                                    boqFileExtractionError = parsed.failureReason
+                                                } else {
+                                                    parsedBoqData = parsed
+                                                }
                                             }
                                         } catch (e: Exception) {
                                             boqFileExtractionError = "Failed to extract/parse file: ${e.message}"

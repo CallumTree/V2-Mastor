@@ -41,19 +41,27 @@ Respond strictly with a JSON object containing 'workOrders' array matching the r
     suspend fun parseBoqText(rawText: String): ParsedBoqResult = withContext(Dispatchers.IO) {
         val apiKey = try { BuildConfig.GEMINI_API_KEY } catch (e: Throwable) { "" }
 
+        var aiProblem = "AI parsing unavailable (no API key)."
         if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY" && apiKey != "null") {
             try {
                 val result = callGeminiApi(rawText, apiKey)
                 if (result != null && result.workOrders.isNotEmpty()) {
                     return@withContext result
                 }
+                aiProblem = "AI couldn't read any line items from this document."
             } catch (e: Exception) {
-                // Fall back to local parsing
+                aiProblem = "AI parsing failed — check your signal and try again."
             }
         }
 
-        // Local deterministic parsing fallback for robustness & offline testing
-        return@withContext parseBoqTextLocally(rawText)
+        // Local fallback only handles structured CSV/TXT. It never substitutes sample data.
+        val local = parseBoqTextLocally(rawText)
+        if (local.workOrders.isEmpty()) {
+            return@withContext ParsedBoqResult(
+                failureReason = "$aiProblem Nothing has been imported. Try again with signal, or upload a CSV export of the schedule."
+            )
+        }
+        return@withContext local
     }
 
     private fun callGeminiApi(rawText: String, apiKey: String): ParsedBoqResult? {
@@ -135,11 +143,11 @@ Respond strictly with a JSON object containing 'workOrders' array matching the r
         val parsedWos = mutableListOf<ParsedWorkOrder>()
         for (i in 0 until wosArray.length()) {
             val woObj = wosArray.getJSONObject(i)
-            val woRef = woObj.optString("woRef", "WO-00${i + 1}")
+            val woRef = woObj.optString("woRef", "").trim().ifBlank { "WO-${(i + 1).toString().padStart(2, '0')}" }
             val woDesc = woObj.optString("description", "Work Order $woRef")
             val workType = woObj.optString("workType", "Internal Works")
-            val customer = woObj.optString("customer", "Mayfair Heritage Holdings")
-            val responsibleParty = woObj.optString("responsibleParty", "Apex Interiors Ltd")
+            val customer = woObj.optString("customer", "")
+            val responsibleParty = woObj.optString("responsibleParty", "")
 
             val elementsArray = woObj.optJSONArray("scopeElements")
             val parsedElements = mutableListOf<ParsedScopeElement>()
@@ -147,14 +155,29 @@ Respond strictly with a JSON object containing 'workOrders' array matching the r
             if (elementsArray != null) {
                 for (j in 0 until elementsArray.length()) {
                     val elemObj = elementsArray.getJSONObject(j)
-                    val code = elemObj.optString("code", "SE-10${parsedElements.size + 1}")
-                    val room = elemObj.optString("locationRoom", "General")
-                    val desc = elemObj.optString("description", "Scope item")
-                    val qty = elemObj.optDouble("qty", 1.0)
-                    val units = elemObj.optString("units", "item")
-                    val rate = elemObj.optDouble("rate", 100.0)
-                    val conf = elemObj.optString("confidence", "HIGH")
-                    val flag = if (elemObj.has("flagReason") && !elemObj.isNull("flagReason")) elemObj.getString("flagReason") else null
+                    // Missing values are NEVER filled with invented numbers. Anything missing is
+                    // left at 0/blank and forced to LOW confidence so it's caught at review.
+                    val code = elemObj.optString("code", "").trim()
+                    val room = elemObj.optString("locationRoom", "").trim().ifBlank { "General" }
+                    val desc = elemObj.optString("description", "").trim()
+                    if (desc.isBlank()) continue
+                    val hasQty = elemObj.has("qty") && !elemObj.isNull("qty")
+                    val hasRate = elemObj.has("rate") && !elemObj.isNull("rate")
+                    val qty = if (hasQty) elemObj.optDouble("qty", 0.0).takeIf { !it.isNaN() } ?: 0.0 else 0.0
+                    val units = elemObj.optString("units", "").trim().ifBlank { "item" }
+                    val rate = if (hasRate) elemObj.optDouble("rate", 0.0).takeIf { !it.isNaN() } ?: 0.0 else 0.0
+                    val missing = listOfNotNull(
+                        if (code.isBlank()) "SoR code" else null,
+                        if (!hasQty || qty <= 0.0) "quantity" else null,
+                        if (!hasRate || rate <= 0.0) "rate" else null
+                    )
+                    val modelConf = elemObj.optString("confidence", "LOW").uppercase()
+                    val conf = if (missing.isNotEmpty()) "LOW" else modelConf
+                    val modelFlag = if (elemObj.has("flagReason") && !elemObj.isNull("flagReason")) elemObj.getString("flagReason") else null
+                    val flag = if (missing.isNotEmpty()) {
+                        "Missing ${missing.joinToString(", ")} — check against the works order" +
+                            (if (!modelFlag.isNullOrBlank()) ". $modelFlag" else "")
+                    } else modelFlag
 
                     parsedElements.add(
                         ParsedScopeElement(
@@ -195,8 +218,8 @@ Respond strictly with a JSON object containing 'workOrders' array matching the r
         val woMap = mutableMapOf<String, MutableList<ParsedScopeElement>>()
         val woDescMap = mutableMapOf<String, String>()
 
-        var currentWoRef = "WO-101"
-        woDescMap[currentWoRef] = "Imported BoQ Package"
+        var currentWoRef = "IMPORT"
+        woDescMap[currentWoRef] = "Imported Schedule"
 
         for (line in lines) {
             if (line.startsWith("WO:", ignoreCase = true) || line.startsWith("Work Order:", ignoreCase = true)) {
@@ -215,10 +238,11 @@ Respond strictly with a JSON object containing 'workOrders' array matching the r
                     val rawQty = cols.getOrNull(3)?.toDoubleOrNull()
                     val rawRate = cols.getOrNull(5)?.toDoubleOrNull()
 
-                    val code = rawCode ?: "SE-${(100..999).random()}"
+                    // Never invent SoR codes or quantities — blanks are flagged LOW for review.
+                    val code = rawCode ?: ""
                     val room = cols.getOrNull(1) ?: "General"
                     val desc = cols.getOrNull(2) ?: "Scope Item"
-                    val qty = rawQty ?: 1.0
+                    val qty = rawQty ?: 0.0
                     val units = cols.getOrNull(4) ?: "item"
                     val rate = rawRate ?: 0.0
 
@@ -258,9 +282,9 @@ Respond strictly with a JSON object containing 'workOrders' array matching the r
             }
         }
 
-        // If simple text with lines
+        // Nothing structured found: return empty. NEVER substitute sample data for a real document.
         if (woMap.isEmpty() || woMap.values.all { it.isEmpty() }) {
-            return getSampleBoqResult1()
+            return ParsedBoqResult()
         }
 
         val workOrders = woMap.map { (woRef, scopeList) ->

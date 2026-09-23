@@ -116,7 +116,11 @@ fun BoqUnifiedUploadAndConfirmScreen(
                             localErrorMessage = "No readable text could be extracted from the selected file."
                         } else {
                             val res = GeminiBoqParser.parseBoqText(extracted)
-                            localParsedResult = res
+                            if (res.failureReason != null) {
+                                localErrorMessage = res.failureReason
+                            } else {
+                                localParsedResult = res
+                            }
                         }
                     } catch (e: Exception) {
                         localErrorMessage = "Failed to parse file: ${e.message}"
@@ -236,7 +240,8 @@ fun BoqUnifiedUploadAndConfirmScreen(
                                 .testTag("upload_file_button")
                         )
 
-                        Row(
+                        // Sample BoQs: debug builds only — must never sit next to Upload on a live job.
+                        if (com.example.BuildConfig.DEBUG) Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(SpaceSM)
                         ) {
