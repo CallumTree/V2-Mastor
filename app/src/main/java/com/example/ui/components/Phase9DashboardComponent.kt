@@ -59,6 +59,8 @@ import com.example.domain.calculation.CalculatedValuation
 import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.illustrations.MastorDashboardHero
 import com.example.ui.theme.BracketLabel
+import com.example.ui.theme.StatusRed
+import androidx.compose.foundation.clickable
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.MastorActionChip
 import com.example.ui.theme.MastorBody
@@ -102,8 +104,36 @@ fun ProjectDashboardOverviewScreen(
     linkedDocuments: List<LinkedDocument> = emptyList(),
     procurementPackages: List<ProcurementPackage> = emptyList(),
     onBackClick: () -> Unit = {},
+    onNavigate: (com.example.ui.screens.Phase2Tab) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // 0. Action Needed — the PM's to-do list for this job, most money-critical first
+    val draftVal = allValuations.firstOrNull { it.entity.status.equals("Draft", ignoreCase = true) }
+    val unpricedVos = variationOrders.count { it.rate <= 0.0 && it.status in listOf("VO Identified", "VO Received") }
+    val noQtyVos = variationOrders.count { it.qty <= 0.0 && it.status in listOf("VO Identified", "VO Received") }
+    val awaitingClientRef = variationOrders.count { it.status == "VO Identified" && it.externalVoNumber.isBlank() && it.rate > 0.0 }
+    val lowConfidenceScope = scopeElements.count { it.rate <= 0.0 || it.qty <= 0.0 }
+    val lastDiaryMillis = siteDiaryEntries.maxOfOrNull { it.createdAtTimestamp }
+    val daysSinceDiary = lastDiaryMillis?.let { ((System.currentTimeMillis() - it) / 86_400_000L).toInt() }
+    val actions = buildList {
+        if (project.projectNumber.isBlank())
+            add(DashboardAction("No PO number — invoices will be rejected", "Add it in Job Setup", StatusRed, com.example.ui.screens.Phase2Tab.PROJECT_SETUP))
+        if (unpricedVos > 0)
+            add(DashboardAction("$unpricedVos variation${if (unpricedVos == 1) "" else "s"} unpriced", "Add SoR code & rate so they can be claimed", StatusAmber, com.example.ui.screens.Phase2Tab.VARIATIONS))
+        if (noQtyVos > 0)
+            add(DashboardAction("$noQtyVos variation${if (noQtyVos == 1) "" else "s"} with no quantity", "Measure on site", StatusAmber, com.example.ui.screens.Phase2Tab.VARIATIONS))
+        if (awaitingClientRef > 0)
+            add(DashboardAction("$awaitingClientRef priced variation${if (awaitingClientRef == 1) "" else "s"} awaiting client instruction", "Send to client for a VO reference", StatusAmber, com.example.ui.screens.Phase2Tab.VARIATIONS))
+        if (lowConfidenceScope > 0)
+            add(DashboardAction("$lowConfidenceScope scope line${if (lowConfidenceScope == 1) "" else "s"} missing rate or quantity", "Check against the works order", StatusAmber, com.example.ui.screens.Phase2Tab.SCOPE))
+        if (daysSinceDiary == null)
+            add(DashboardAction("No site diary entries yet", "Record today's walk-round", MastorCopper, com.example.ui.screens.Phase2Tab.SITE_DIARY))
+        else if (daysSinceDiary >= 2)
+            add(DashboardAction("No diary entry for $daysSinceDiary days", "Gaps weaken delay and variation claims", StatusAmber, com.example.ui.screens.Phase2Tab.SITE_DIARY))
+        if (draftVal != null && draftVal.grandInvoiceTotal > 0.0)
+            add(DashboardAction("${MastorCalculationEngine.formatCurrency(draftVal.grandInvoiceTotal)} ready in ${draftVal.entity.valuationNumber}", "Review and issue the valuation", StatusGreen, com.example.ui.screens.Phase2Tab.VALUATIONS))
+    }
+
     // 1. Calculations for Financial Figures
     val baseScopeTotal = scopeElements.sumOf { it.qty * it.rate }
     val uplift1Val = baseScopeTotal * (project.uplift1Percent / 100.0)
@@ -215,6 +245,62 @@ fun ProjectDashboardOverviewScreen(
                                 color = MastorCreamText,
                                 maxLines = 1
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        // --------------------------------------------------------------------
+        // SECTION 0: ACTION NEEDED
+        // --------------------------------------------------------------------
+        item {
+            Spacer(modifier = Modifier.height(SpaceXL))
+            Column(modifier = Modifier.padding(horizontal = SpaceLG)) {
+                BracketLabel(
+                    text = if (actions.isEmpty()) "ALL CLEAR" else "ACTION NEEDED (${actions.size})",
+                    color = if (actions.isEmpty()) StatusGreen else MastorCopper
+                )
+                Spacer(modifier = Modifier.height(SpaceMD))
+                if (actions.isEmpty()) {
+                    MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            "Nothing outstanding on this job.",
+                            style = MastorBody.copy(color = MastorCreamText)
+                        )
+                    }
+                } else {
+                    MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
+                        actions.forEachIndexed { i, a ->
+                            if (i > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = SpaceSM)
+                                        .height(1.dp)
+                                        .background(MastorCharcoalLight)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onNavigate(a.target) }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(a.colour)
+                                )
+                                Spacer(modifier = Modifier.width(SpaceMD))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(a.title, style = MastorBody.copy(color = MastorCreamText, fontWeight = FontWeight.SemiBold))
+                                    Text(a.hint, style = MastorBody.copy(color = MastorCreamMuted, fontSize = 12.sp))
+                                }
+                                Text("›", style = MastorBody.copy(color = MastorCreamMuted, fontSize = 20.sp))
+                            }
                         }
                     }
                 }
@@ -1113,4 +1199,11 @@ private fun ScopeStatusRow(
 private data class QuickStatItem(
     val label: String,
     val value: String
+)
+
+private data class DashboardAction(
+    val title: String,
+    val hint: String,
+    val colour: androidx.compose.ui.graphics.Color,
+    val target: com.example.ui.screens.Phase2Tab
 )

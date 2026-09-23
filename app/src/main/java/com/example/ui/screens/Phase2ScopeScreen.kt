@@ -430,7 +430,8 @@ fun Phase2ScopeScreen(
                                 siteDiaryEntries = uiState.siteDiaryEntries,
                                 linkedDocuments = uiState.linkedDocuments,
                                 procurementPackages = uiState.procurementPackages,
-                                onBackClick = { viewModel.selectProject(null) }
+                                onBackClick = { viewModel.selectProject(null) },
+                                onNavigate = { selectedTab = it }
                             )
                         }
 
