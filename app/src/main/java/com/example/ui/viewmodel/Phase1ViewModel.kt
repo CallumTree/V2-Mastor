@@ -627,7 +627,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 qty = v.qty ?: 0.0,
                 units = v.unit ?: "item",
                 rate = 0.0,
-                notes = qtyNote + "Raised from site diary $diaryDate" +
+                notes = qtyNote + "Logged on site $diaryDate" +
                     if (v.reason.isNotBlank()) ": ${v.reason}" else "",
                 dateRaised = todayUk(),
                 tick = false,
@@ -637,6 +637,26 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
             raised++
         }
         return raised
+    }
+
+    /** On-site quick capture from the Site Diary. Raised unpriced; confirms via the diary banner. */
+    fun quickLogVariation(description: String, room: String, qty: Double?, unit: String, reason: String) {
+        if (description.isBlank()) return
+        viewModelScope.launch {
+            val raised = raiseDetectedVariations(
+                listOf(
+                    com.example.domain.audio.DetectedVariation(
+                        description = description,
+                        locationRoom = room,
+                        qty = qty,
+                        unit = unit.ifBlank { null },
+                        reason = reason
+                    )
+                ),
+                diaryDate = todayUk()
+            )
+            _lastMatchSummary.value = ScopeMatchSummary(variationsRaised = raised)
+        }
     }
 
     fun createVariationOrderLine(

@@ -33,6 +33,10 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
@@ -147,6 +151,7 @@ fun SiteDiaryScreen(
     var showAudioModal by remember { mutableStateOf(false) }
     var showPhotoModal by remember { mutableStateOf(false) }
     var showVideoModal by remember { mutableStateOf(false) }
+    var showQuickVariation by remember { mutableStateOf(false) }
     var permissionDeniedMessage by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
 
@@ -233,6 +238,16 @@ fun SiteDiaryScreen(
                     photoUrl = photoUrl
                 )
                 showPhotoModal = false
+            }
+        )
+    }
+
+    if (showQuickVariation) {
+        QuickVariationDialog(
+            onDismiss = { showQuickVariation = false },
+            onSave = { description, room, qty, unit, reason ->
+                viewModel.quickLogVariation(description, room, qty, unit, reason)
+                showQuickVariation = false
             }
         )
     }
@@ -436,6 +451,16 @@ fun SiteDiaryScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("video_site_log_button")
+                    )
+
+                    // 4) Log Variation — extras found on site, captured before they're forgotten
+                    MastorSecondaryButton(
+                        text = "Log Variation",
+                        icon = Icons.Default.AddCircle,
+                        onClick = { showQuickVariation = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("quick_variation_button")
                     )
                 }
             }
@@ -2040,4 +2065,131 @@ private fun ReviewCheckRow(
             }
         }
     }
+}
+
+
+/**
+ * On-site variation capture: what, where, how much, why. Nothing else.
+ * Raised as an unpriced "VO Identified" draft — code, rate and client ref are added at the desk.
+ */
+@Composable
+private fun QuickVariationDialog(
+    onDismiss: () -> Unit,
+    onSave: (description: String, room: String, qty: Double?, unit: String, reason: String) -> Unit
+) {
+    var description by remember { mutableStateOf("") }
+    var room by remember { mutableStateOf("") }
+    var qtyText by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("") }
+    var reason by remember { mutableStateOf("") }
+    val units = listOf("nr", "m", "m2", "lm", "item")
+
+    val fieldColours = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MastorCopper,
+        unfocusedBorderColor = MastorCharcoalLight,
+        focusedTextColor = MastorCreamText,
+        unfocusedTextColor = MastorCreamText,
+        focusedLabelColor = MastorCopper,
+        unfocusedLabelColor = MastorCreamMuted,
+        cursorColor = MastorCopper
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MastorCharcoalMid,
+        title = {
+            Column {
+                BracketLabel("LOG VARIATION", color = StatusAmber)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "Capture it now — price it later in VOs.",
+                    style = MastorBody.copy(color = MastorCreamMuted, fontSize = 13.sp)
+                )
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(SpaceSM)) {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("What's the extra work? *") },
+                    placeholder = { Text("e.g. Replace rotten joists under bath") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = fieldColours
+                )
+                OutlinedTextField(
+                    value = room,
+                    onValueChange = { room = it },
+                    label = { Text("Where") },
+                    placeholder = { Text("e.g. Bathroom") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = fieldColours
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(SpaceSM)) {
+                    OutlinedTextField(
+                        value = qtyText,
+                        onValueChange = { qtyText = it },
+                        label = { Text("Qty") },
+                        placeholder = { Text("if known") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f),
+                        colors = fieldColours
+                    )
+                    OutlinedTextField(
+                        value = unit,
+                        onValueChange = { unit = it },
+                        label = { Text("Unit") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = fieldColours
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    units.forEach { u ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (unit == u) MastorCopper else MastorCharcoal,
+                            border = BorderStroke(1.dp, MastorCharcoalLight),
+                            modifier = Modifier.clickable { unit = u }
+                        ) {
+                            Text(
+                                u,
+                                style = MastorBody.copy(
+                                    fontSize = 12.sp,
+                                    color = if (unit == u) MastorCharcoal else MastorCreamText
+                                ),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    label = { Text("Why / who asked") },
+                    placeholder = { Text("e.g. Found when bath removed") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = fieldColours
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val qty = qtyText.replace(",", ".").trim().toDoubleOrNull()?.takeIf { it > 0 }
+                    onSave(description.trim(), room.trim(), qty, unit.trim(), reason.trim())
+                },
+                enabled = description.isNotBlank()
+            ) {
+                Text("Log Variation", color = if (description.isNotBlank()) MastorCopper else MastorCreamMuted)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = MastorCreamMuted)
+            }
+        }
+    )
 }
