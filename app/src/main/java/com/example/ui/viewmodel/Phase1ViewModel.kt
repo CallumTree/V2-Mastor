@@ -609,7 +609,8 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
      */
     private suspend fun raiseDetectedVariations(
         variations: List<com.example.domain.audio.DetectedVariation>,
-        diaryDate: String
+        diaryDate: String,
+        photoUris: List<String> = emptyList()
     ): Int {
         var raised = 0
         for (v in variations) {
@@ -631,7 +632,8 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                     if (v.reason.isNotBlank()) ": ${v.reason}" else "",
                 dateRaised = todayUk(),
                 tick = false,
-                currentValuationId = null
+                currentValuationId = null,
+                photoUris = org.json.JSONArray(photoUris).toString()
             )
             repository.insertVariationOrder(vo)
             raised++
@@ -640,7 +642,14 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /** On-site quick capture from the Site Diary. Raised unpriced; confirms via the diary banner. */
-    fun quickLogVariation(description: String, room: String, qty: Double?, unit: String, reason: String) {
+    fun quickLogVariation(
+        description: String,
+        room: String,
+        qty: Double?,
+        unit: String,
+        reason: String,
+        photos: List<String> = emptyList()
+    ) {
         if (description.isBlank()) return
         viewModelScope.launch {
             val raised = raiseDetectedVariations(
@@ -653,7 +662,8 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                         reason = reason
                     )
                 ),
-                diaryDate = todayUk()
+                diaryDate = todayUk(),
+                photoUris = photos
             )
             _lastMatchSummary.value = ScopeMatchSummary(variationsRaised = raised)
         }

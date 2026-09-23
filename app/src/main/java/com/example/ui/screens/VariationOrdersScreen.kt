@@ -877,6 +877,36 @@ private fun VoLineDarkRowItem(
                     text = "${vo.qty} ${vo.units} @ ${MastorCalculationEngine.formatCurrency(vo.rate)}",
                     style = MastorFinancialSmall.copy(color = MastorInkMuted, fontSize = 10.sp)
                 )
+                if (vo.rate <= 0.0 || vo.qty <= 0.0) {
+                    Text(
+                        text = if (vo.rate <= 0.0) "UNPRICED — add SoR code & rate" else "NO QUANTITY — measure on site",
+                        style = MastorBody.copy(color = StatusAmber, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    )
+                }
+                if (vo.notes.isNotBlank()) {
+                    Text(
+                        text = vo.notes,
+                        style = MastorBody.copy(color = MastorInkMuted, fontSize = 11.sp)
+                    )
+                }
+                val photos = vo.photoList()
+                if (photos.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    androidx.compose.foundation.lazy.LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(photos.size) { i ->
+                            coil.compose.AsyncImage(
+                                model = photos[i],
+                                contentDescription = "Variation photo ${i + 1}",
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                            )
+                        }
+                    }
+                }
             }
         }
 

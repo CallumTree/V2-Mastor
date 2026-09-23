@@ -29,7 +29,7 @@ import com.example.data.entity.WorkOrder
         com.example.data.entity.SubcontractorQuote::class,
         com.example.data.entity.SubcontractorClaim::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class MastorDatabase : RoomDatabase() {
@@ -47,7 +47,8 @@ abstract class MastorDatabase : RoomDatabase() {
                     MastorDatabase::class.java,
                     "mastor_database"
                 )
-                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    // Explicit migrations only — never wipe site records on an app update.
+                    .addMigrations(*ALL_MIGRATIONS)
                     .build()
                 INSTANCE = instance
                 instance

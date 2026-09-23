@@ -245,8 +245,8 @@ fun SiteDiaryScreen(
     if (showQuickVariation) {
         QuickVariationDialog(
             onDismiss = { showQuickVariation = false },
-            onSave = { description, room, qty, unit, reason ->
-                viewModel.quickLogVariation(description, room, qty, unit, reason)
+            onSave = { description, room, qty, unit, reason, photos ->
+                viewModel.quickLogVariation(description, room, qty, unit, reason, photos)
                 showQuickVariation = false
             }
         )
@@ -1986,13 +1986,7 @@ private fun launchCamera(
     onError: (String) -> Unit
 ) {
     try {
-        val imagesDir = File(context.cacheDir, "images").apply { mkdirs() }
-        val imageFile = File.createTempFile("site_photo_${System.currentTimeMillis()}_", ".jpg", imagesDir)
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            imageFile
-        )
+        val uri = com.example.domain.evidence.EvidenceStorage.newPhotoUri(context, "site_photo")
         onUriCreated(uri)
         launcher.launch(uri)
     } catch (e: Exception) {
@@ -2007,13 +2001,7 @@ private fun launchVideoCamera(
     onError: (String) -> Unit
 ) {
     try {
-        val videosDir = File(context.cacheDir, "videos").apply { mkdirs() }
-        val videoFile = File.createTempFile("site_video_${System.currentTimeMillis()}_", ".mp4", videosDir)
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            videoFile
-        )
+        val uri = com.example.domain.evidence.EvidenceStorage.newVideoUri(context, "site_video")
         onUriCreated(uri)
         launcher.launch(uri)
     } catch (e: Exception) {
@@ -2075,8 +2063,17 @@ private fun ReviewCheckRow(
 @Composable
 private fun QuickVariationDialog(
     onDismiss: () -> Unit,
-    onSave: (description: String, room: String, qty: Double?, unit: String, reason: String) -> Unit
+    onSave: (description: String, room: String, qty: Double?, unit: String, reason: String, photos: List<String>) -> Unit
 ) {
+    val context = LocalContext.current
+    var photos by remember { mutableStateOf(listOf<String>()) }
+    var pendingPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var cameraError by remember { mutableStateOf<String?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
+        val uri = pendingPhotoUri
+        if (saved && uri != null) photos = photos + uri.toString()
+        pendingPhotoUri = null
+    }
     var description by remember { mutableStateOf("") }
     var room by remember { mutableStateOf("") }
     var qtyText by remember { mutableStateOf("") }
@@ -2173,13 +2170,60 @@ private fun QuickVariationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     colors = fieldColours
                 )
+                // Photo evidence — the council QS will ask for it
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MastorCharcoal,
+                        border = BorderStroke(1.dp, MastorCopper),
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clickable {
+                                try {
+                                    val uri = com.example.domain.evidence.EvidenceStorage.newPhotoUri(context, "vo_photo")
+                                    pendingPhotoUri = uri
+                                    cameraError = null
+                                    cameraLauncher.launch(uri)
+                                } catch (e: Exception) {
+                                    cameraError = "Camera unavailable: ${e.message}"
+                                }
+                            }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = "Add photo", tint = MastorCopper)
+                        }
+                    }
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(photos.size) { i ->
+                            AsyncImage(
+                                model = photos[i],
+                                contentDescription = "Photo ${i + 1}",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { photos = photos.filterIndexed { j, _ -> j != i } }
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = if (photos.isEmpty()) "Tap the camera to add photo evidence" else "${photos.size} photo${if (photos.size == 1) "" else "s"} — tap a photo to remove",
+                    style = MastorBody.copy(color = MastorCreamMuted, fontSize = 11.sp)
+                )
+                if (cameraError != null) {
+                    Text(cameraError!!, style = MastorBody.copy(color = StatusRed, fontSize = 12.sp))
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
                     val qty = qtyText.replace(",", ".").trim().toDoubleOrNull()?.takeIf { it > 0 }
-                    onSave(description.trim(), room.trim(), qty, unit.trim(), reason.trim())
+                    onSave(description.trim(), room.trim(), qty, unit.trim(), reason.trim(), photos)
                 },
                 enabled = description.isNotBlank()
             ) {

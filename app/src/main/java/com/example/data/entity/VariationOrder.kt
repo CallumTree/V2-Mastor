@@ -60,5 +60,13 @@ data class VariationOrder(
     @ColumnInfo(name = "previously_certified_percent")
     val previouslyCertifiedPercent: Double = 0.0,
     @ColumnInfo(name = "current_valuation_id")
-    val currentValuationId: String? = null
-)
+    val currentValuationId: String? = null,
+    /** Photo evidence: JSON array of content URIs. Added in DB v10. */
+    @ColumnInfo(name = "photo_uris", defaultValue = "'[]'")
+    val photoUris: String = "[]"
+) {
+    fun photoList(): List<String> = try {
+        val arr = org.json.JSONArray(photoUris)
+        (0 until arr.length()).mapNotNull { arr.optString(it).takeIf { s -> s.isNotBlank() } }
+    } catch (e: Exception) { emptyList() }
+}
