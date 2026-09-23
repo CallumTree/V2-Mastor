@@ -294,16 +294,17 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
             val newProject = Project(
                 id = newId,
                 name = name.ifBlank { "New Construction Job" },
-                client = client.ifBlank { "Client Ltd" },
-                address = address.ifBlank { "London, UK" },
+                client = client.trim(),
+                address = address.trim(),
                 siteManager = siteManager.ifBlank { "Site Manager" },
-                surveyor = surveyor.ifBlank { "Quantity Surveyor" },
+                surveyor = surveyor.trim(),
                 status = "Active",
-                contractRef = contractRef.ifBlank { "CTR-${System.currentTimeMillis().toString().takeLast(4)}" },
-                workType = workType.ifBlank { "General Works" },
-                startDate = "10 Aug 2026",
-                endDate = "31 Dec 2026",
-                projectNumber = "PRJ-${System.currentTimeMillis().toString().takeLast(3)}",
+                contractRef = contractRef.trim(),
+                workType = workType.ifBlank { "PPR" },
+                startDate = todayUk(),
+                endDate = "",
+                // PO number — blank until the client issues one. Never invent: it's printed on invoices.
+                projectNumber = "",
                 contractValue = contractValue,
                 uplift1Percent = uplift1Percent,
                 uplift2Percent = uplift2Percent,
@@ -316,7 +317,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 id = valId,
                 valuationNumber = "VAL-001",
                 projectId = newId,
-                date = "10 Aug 2026",
+                date = todayUk(),
                 preparedBy = surveyor.ifBlank { "QS" },
                 status = "Draft"
             )
@@ -838,8 +839,8 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 id = newValId,
                 valuationNumber = finalValNum,
                 projectId = pId,
-                date = date.ifBlank { "17 Aug 2026" },
-                preparedBy = preparedBy.ifBlank { project?.surveyor ?: "Eleanor Vance (QS)" },
+                date = date.ifBlank { todayUk() },
+                preparedBy = preparedBy.ifBlank { project?.surveyor?.ifBlank { null } ?: "QS" },
                 status = "Draft"
             )
             repository.insertValuation(newValuation)
@@ -918,7 +919,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 projectId = projectId,
                 workOrderId = workOrderId,
                 workOrderTitle = workOrderTitle,
-                author = author.ifBlank { "Marcus Vance (Site Manager)" },
+                author = author.ifBlank { uiState.value.project?.siteManager?.ifBlank { null } ?: "Site Manager" },
                 dateDisplay = dateStr,
                 statusUpdate = statusUpdate,
                 weatherNotes = weatherNotes?.ifBlank { null },

@@ -241,8 +241,8 @@ fun NewJobDialog(
     var client by remember { mutableStateOf("") }
     var contractRef by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
-    var siteManager by remember { mutableStateOf("Dave Jenkins") }
-    var surveyor by remember { mutableStateOf("Eleanor Vance") }
+    var siteManager by remember { mutableStateOf("") }
+    var surveyor by remember { mutableStateOf("") }
     var contractValueStr by remember { mutableStateOf("350000") }
     var workType by remember { mutableStateOf("Commercial Fitout") }
     var siteImageUriString by remember { mutableStateOf("") }

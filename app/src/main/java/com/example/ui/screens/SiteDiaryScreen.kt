@@ -119,14 +119,6 @@ import com.example.ui.viewmodel.Phase1ViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// Sample realistic photographic site placeholders for daily logging
-val SAMPLE_SITE_PHOTOS = listOf(
-    "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?auto=format&fit=crop&w=800&q=80" to "Kitchen Strip-Out & Demolition",
-    "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80" to "M&E First Fix Chasing",
-    "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80" to "Structural Steel Installation",
-    "https://images.unsplash.com/photo-1517581177682-a085bb7ffb15?auto=format&fit=crop&w=800&q=80" to "Plastering & Wall Boarding",
-    "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80" to "External Scaffolding & Roofing"
-)
 
 val SITE_LOG_STATUSES = listOf(
     "Progress On Track",
@@ -1427,7 +1419,7 @@ fun PhotoLogModal(
     onSubmit: (woId: String?, woTitle: String?, author: String, status: String, weather: String?, labor: Int, notes: String, photoUrl: String) -> Unit
 ) {
     val context = LocalContext.current
-    var author by remember { mutableStateOf("Marcus Vance (Site Manager)") }
+    var author by remember { mutableStateOf("") }
     var selectedStatus by remember { mutableStateOf(SITE_LOG_STATUSES[0]) }
     var weatherNotes by remember { mutableStateOf("18°C, Dry") }
     var laborCountText by remember { mutableStateOf("6") }
@@ -1693,7 +1685,7 @@ fun VideoLogModal(
     onSubmit: (woId: String?, woTitle: String?, author: String, status: String, weather: String?, labor: Int, notes: String, photoUrl: String) -> Unit
 ) {
     val context = LocalContext.current
-    var author by remember { mutableStateOf("Marcus Vance (Site Manager)") }
+    var author by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var weatherNotes by remember { mutableStateOf("18°C, Dry") }
     var laborCountText by remember { mutableStateOf("6") }

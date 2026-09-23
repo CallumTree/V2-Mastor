@@ -1196,6 +1196,8 @@ fun ProjectSetupForm(
     var siteManager by remember(project) { mutableStateOf(project.siteManager) }
     var surveyor by remember(project) { mutableStateOf(project.surveyor) }
     var contractRef by remember(project) { mutableStateOf(project.contractRef) }
+    // Stored in projectNumber (no schema change). Printed on every invoice — councils reject invoices without it.
+    var poNumber by remember(project) { mutableStateOf(project.projectNumber) }
     var contractValueText by remember(project) { mutableStateOf(project.contractValue.toString()) }
     var uplift1Text by remember(project) { mutableStateOf(project.uplift1Percent.toString()) }
     var uplift2Text by remember(project) { mutableStateOf(project.uplift2Percent.toString()) }
@@ -1360,6 +1362,29 @@ fun ProjectSetupForm(
                 Spacer(modifier = Modifier.height(SpaceSM))
 
                 OutlinedTextField(
+                    value = poNumber,
+                    onValueChange = { poNumber = it },
+                    label = { Text("PO Number (printed on invoices)") },
+                    placeholder = { Text("From the council's purchase order") },
+                    supportingText = {
+                        if (poNumber.isBlank()) Text(
+                            "No PO set — most councils reject invoices without one.",
+                            color = StatusAmber
+                        )
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MastorCopper,
+                        unfocusedBorderColor = if (poNumber.isBlank()) StatusAmber else MastorCreamBorder,
+                        focusedTextColor = MastorInk,
+                        unfocusedTextColor = MastorInk
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(SpaceSM))
+
+                OutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
                     label = { Text("Site Address") },
@@ -1468,6 +1493,7 @@ fun ProjectSetupForm(
                             siteManager = siteManager,
                             surveyor = surveyor,
                             contractRef = contractRef,
+                            projectNumber = poNumber.trim(),
                             contractValue = valDouble,
                             uplift1Percent = up1,
                             uplift2Percent = up2

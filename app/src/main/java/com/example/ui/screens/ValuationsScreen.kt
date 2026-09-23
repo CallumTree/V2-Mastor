@@ -326,7 +326,7 @@ fun ValuationsScreen(
     if (showNewValuationModal) {
         NewValuationDialog(
             defaultValNumber = "IV-${(valuationsList.size + 1).toString().padStart(2, '0')}",
-            defaultSurveyor = uiState.project?.surveyor ?: "Eleanor Vance (QS)",
+            defaultSurveyor = uiState.project?.surveyor?.ifBlank { null } ?: "",
             onDismiss = { showNewValuationModal = false },
             onCreate = { valNum, date, surveyor ->
                 viewModel.createNewValuation(valNum, date, surveyor) { newId ->
@@ -724,6 +724,15 @@ private fun MastorValuationCard(
                 }
 
                 Spacer(modifier = Modifier.height(SpaceSM))
+
+                // PO warning — councils reject invoices without their PO number
+                if (project != null && project.projectNumber.isBlank()) {
+                    Text(
+                        text = "No PO number on this job — add it in Setup before sending the invoice.",
+                        style = MastorBody.copy(color = StatusAmber, fontSize = 12.sp),
+                        modifier = Modifier.padding(bottom = SpaceSM)
+                    )
+                }
 
                 // Primary actions: Issue Invoice & Lock OR Generate PDF Invoice
                 if (!isInvoiced) {
@@ -1165,7 +1174,7 @@ private fun NewValuationDialog(
     onCreate: (String, String, String) -> Unit
 ) {
     var valNum by remember { mutableStateOf(defaultValNumber) }
-    var valDate by remember { mutableStateOf("17 Aug 2026") }
+    var valDate by remember { mutableStateOf(java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.UK).format(java.util.Date())) }
     var surveyor by remember { mutableStateOf(defaultSurveyor) }
 
     Dialog(onDismissRequest = onDismiss) {
