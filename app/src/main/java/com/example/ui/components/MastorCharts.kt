@@ -890,7 +890,7 @@ fun ValuationStackedContractBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(14.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(6.dp))
                 .testTag("valuation_stacked_horizontal_bar")
         ) {
             val w = size.width

@@ -789,7 +789,7 @@ fun Phase2ScopeScreen(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .height(48.dp),
-                                                shape = RoundedCornerShape(10.dp),
+                                                shape = RoundedCornerShape(8.dp),
                                                 singleLine = true
                                             )
 

@@ -77,7 +77,7 @@ fun OfflineCacheStatusBar(
         modifier = modifier
             .fillMaxWidth()
             .testTag("offline_cache_status_bar"),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         color = if (isOfflineMode) Color(0xFFFFFBEB) else Color(0xFFF0FDF4),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
@@ -129,7 +129,7 @@ fun OfflineCacheStatusBar(
                             Spacer(Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(6.dp))
                                     .background(
                                         if (isOfflineMode) Color(0xFFFEF3C7) else Color(0xFFDCFCE7)
                                     )

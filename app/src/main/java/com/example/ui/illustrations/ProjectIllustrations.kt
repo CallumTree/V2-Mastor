@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import com.example.data.entity.Project
@@ -1408,7 +1410,9 @@ fun MastorDashboardHero(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     percentComplete: Double = 0.0,
-    contractSumOverride: Double? = null
+    contractSumOverride: Double? = null,
+    onQuickDiary: (() -> Unit)? = null,
+    onQuickVariation: (() -> Unit)? = null
 ) {
     val illustration = ProjectIllustrationPicker.resolveIllustration(
         projectId = project.id,
@@ -1543,6 +1547,33 @@ fun MastorDashboardHero(
                     // Pill 3: [ ACTIVE ] or current status
                     val statusText = project.status.ifBlank { "ACTIVE" }.uppercase()
                     DashboardMetricPill(text = statusText)
+                }
+
+                // Quick actions — glass buttons over the backdrop. Only shown when the caller
+                // wants them here; the hero stays plain on screens that don't need them.
+                if (onQuickDiary != null || onQuickVariation != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (onQuickDiary != null) {
+                            MastorGlassButton(
+                                text = "Record Diary",
+                                icon = Icons.Default.Mic,
+                                onClick = onQuickDiary,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (onQuickVariation != null) {
+                            MastorGlassButton(
+                                text = "Log Variation",
+                                icon = Icons.Default.AddCircle,
+                                onClick = onQuickVariation,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             }
         }

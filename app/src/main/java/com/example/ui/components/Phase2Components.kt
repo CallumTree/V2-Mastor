@@ -248,7 +248,7 @@ fun TickAndPercentControl(
                 Spacer(modifier = Modifier.width(6.dp))
                 Surface(
                     color = MastorCopper.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(4.dp)
+                    shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
                         text = "+${thisValuationIncrement.toInt()}% this val",
@@ -283,7 +283,7 @@ fun ScopeElementListItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MastorCreamDark,
         border = BorderStroke(
             1.dp,
@@ -430,7 +430,7 @@ fun WorkOrderCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
         border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
@@ -864,7 +864,7 @@ fun CreateEditWorkOrderDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MastorCreamDark,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -881,7 +881,7 @@ fun CreateEditWorkOrderDialog(
                 if (errorMessage != null) {
                     Surface(
                         color = StatusFlaggedRed.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp)
@@ -1033,7 +1033,7 @@ fun CreateEditScopeElementDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MastorCreamDark,
             modifier = Modifier.fillMaxWidth()
         ) {

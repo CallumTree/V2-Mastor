@@ -330,11 +330,11 @@ fun ProjectCostBreakdownChartComponent(
             Spacer(modifier = Modifier.width(6.dp))
 
             Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = if (showOnlyVariances) MastorCopper.copy(alpha = 0.12f) else MastorCream,
                 border = BorderStroke(1.dp, if (showOnlyVariances) MastorCopper else MastorCreamBorder),
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable { showOnlyVariances = !showOnlyVariances }
             ) {
                 Row(
@@ -736,7 +736,7 @@ private fun CategoryBreakdownRowCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Surface(
-                        shape = RoundedCornerShape(4.dp),
+                        shape = RoundedCornerShape(6.dp),
                         color = MastorInk.copy(alpha = 0.08f)
                     ) {
                         Text(

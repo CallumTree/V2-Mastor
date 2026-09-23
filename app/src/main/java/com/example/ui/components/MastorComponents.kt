@@ -95,7 +95,7 @@ fun MastorCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         border = BorderStroke(borderWidth, borderColor)
     ) {
@@ -274,9 +274,9 @@ fun MastorInput(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(MastorCreamDark)
-                .border(1.dp, MastorCreamBorder, RoundedCornerShape(14.dp))
+                .border(1.dp, MastorCreamBorder, RoundedCornerShape(12.dp))
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             if (value.isEmpty() && placeholder.isNotEmpty()) {
@@ -472,13 +472,13 @@ fun MastorPhotoPlaceholder(
         modifier = modifier
             .fillMaxWidth()
             .height(140.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(MastorInk, MastorCopper, MastorInk)
                 )
             )
-            .border(1.dp, MastorCreamBorder, RoundedCornerShape(20.dp))
+            .border(1.dp, MastorCreamBorder, RoundedCornerShape(16.dp))
     ) {
         Box(
             modifier = Modifier
@@ -527,7 +527,7 @@ fun CalculationTraceDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MastorCreamDark,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -573,9 +573,9 @@ fun CalculationTraceDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(MastorCream)
-                            .border(1.dp, MastorCreamBorder, RoundedCornerShape(10.dp))
+                            .border(1.dp, MastorCreamBorder, RoundedCornerShape(8.dp))
                             .padding(12.dp)
                     ) {
                         Row(

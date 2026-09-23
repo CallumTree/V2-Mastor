@@ -251,7 +251,7 @@ fun SubcontractorProcurementComponent(
         // --- Simplified Compact Procurement Cost Variance Summary ---
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(8.dp),
             color = Color.White,
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
         ) {
@@ -374,7 +374,7 @@ fun SubcontractorProcurementComponent(
         if (unclassifiedScopes.isNotEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(containerColor = MastorCopper.copy(alpha = 0.06f)),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MastorCopper.copy(alpha = 0.3f))
             ) {
@@ -453,7 +453,7 @@ fun SubcontractorProcurementComponent(
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Surface(
                                                         color = MastorCopper.copy(alpha = 0.12f),
-                                                        shape = RoundedCornerShape(4.dp)
+                                                        shape = RoundedCornerShape(6.dp)
                                                     ) {
                                                         Text(
                                                             text = "Suggested: $suggestedTrade",
@@ -802,7 +802,7 @@ fun ProcurementPackageCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
@@ -815,7 +815,7 @@ fun ProcurementPackageCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        shape = RoundedCornerShape(4.dp),
+                        shape = RoundedCornerShape(6.dp),
                         color = MastorNavy.copy(alpha = 0.08f)
                     ) {
                         Text(
@@ -839,7 +839,7 @@ fun ProcurementPackageCard(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Surface(
-                        shape = RoundedCornerShape(4.dp),
+                        shape = RoundedCornerShape(6.dp),
                         color = reviewBadgeBg
                     ) {
                         Text(
@@ -1270,7 +1270,7 @@ fun PackageDetailEditorModal(
                             item {
                                 Surface(
                                     color = MastorNavy.copy(alpha = 0.06f),
-                                    shape = RoundedCornerShape(4.dp),
+                                    shape = RoundedCornerShape(6.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(

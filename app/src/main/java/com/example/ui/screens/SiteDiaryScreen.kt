@@ -744,7 +744,7 @@ fun SiteDiaryCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(200.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(MastorCharcoal)
                         ) {
                             AsyncImage(
@@ -1646,7 +1646,7 @@ fun PhotoLogModal(
                             .fillMaxWidth()
                             .height(84.dp)
                             .testTag("site_log_notes_input"),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MastorCharcoal,
                             unfocusedContainerColor = MastorCharcoal,
@@ -1925,7 +1925,7 @@ fun VideoLogModal(
                             .fillMaxWidth()
                             .height(84.dp)
                             .testTag("video_log_notes_input"),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MastorCharcoal,
                             unfocusedContainerColor = MastorCharcoal,

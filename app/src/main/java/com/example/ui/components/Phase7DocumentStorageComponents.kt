@@ -203,7 +203,7 @@ fun LinkedDocumentCard(
                                 if (linkedDocument.isPrimaryBoq) {
                                     Surface(
                                         color = StatusClaimedBg,
-                                        shape = RoundedCornerShape(4.dp)
+                                        shape = RoundedCornerShape(6.dp)
                                     ) {
                                         Text(
                                             text = "PRIMARY BOQ",
@@ -570,9 +570,9 @@ fun CloudDocumentUploadComponent(
                                 .border(
                                     width = if (isSel) 2.dp else 1.dp,
                                     color = if (isSel) providerColor else MastorCreamBorder,
-                                    shape = RoundedCornerShape(10.dp)
+                                    shape = RoundedCornerShape(8.dp)
                                 )
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .clickable {
                                     selectedProvider = provider
                                     selectedFolder = if (provider == StorageProviders.ONEDRIVE) "/Contracts/142_Park_Lane/BoQ/" else "My Drive/Mastor/142 Park Lane/BoQ/"
@@ -777,7 +777,7 @@ fun CloudDocumentUploadComponent(
                 // Start Upload Action Button
                 Button(
                     onClick = { startUpload() },
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = brandColor),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -864,7 +864,7 @@ fun CloudDocumentUploadComponent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(6.dp))
                                 .testTag("upload_progress_bar"),
                             color = brandColor,
                             trackColor = brandColor.copy(alpha = 0.15f)
@@ -1257,7 +1257,7 @@ fun CloudDocumentPickerModal(
                 // OAuth Connection Status Banner
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = MastorCream,
                     border = BorderStroke(1.dp, MastorCreamBorder)
                 ) {
@@ -1356,11 +1356,11 @@ fun CloudDocumentPickerModal(
                                     Surface(
                                         modifier = Modifier
                                             .width(185.dp)
-                                            .clip(RoundedCornerShape(10.dp))
+                                            .clip(RoundedCornerShape(8.dp))
                                             .border(
                                                 width = if (isSelected) 2.dp else 1.dp,
                                                 color = if (isSelected) MastorCopper else MastorCreamBorder,
-                                                shape = RoundedCornerShape(10.dp)
+                                                shape = RoundedCornerShape(8.dp)
                                             )
                                             .clickable {
                                                 selectedFileItem = recentFile
@@ -1461,7 +1461,7 @@ fun CloudDocumentPickerModal(
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MastorCopper,
                         unfocusedBorderColor = MastorCreamBorder,
@@ -1594,7 +1594,7 @@ fun CloudDocumentPickerModal(
                                             .fillMaxSize()
                                             .background(
                                                 if (isSwiping) Color(0xFFE53935) else Color.Transparent,
-                                                RoundedCornerShape(10.dp)
+                                                RoundedCornerShape(8.dp)
                                             )
                                             .padding(horizontal = 16.dp),
                                         contentAlignment = Alignment.CenterEnd
@@ -1647,7 +1647,7 @@ fun CloudDocumentPickerModal(
                                             }
                                         )
                                         .testTag("cloud_file_item_${file.id}"),
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = when {
                                             isMultiSelected -> MastorCopper.copy(alpha = 0.12f)
@@ -2021,7 +2021,7 @@ fun CloudDocumentPickerModal(
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("bulk_selection_bottom_bar"),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = MastorInk,
                         tonalElevation = 6.dp
                     ) {
@@ -2122,7 +2122,7 @@ fun CloudDocumentPickerModal(
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
                             Text("Cancel")
@@ -2145,7 +2145,7 @@ fun CloudDocumentPickerModal(
                                 }
                             },
                             enabled = selectedFileItem != null || files.any { !it.isFolder },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MastorCopper),
                             modifier = Modifier
                                 .weight(1f)

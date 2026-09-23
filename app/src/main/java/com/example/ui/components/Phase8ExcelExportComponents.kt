@@ -208,7 +208,7 @@ fun ExcelExportConfirmationModal(
             // Snapshot Notice
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = MastorCream,
                 border = BorderStroke(1.dp, MastorCreamBorder)
             ) {
@@ -268,7 +268,7 @@ fun ExcelExportConfirmationModal(
             if (isExportDone) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = StatusClaimedBg,
                     border = BorderStroke(1.dp, StatusClaimedGreen.copy(alpha = 0.3f))
                 ) {
@@ -301,7 +301,7 @@ fun ExcelExportConfirmationModal(
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Cancel")
@@ -317,7 +317,7 @@ fun ExcelExportConfirmationModal(
                             Toast.LENGTH_LONG
                         ).show()
                     },
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = ExcelGreenBrand),
                     modifier = Modifier
                         .weight(1.5f)
@@ -340,7 +340,7 @@ fun ExcelExportConfirmationModal(
 private fun ExcelSheetPreviewCard(sheet: ExcelSheetPreview) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
         border = BorderStroke(1.dp, MastorCreamBorder)
     ) {
@@ -369,7 +369,7 @@ private fun ExcelSheetPreviewCard(sheet: ExcelSheetPreview) {
                 if (sheet.hideRatesAndCosts) {
                     Surface(
                         color = Color(0xFFFEF3C7),
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
                             text = "RATES HIDDEN",

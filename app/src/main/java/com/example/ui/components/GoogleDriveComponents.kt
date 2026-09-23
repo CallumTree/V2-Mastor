@@ -336,7 +336,7 @@ fun GoogleDriveAccountDetailsDialog(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = Color(0xFFF1F5F9),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -370,7 +370,7 @@ fun GoogleDriveAccountDetailsDialog(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = Color(0xFFF1F5F9),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -546,7 +546,7 @@ fun GoogleDriveBrowserModal(
                 .fillMaxSize()
                 .padding(12.dp)
                 .testTag("google_drive_browser_modal"),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(20.dp),
             color = MastorCreamDark,
             tonalElevation = 8.dp
         ) {
@@ -618,7 +618,7 @@ fun GoogleDriveBrowserModal(
 
                         // Target Work Order Indicator
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = Color.White.copy(alpha = 0.12f),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -905,7 +905,7 @@ fun GoogleDriveBrowserModal(
                                         OutlinedButton(
                                             onClick = { woDropdownExpanded = true },
                                             modifier = Modifier.fillMaxWidth(),
-                                            shape = RoundedCornerShape(10.dp),
+                                            shape = RoundedCornerShape(8.dp),
                                             border = BorderStroke(1.dp, Color(0xFFCBD5E1))
                                         ) {
                                             Column(horizontalAlignment = Alignment.Start) {
@@ -948,7 +948,7 @@ fun GoogleDriveBrowserModal(
                                         OutlinedButton(
                                             onClick = { catDropdownExpanded = true },
                                             modifier = Modifier.fillMaxWidth(),
-                                            shape = RoundedCornerShape(10.dp),
+                                            shape = RoundedCornerShape(8.dp),
                                             border = BorderStroke(1.dp, Color(0xFFCBD5E1))
                                         ) {
                                             Column(horizontalAlignment = Alignment.Start) {
@@ -1064,7 +1064,7 @@ fun GoogleDriveFileListItem(
             Box(
                 modifier = Modifier
                     .size(42.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(iconBg),
                 contentAlignment = Alignment.Center
             ) {
@@ -1106,7 +1106,7 @@ fun GoogleDriveFileListItem(
 
                     if (!file.isFolder) {
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
+                            shape = RoundedCornerShape(6.dp),
                             color = Color(0xFFF1F5F9)
                         ) {
                             Text(
@@ -1250,7 +1250,7 @@ fun DocumentPreviewDialog(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = Color(0xFF0F172A),
                     border = BorderStroke(1.dp, Color(0xFF334155)),
                     modifier = Modifier.fillMaxWidth()

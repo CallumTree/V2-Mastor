@@ -304,7 +304,7 @@ fun NewJobDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .clip(RoundedCornerShape(20.dp)),
+                .clip(RoundedCornerShape(16.dp)),
             color = MastorCharcoalMid,
             border = BorderStroke(1.dp, MastorCharcoalLight),
             tonalElevation = 6.dp
@@ -408,14 +408,14 @@ fun NewJobDialog(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 photoPickerLauncher.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                 )
                             }
                             .testTag("upload_site_picture_area"),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = MastorCopper.copy(alpha = 0.03f),
                         border = BorderStroke(1.5.dp, MastorCopper.copy(alpha = 0.3f))
                     ) {
@@ -493,7 +493,7 @@ fun NewJobDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("site_picture_preview_card"),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = MastorCreamDark),
                         border = BorderStroke(1.dp, MastorCreamBorder)
                     ) {
@@ -502,7 +502,7 @@ fun NewJobDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(160.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                             ) {
                                 AsyncImage(
                                     model = siteImageUriString,

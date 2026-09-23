@@ -88,10 +88,10 @@ fun MastorSegmentedTabs(
                 Surface(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(9.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .clickable { onTabSelected(index) }
                         .testTag(tabTag),
-                    shape = RoundedCornerShape(9.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = animatedBgColor
                 ) {
                     Row(
@@ -191,10 +191,10 @@ fun MastorScrollableSegmentedTabs(
 
                 Surface(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(9.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .clickable { onTabSelected(index) }
                         .testTag(tabTag),
-                    shape = RoundedCornerShape(9.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = animatedBgColor,
                     border = if (!isSelected) BorderStroke(1.dp, MastorCreamBorder.copy(alpha = 0.5f)) else null
                 ) {

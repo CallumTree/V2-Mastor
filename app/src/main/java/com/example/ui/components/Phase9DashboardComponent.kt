@@ -202,7 +202,9 @@ fun ProjectDashboardOverviewScreen(
                 project = project,
                 onBackClick = onBackClick,
                 percentComplete = percentClaimed,
-                contractSumOverride = revisedContractSum
+                contractSumOverride = revisedContractSum,
+                onQuickDiary = { onNavigate(com.example.ui.screens.Phase2Tab.SITE_DIARY) },
+                onQuickVariation = { onNavigate(com.example.ui.screens.Phase2Tab.SITE_DIARY) }
             )
         }
 
@@ -468,7 +470,7 @@ private fun CommercialPositionCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(6.dp))
                 .background(MastorCharcoalLight)
         ) {
             if (claimedRatio > 0f) {
@@ -476,7 +478,7 @@ private fun CommercialPositionCard(
                     modifier = Modifier
                         .fillMaxWidth(claimedRatio)
                         .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(6.dp))
                         .background(MastorCopper)
                 )
             }
@@ -984,7 +986,7 @@ private fun VariationOrdersSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(10.dp)
-                .clip(RoundedCornerShape(5.dp))
+                .clip(RoundedCornerShape(6.dp))
                 .background(MastorCharcoalLight)
         ) {
             if (totalVoVal > 0.0) {
