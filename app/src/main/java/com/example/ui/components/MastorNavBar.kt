@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -120,26 +121,26 @@ fun MastorBottomNavBar(
 
     val tabs = remember {
         listOf(
-            MastorBottomBarTab(tab = Phase2Tab.SCOPE, label = "Scope", icon = Icons.Default.List),
+            MastorBottomBarTab(tab = Phase2Tab.DASHBOARD, label = "Home", icon = Icons.Default.Home),
             MastorBottomBarTab(tab = Phase2Tab.SITE_DIARY, label = "Diary", icon = Icons.Default.Mic),
-            MastorBottomBarTab(tab = Phase2Tab.VALUATIONS, label = "Vals", icon = Icons.Default.Receipt),
+            MastorBottomBarTab(tab = Phase2Tab.SCOPE, label = "Scope", icon = Icons.Default.List),
             MastorBottomBarTab(tab = Phase2Tab.VARIATIONS, label = "VOs", icon = Icons.Default.Edit),
-            MastorBottomBarTab(tab = Phase2Tab.BOQ_IMPORT, label = "BoQ", icon = Icons.Default.CloudUpload),
-            MastorBottomBarTab(tab = Phase2Tab.PROJECT_SETUP, label = "Setup", icon = Icons.Default.Settings),
+            MastorBottomBarTab(tab = Phase2Tab.VALUATIONS, label = "Vals", icon = Icons.Default.Receipt),
             MastorBottomBarTab(tab = null, label = "More", icon = Icons.Default.MoreHoriz, isMore = true)
         )
     }
 
     val activeTabIndex = when (selectedTab) {
-        Phase2Tab.SCOPE -> 0
+        Phase2Tab.DASHBOARD -> 0
         Phase2Tab.SITE_DIARY -> 1
-        Phase2Tab.VALUATIONS -> 2
+        Phase2Tab.SCOPE -> 2
         Phase2Tab.VARIATIONS -> 3
-        Phase2Tab.BOQ_IMPORT -> 4
-        Phase2Tab.PROJECT_SETUP -> 5
+        Phase2Tab.VALUATIONS -> 4
+        Phase2Tab.BOQ_IMPORT,
+        Phase2Tab.PROJECT_SETUP,
         Phase2Tab.PROCUREMENT,
         Phase2Tab.INVOICES,
-        Phase2Tab.DOCUMENTS -> 6
+        Phase2Tab.DOCUMENTS -> 5
         else -> -1
     }
 
@@ -310,12 +311,13 @@ fun MastorBottomNavBar(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // MVP: Procurement and Documents hidden (code retained, not surfaced).
                 val moreOptions = remember {
                     listOf(
                         MoreOptionItem(
-                            label = "Procurement",
-                            icon = Icons.Default.Engineering,
-                            onClick = { onTabSelected(Phase2Tab.PROCUREMENT) }
+                            label = "Import BoQ / Works Order",
+                            icon = Icons.Default.CloudUpload,
+                            onClick = { onTabSelected(Phase2Tab.BOQ_IMPORT) }
                         ),
                         MoreOptionItem(
                             label = "Invoices",
@@ -334,9 +336,9 @@ fun MastorBottomNavBar(
                             }
                         ),
                         MoreOptionItem(
-                            label = "Documents",
-                            icon = Icons.Default.Folder,
-                            onClick = { onTabSelected(Phase2Tab.DOCUMENTS) }
+                            label = "Job Setup & PO Number",
+                            icon = Icons.Default.Settings,
+                            onClick = { onTabSelected(Phase2Tab.PROJECT_SETUP) }
                         )
                     )
                 }
