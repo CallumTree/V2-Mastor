@@ -426,7 +426,7 @@ fun SiteDiaryScreen(
                     // 1) 🎙️ Record Voice Diary
                     MastorPrimaryButton(
                         text = "Record Voice Diary",
-                        icon = Icons.Default.Mic,
+                        customIcon = { m, c -> com.example.ui.icons.MastorMicIcon(modifier = m, size = 20.dp, lineColor = c) },
                         onClick = { startVoiceRecordingFlow() },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -436,7 +436,7 @@ fun SiteDiaryScreen(
                     // 2) 📷 Photo Log
                     MastorDarkButton(
                         text = "Photo Log",
-                        icon = Icons.Default.CameraAlt,
+                        customIcon = { m, c -> com.example.ui.icons.MastorCameraIcon(modifier = m, size = 20.dp, lineColor = c) },
                         onClick = { showPhotoModal = true },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -446,7 +446,7 @@ fun SiteDiaryScreen(
                     // 3) 🎥 Video Diary
                     MastorDarkButton(
                         text = "Video Diary",
-                        icon = Icons.Default.Videocam,
+                        customIcon = { m, c -> com.example.ui.icons.MastorVideoIcon(modifier = m, size = 20.dp, lineColor = c) },
                         onClick = { showVideoModal = true },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -456,7 +456,7 @@ fun SiteDiaryScreen(
                     // 4) Log Variation — extras found on site, captured before they're forgotten
                     MastorSecondaryButton(
                         text = "Log Variation",
-                        icon = Icons.Default.AddCircle,
+                        customIcon = { m, c -> com.example.ui.icons.MastorFlagVariationIcon(modifier = m, size = 20.dp, lineColor = c) },
                         onClick = { showQuickVariation = true },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2193,7 +2193,7 @@ private fun QuickVariationDialog(
                             }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = "Add photo", tint = MastorCopper)
+                            com.example.ui.icons.MastorCameraIcon(modifier = Modifier.size(24.dp), lineColor = MastorCopper)
                         }
                     }
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -33,6 +33,8 @@ fun MastorGlassButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    /** Preferred over [icon] when set — a custom Mastor drawn icon (e.g. MastorMicIcon). */
+    customIcon: (@Composable (Modifier, Color) -> Unit)? = null,
     enabled: Boolean = true
 ) {
     Row(
@@ -45,7 +47,10 @@ fun MastorGlassButton(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
-        if (icon != null) {
+        if (customIcon != null) {
+            customIcon(Modifier.size(18.dp), MastorInk)
+            Spacer(modifier = Modifier.width(8.dp))
+        } else if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,

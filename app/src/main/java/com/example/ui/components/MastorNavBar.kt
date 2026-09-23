@@ -83,7 +83,7 @@ import kotlinx.coroutines.launch
 private data class MastorBottomBarTab(
     val tab: Phase2Tab?,
     val label: String,
-    val icon: ImageVector,
+    val drawIcon: @Composable (Modifier, androidx.compose.ui.graphics.Color) -> Unit,
     val isMore: Boolean = false
 )
 
@@ -121,12 +121,12 @@ fun MastorBottomNavBar(
 
     val tabs = remember {
         listOf(
-            MastorBottomBarTab(tab = Phase2Tab.DASHBOARD, label = "Home", icon = Icons.Default.Home),
-            MastorBottomBarTab(tab = Phase2Tab.SITE_DIARY, label = "Diary", icon = Icons.Default.Mic),
-            MastorBottomBarTab(tab = Phase2Tab.SCOPE, label = "Scope", icon = Icons.Default.List),
-            MastorBottomBarTab(tab = Phase2Tab.VARIATIONS, label = "VOs", icon = Icons.Default.Edit),
-            MastorBottomBarTab(tab = Phase2Tab.VALUATIONS, label = "Vals", icon = Icons.Default.Receipt),
-            MastorBottomBarTab(tab = null, label = "More", icon = Icons.Default.MoreHoriz, isMore = true)
+            MastorBottomBarTab(tab = Phase2Tab.DASHBOARD, label = "Home", drawIcon = { m, c -> com.example.ui.icons.MastorHomeIcon(modifier = m, size = 22.dp, lineColor = c) }),
+            MastorBottomBarTab(tab = Phase2Tab.SITE_DIARY, label = "Diary", drawIcon = { m, c -> com.example.ui.icons.MastorMicIcon(modifier = m, size = 22.dp, lineColor = c) }),
+            MastorBottomBarTab(tab = Phase2Tab.SCOPE, label = "Scope", drawIcon = { m, c -> com.example.ui.icons.MastorScopeIcon(modifier = m, size = 22.dp, lineColor = c) }),
+            MastorBottomBarTab(tab = Phase2Tab.VARIATIONS, label = "VOs", drawIcon = { m, c -> com.example.ui.icons.MastorMarkupIcon(modifier = m, size = 22.dp, lineColor = c) }),
+            MastorBottomBarTab(tab = Phase2Tab.VALUATIONS, label = "Vals", drawIcon = { m, c -> com.example.ui.icons.MastorValuationIcon(modifier = m, size = 22.dp, lineColor = c) }),
+            MastorBottomBarTab(tab = null, label = "More", drawIcon = { m, c -> Icon(imageVector = Icons.Default.MoreHoriz, contentDescription = "More", tint = c, modifier = m) }, isMore = true)
         )
     }
 
@@ -240,12 +240,7 @@ fun MastorBottomNavBar(
                                 verticalArrangement = Arrangement.Center,
                                 modifier = Modifier.padding(horizontal = 2.dp, vertical = 6.dp)
                             ) {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.label,
-                                    tint = iconColor,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                                item.drawIcon(Modifier.size(22.dp), iconColor)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = item.label.uppercase(),

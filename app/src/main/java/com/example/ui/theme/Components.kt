@@ -230,7 +230,8 @@ fun MastorPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    customIcon: (@Composable (Modifier, Color) -> Unit)? = null
 ) {
     Button(
         onClick = onClick,
@@ -247,7 +248,10 @@ fun MastorPrimaryButton(
             .heightIn(min = 56.dp)
             .fillMaxWidth()
     ) {
-        if (icon != null) {
+        if (customIcon != null) {
+            customIcon(Modifier.size(20.dp), MastorCream)
+            Spacer(modifier = Modifier.width(SpaceSM))
+        } else if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
@@ -275,7 +279,8 @@ fun MastorSecondaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    customIcon: (@Composable (Modifier, Color) -> Unit)? = null
 ) {
     OutlinedButton(
         onClick = onClick,
@@ -292,7 +297,10 @@ fun MastorSecondaryButton(
             .heightIn(min = 56.dp)
             .fillMaxWidth()
     ) {
-        if (icon != null) {
+        if (customIcon != null) {
+            customIcon(Modifier.size(20.dp), if (enabled) MastorCopper else MastorCopper.copy(alpha = 0.4f))
+            Spacer(modifier = Modifier.width(SpaceSM))
+        } else if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
@@ -321,7 +329,8 @@ fun MastorDarkButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    customIcon: (@Composable (Modifier, Color) -> Unit)? = null
 ) {
     Button(
         onClick = onClick,
@@ -338,7 +347,10 @@ fun MastorDarkButton(
             .heightIn(min = 56.dp)
             .fillMaxWidth()
     ) {
-        if (icon != null) {
+        if (customIcon != null) {
+            customIcon(Modifier.size(20.dp), MastorCream)
+            Spacer(modifier = Modifier.width(SpaceSM))
+        } else if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,

@@ -1654,7 +1654,7 @@ fun MastorDashboardHero(
                         if (onQuickDiary != null) {
                             MastorGlassButton(
                                 text = "Record Diary",
-                                icon = Icons.Default.Mic,
+                                customIcon = { m, c -> com.example.ui.icons.MastorMicIcon(modifier = m, size = 18.dp, lineColor = c) },
                                 onClick = onQuickDiary,
                                 modifier = Modifier.weight(1f)
                             )
@@ -1662,7 +1662,7 @@ fun MastorDashboardHero(
                         if (onQuickVariation != null) {
                             MastorGlassButton(
                                 text = "Log Variation",
-                                icon = Icons.Default.AddCircle,
+                                customIcon = { m, c -> com.example.ui.icons.MastorFlagVariationIcon(modifier = m, size = 18.dp, lineColor = c) },
                                 onClick = onQuickVariation,
                                 modifier = Modifier.weight(1f)
                             )
