@@ -106,7 +106,8 @@ fun ProjectPickerScreen(
         workType: String,
         imageUrl: String,
         uplift1: Double,
-        uplift2: Double
+        uplift2: Double,
+        poNumber: String
     ) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -210,9 +211,9 @@ fun ProjectPickerScreen(
         if (showNewJobDialog && onCreateProject != null) {
             NewJobDialog(
                 onDismiss = { showNewJobDialog = false },
-                onCreate = { name, client, contractRef, address, siteManager, surveyor, contractValue, workType, imageUrl, uplift1, uplift2 ->
+                onCreate = { name, client, contractRef, address, siteManager, surveyor, contractValue, workType, imageUrl, uplift1, uplift2, poNumber ->
                     showNewJobDialog = false
-                    onCreateProject(name, client, contractRef, address, siteManager, surveyor, contractValue, workType, imageUrl, uplift1, uplift2)
+                    onCreateProject(name, client, contractRef, address, siteManager, surveyor, contractValue, workType, imageUrl, uplift1, uplift2, poNumber)
                 }
             )
         }
@@ -233,7 +234,8 @@ fun NewJobDialog(
         workType: String,
         imageUrl: String,
         uplift1: Double,
-        uplift2: Double
+        uplift2: Double,
+        poNumber: String
     ) -> Unit
 ) {
     val context = LocalContext.current
@@ -243,8 +245,9 @@ fun NewJobDialog(
     var address by remember { mutableStateOf("") }
     var siteManager by remember { mutableStateOf("") }
     var surveyor by remember { mutableStateOf("") }
-    var contractValueStr by remember { mutableStateOf("350000") }
-    var workType by remember { mutableStateOf("Commercial Fitout") }
+    var contractValueStr by remember { mutableStateOf("") }
+    var workType by remember { mutableStateOf("PPR") }
+    var poNumber by remember { mutableStateOf("") }
     var siteImageUriString by remember { mutableStateOf("") }
     var uploadError by remember { mutableStateOf<String?>(null) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
@@ -591,7 +594,7 @@ fun NewJobDialog(
                         value = contractRef,
                         onValueChange = { contractRef = it },
                         label = { Text("Contract Ref *") },
-                        placeholder = { Text("e.g. CWG-2026") },
+                        placeholder = { Text("e.g. CAP00290") },
                         leadingIcon = { Icon(Icons.Default.Receipt, contentDescription = null, tint = MastorInkMuted) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
@@ -608,8 +611,24 @@ fun NewJobDialog(
                     value = address,
                     onValueChange = { address = it },
                     label = { Text("Site Address") },
-                    placeholder = { Text("10 Upper Bank Street, London E14 5JJ") },
+                    placeholder = { Text("Property address") },
                     leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = MastorInkMuted) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MastorCopper,
+                        unfocusedBorderColor = MastorCreamBorder
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = poNumber,
+                    onValueChange = { poNumber = it },
+                    label = { Text("PO Number") },
+                    placeholder = { Text("From the council's purchase order — can add later") },
+                    leadingIcon = { Icon(Icons.Default.Receipt, contentDescription = null, tint = MastorInkMuted) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -722,9 +741,10 @@ fun NewJobDialog(
                     MastorPrimaryButton(
                         text = "Create Job",
                         onClick = {
-                            val valDbl = contractValueStr.toDoubleOrNull() ?: 250000.0
-                            val up1 = uplift1Str.toDoubleOrNull() ?: 15.0
-                            val up2 = uplift2Str.toDoubleOrNull() ?: 5.0
+                            // Never substitute a made-up value for an unreadable entry.
+                            val valDbl = contractValueStr.replace(",", "").replace("£", "").trim().toDoubleOrNull() ?: 0.0
+                            val up1 = uplift1Str.trim().toDoubleOrNull() ?: 0.0
+                            val up2 = uplift2Str.trim().toDoubleOrNull() ?: 0.0
                             val finalImgUrl = siteImageUriString
 
                             onCreate(
@@ -738,7 +758,8 @@ fun NewJobDialog(
                                 workType,
                                 finalImgUrl,
                                 up1,
-                                up2
+                                up2,
+                                poNumber.trim()
                             )
                         },
                         modifier = Modifier

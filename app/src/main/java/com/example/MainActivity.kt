@@ -25,8 +25,9 @@ class MainActivity : ComponentActivity() {
                     ProjectPickerScreen(
                         projects = uiState.allProjects,
                         onSelectProject = { projectId -> viewModel.selectProject(projectId) },
-                        onCreateProject = { name, client, contractRef, address, siteManager, surveyor, contractValue, workType, imageUrl, uplift1, uplift2 ->
+                        onCreateProject = { name, client, contractRef, address, siteManager, surveyor, contractValue, workType, imageUrl, uplift1, uplift2, poNumber ->
                             viewModel.createNewProject(
+                                poNumber = poNumber,
                                 name = name,
                                 client = client,
                                 contractRef = contractRef,

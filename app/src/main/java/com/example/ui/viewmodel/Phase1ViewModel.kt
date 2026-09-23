@@ -286,6 +286,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
         imageUrl: String,
         uplift1Percent: Double,
         uplift2Percent: Double,
+        poNumber: String = "",
         onCreated: (String) -> Unit
     ) {
         viewModelScope.launch {
@@ -304,7 +305,7 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
                 startDate = todayUk(),
                 endDate = "",
                 // PO number — blank until the client issues one. Never invent: it's printed on invoices.
-                projectNumber = "",
+                projectNumber = poNumber.trim(),
                 contractValue = contractValue,
                 uplift1Percent = uplift1Percent,
                 uplift2Percent = uplift2Percent,
