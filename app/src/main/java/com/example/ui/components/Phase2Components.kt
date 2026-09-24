@@ -1198,6 +1198,27 @@ fun ProjectSetupForm(
     var contractRef by remember(project) { mutableStateOf(project.contractRef) }
     // Stored in projectNumber (no schema change). Printed on every invoice — councils reject invoices without it.
     var poNumber by remember(project) { mutableStateOf(project.projectNumber) }
+    // Site photo — replaces the drawn illustration on this job's hero cards when set.
+    var sitePhotoUrl by remember(project) { mutableStateOf(project.imageUrl) }
+    var photoError by remember { mutableStateOf<String?>(null) }
+    var pendingCameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val setupContext = androidx.compose.ui.platform.LocalContext.current
+    val takePhotoLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.TakePicture()
+    ) { saved ->
+        val uri = pendingCameraUri
+        if (saved && uri != null) sitePhotoUrl = uri.toString()
+        pendingCameraUri = null
+    }
+    val pickPhotoLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
+    ) { picked ->
+        if (picked != null) {
+            val copy = com.example.domain.evidence.EvidenceStorage.importPhoto(setupContext, picked, "site_photo")
+            if (copy != null) { sitePhotoUrl = copy.toString(); photoError = null }
+            else photoError = "Couldn't import that photo — try taking one instead."
+        }
+    }
     var contractValueText by remember(project) { mutableStateOf(project.contractValue.toString()) }
     var uplift1Text by remember(project) { mutableStateOf(project.uplift1Percent.toString()) }
     var uplift2Text by remember(project) { mutableStateOf(project.uplift2Percent.toString()) }
@@ -1305,6 +1326,74 @@ fun ProjectSetupForm(
                     )
                 }
             }
+
+            // Site photo — shown as the job's hero image. Without one, the drawing is used.
+            MastorCard(modifier = Modifier.fillMaxWidth(), internalPadding = SpaceLG) {
+                BracketLabel("SITE PHOTO", color = MastorCopper)
+                Spacer(modifier = Modifier.height(SpaceSM))
+                Text(
+                    text = if (sitePhotoUrl.isBlank())
+                        "No photo — the job shows its drawing. Add a front-elevation photo once you're on site."
+                    else
+                        "Shown on this job's cards. Save below to apply.",
+                    style = MastorBody.copy(color = MastorInkMuted, fontSize = 12.sp)
+                )
+                Spacer(modifier = Modifier.height(SpaceMD))
+                if (sitePhotoUrl.isNotBlank()) {
+                    coil.compose.AsyncImage(
+                        model = sitePhotoUrl,
+                        contentDescription = "Site photo",
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                    Spacer(modifier = Modifier.height(SpaceMD))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(SpaceSM)) {
+                    MastorSecondaryButton(
+                        text = "Take photo",
+                        customIcon = { m, c -> com.example.ui.icons.MastorCameraIcon(modifier = m, size = 20.dp, lineColor = c) },
+                        onClick = {
+                            try {
+                                val uri = com.example.domain.evidence.EvidenceStorage.newPhotoUri(setupContext, "site_photo")
+                                pendingCameraUri = uri
+                                photoError = null
+                                takePhotoLauncher.launch(uri)
+                            } catch (e: Exception) {
+                                photoError = "Camera unavailable: ${e.message}"
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    MastorSecondaryButton(
+                        text = "Gallery",
+                        onClick = {
+                            pickPhotoLauncher.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (sitePhotoUrl.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(SpaceSM))
+                    Text(
+                        text = "Remove photo (use the drawing instead)",
+                        style = MastorBody.copy(color = StatusRed, fontSize = 13.sp),
+                        modifier = Modifier.clickable { sitePhotoUrl = "" }
+                    )
+                }
+                if (photoError != null) {
+                    Spacer(modifier = Modifier.height(SpaceSM))
+                    Text(photoError!!, style = MastorBody.copy(color = StatusRed, fontSize = 12.sp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(SpaceMD))
 
             // Project General Fields
             MastorCard(modifier = Modifier.fillMaxWidth(), internalPadding = SpaceLG) {
@@ -1494,6 +1583,7 @@ fun ProjectSetupForm(
                             surveyor = surveyor,
                             contractRef = contractRef,
                             projectNumber = poNumber.trim(),
+                            imageUrl = sitePhotoUrl,
                             contractValue = valDouble,
                             uplift1Percent = up1,
                             uplift2Percent = up2
