@@ -109,10 +109,29 @@ fun VariationOrdersScreen(
         }
     }
     var presetVoNumberForNewItem by remember { mutableStateOf<String?>(null) }
+    var voLineToPrice by remember { mutableStateOf<VariationOrder?>(null) }
+    val voUiState by viewModel.uiState.collectAsState()
     var presetPropertyForNewItem by remember { mutableStateOf<String?>(null) }
 
     var voTicketToDelete by remember { mutableStateOf<String?>(null) }
     var voLineToDelete by remember { mutableStateOf<VariationOrder?>(null) }
+
+    voLineToPrice?.let { line ->
+        PriceVariationDialog(
+            vo = line,
+            sorItems = voUiState.scopeElements,
+            onDismiss = { voLineToPrice = null },
+            onSave = { updated, applyClientRefToTicket ->
+                viewModel.updateVariationOrder(updated)
+                if (applyClientRefToTicket) {
+                    voUiState.variationOrders
+                        .filter { it.voNumber == updated.voNumber && it.id != updated.id }
+                        .forEach { viewModel.updateVariationOrder(it.copy(externalVoNumber = updated.externalVoNumber)) }
+                }
+                voLineToPrice = null
+            }
+        )
+    }
 
     val groupedTickets = remember(variationOrders) {
         variationOrders.groupBy { it.voNumber }
@@ -433,6 +452,7 @@ fun VariationOrdersScreen(
                     onDeleteLine = { line ->
                         voLineToDelete = line
                     },
+                    onEditLine = { line -> voLineToPrice = line },
                     onDeleteTicket = {
                         voTicketToDelete = voNumber
                     },
@@ -472,7 +492,8 @@ private fun VoDarkTicketCard(
     onAddLineToTicket: () -> Unit,
     onDeleteLine: (VariationOrder) -> Unit,
     onDeleteTicket: () -> Unit,
-    onApproveToValuation: () -> Unit
+    onApproveToValuation: () -> Unit,
+    onEditLine: (VariationOrder) -> Unit = {}
 ) {
     var isExpanded by remember { mutableStateOf(true) }
 
@@ -700,7 +721,8 @@ private fun VoDarkTicketCard(
                         property = property,
                         lines = propLines,
                         onToggleLineTick = onToggleLineTick,
-                        onDeleteLine = onDeleteLine
+                        onDeleteLine = onDeleteLine,
+                        onEditLine = onEditLine
                     )
                     Spacer(modifier = Modifier.height(SpaceSM))
                 }
@@ -817,7 +839,8 @@ private fun PropertySubGroupDarkCard(
     property: String,
     lines: List<VariationOrder>,
     onToggleLineTick: (VariationOrder) -> Unit,
-    onDeleteLine: (VariationOrder) -> Unit
+    onDeleteLine: (VariationOrder) -> Unit,
+    onEditLine: (VariationOrder) -> Unit = {}
 ) {
     MastorCard(
         modifier = Modifier.fillMaxWidth(),
@@ -846,7 +869,8 @@ private fun PropertySubGroupDarkCard(
             VoLineDarkRowItem(
                 vo = vo,
                 onToggleTick = { onToggleLineTick(vo) },
-                onDelete = { onDeleteLine(vo) }
+                onDelete = { onDeleteLine(vo) },
+                onEdit = { onEditLine(vo) }
             )
             Spacer(modifier = Modifier.height(4.dp))
         }
@@ -857,13 +881,15 @@ private fun PropertySubGroupDarkCard(
 private fun VoLineDarkRowItem(
     vo: VariationOrder,
     onToggleTick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit = {}
 ) {
     val baseLineTotal = MastorCalculationEngine.roundMoney(vo.qty * vo.rate)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onEdit() }
             .testTag("vo_line_row_${vo.id}")
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -913,7 +939,7 @@ private fun VoLineDarkRowItem(
                 )
                 if (vo.rate <= 0.0 || vo.qty <= 0.0) {
                     Text(
-                        text = if (vo.rate <= 0.0) "UNPRICED — add SoR code & rate" else "NO QUANTITY — measure on site",
+                        text = if (vo.rate <= 0.0) "UNPRICED — tap to price" else "NO QUANTITY — tap to add",
                         style = MastorBody.copy(color = StatusAmber, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                     )
                 }
@@ -1186,6 +1212,205 @@ private fun CreateVoLineDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancel", color = MastorInkMuted)
             }
+        }
+    )
+}
+
+
+/**
+ * Price / edit a variation line. The SoR picker draws codes and rates from this job's own
+ * imported schedule, so a VO is priced at the contract rate rather than a number typed
+ * from memory. Locked once the line has been certified on an invoiced valuation.
+ */
+@Composable
+private fun PriceVariationDialog(
+    vo: VariationOrder,
+    sorItems: List<com.example.data.entity.ScopeElement>,
+    onDismiss: () -> Unit,
+    onSave: (VariationOrder, Boolean) -> Unit
+) {
+    val locked = vo.previouslyCertifiedPercent > 0.0
+    var description by remember(vo.id) { mutableStateOf(vo.description) }
+    var room by remember(vo.id) { mutableStateOf(vo.locationRoom) }
+    var code by remember(vo.id) { mutableStateOf(vo.code) }
+    var qtyText by remember(vo.id) { mutableStateOf(if (vo.qty > 0) vo.qty.toString() else "") }
+    var units by remember(vo.id) { mutableStateOf(vo.units) }
+    var rateText by remember(vo.id) { mutableStateOf(if (vo.rate > 0) vo.rate.toString() else "") }
+    var clientRef by remember(vo.id) { mutableStateOf(vo.externalVoNumber) }
+    var query by remember(vo.id) { mutableStateOf("") }
+    var showPicker by remember(vo.id) { mutableStateOf(vo.rate <= 0.0 && sorItems.isNotEmpty()) }
+
+    val qty = qtyText.replace(",", ".").trim().toDoubleOrNull()
+    val rate = rateText.replace(",", "").replace("£", "").trim().toDoubleOrNull()
+    val total = if (qty != null && rate != null) MastorCalculationEngine.roundMoney(qty * rate) else null
+
+    val sorOptions = remember(sorItems, query) {
+        val q = query.trim().lowercase()
+        sorItems
+            .filter { it.code.isNotBlank() && it.rate > 0.0 }
+            .distinctBy { it.code }
+            .filter { q.isEmpty() || it.code.lowercase().contains(q) || it.description.lowercase().contains(q) }
+            .take(30)
+    }
+
+    val fieldColours = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MastorCopper,
+        unfocusedBorderColor = MastorCreamBorder,
+        focusedTextColor = MastorInk,
+        unfocusedTextColor = MastorInk
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MastorCream,
+        title = {
+            Column {
+                BracketLabel(if (locked) "${vo.voNumber} · CERTIFIED" else "PRICE ${vo.voNumber}", color = MastorCopper)
+                if (locked) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "This line has been certified on an invoiced valuation and can't be changed.",
+                        style = MastorBody.copy(color = StatusAmber, fontSize = 12.sp)
+                    )
+                }
+            }
+        },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(SpaceSM), modifier = Modifier.heightIn(max = 520.dp)) {
+                item {
+                    OutlinedTextField(
+                        value = description, onValueChange = { description = it }, enabled = !locked,
+                        label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), colors = fieldColours
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = room, onValueChange = { room = it }, enabled = !locked, singleLine = true,
+                        label = { Text("Location") }, modifier = Modifier.fillMaxWidth(), colors = fieldColours
+                    )
+                }
+                // SoR picker
+                if (!locked && sorItems.isNotEmpty()) {
+                    item {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            BracketLabel("PRICE FROM SCHEDULE OF RATES", color = MastorInkMuted)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Text(
+                                if (showPicker) "Hide" else "Show",
+                                style = MastorBody.copy(color = MastorCopper, fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                                modifier = Modifier.clickable { showPicker = !showPicker }
+                            )
+                        }
+                    }
+                    if (showPicker) {
+                        item {
+                            OutlinedTextField(
+                                value = query, onValueChange = { query = it }, singleLine = true,
+                                label = { Text("Search code or description") },
+                                placeholder = { Text("e.g. joist, 3051, skirting") },
+                                modifier = Modifier.fillMaxWidth(), colors = fieldColours
+                            )
+                        }
+                        if (sorOptions.isEmpty()) {
+                            item {
+                                Text("No matching SoR items with a rate on this job.", style = MastorBody.copy(color = MastorInkMuted, fontSize = 12.sp))
+                            }
+                        }
+                        items(sorOptions.size) { i ->
+                            val se = sorOptions[i]
+                            val selected = se.code == code
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (selected) MastorCopperSubtle else MastorCreamDark)
+                                    .clickable {
+                                        code = se.code
+                                        rateText = se.rate.toString()
+                                        if (se.units.isNotBlank()) units = se.units
+                                        showPicker = false
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(se.code, style = MastorCode.copy(color = MastorCopper))
+                                    Text(se.description, style = MastorBody.copy(color = MastorInk, fontSize = 12.sp), maxLines = 2)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "${MastorCalculationEngine.formatCurrency(se.rate)}/${se.units}",
+                                    style = MastorFinancialSmall.copy(color = MastorInk)
+                                )
+                            }
+                        }
+                    }
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(SpaceSM)) {
+                        OutlinedTextField(
+                            value = code, onValueChange = { code = it }, enabled = !locked, singleLine = true,
+                            label = { Text("SoR code") }, modifier = Modifier.weight(1f), colors = fieldColours
+                        )
+                        OutlinedTextField(
+                            value = units, onValueChange = { units = it }, enabled = !locked, singleLine = true,
+                            label = { Text("Unit") }, modifier = Modifier.weight(0.7f), colors = fieldColours
+                        )
+                    }
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(SpaceSM)) {
+                        OutlinedTextField(
+                            value = qtyText, onValueChange = { qtyText = it }, enabled = !locked, singleLine = true,
+                            label = { Text("Qty") }, modifier = Modifier.weight(1f), colors = fieldColours,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                        )
+                        OutlinedTextField(
+                            value = rateText, onValueChange = { rateText = it }, enabled = !locked, singleLine = true,
+                            label = { Text("Rate £") }, modifier = Modifier.weight(1f), colors = fieldColours,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                        )
+                    }
+                }
+                item {
+                    Text(
+                        text = if (total != null) "Line total  ${MastorCalculationEngine.formatCurrency(total)}" else "Enter qty and rate to price this line",
+                        style = if (total != null) MastorFinancialMed.copy(color = MastorCopper) else MastorBody.copy(color = MastorInkMuted, fontSize = 12.sp)
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = clientRef, onValueChange = { clientRef = it }, enabled = !locked, singleLine = true,
+                        label = { Text("Client VO reference") },
+                        placeholder = { Text("Once the council issues one") },
+                        supportingText = { Text("Applies to every line on ${vo.voNumber}") },
+                        modifier = Modifier.fillMaxWidth(), colors = fieldColours
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (!locked) {
+                TextButton(
+                    onClick = {
+                        onSave(
+                            vo.copy(
+                                description = description.trim().ifBlank { vo.description },
+                                locationRoom = room.trim().ifBlank { "General" },
+                                code = code.trim(),
+                                qty = (qty ?: 0.0).coerceAtLeast(0.0),
+                                units = units.trim().ifBlank { "item" },
+                                rate = (rate ?: 0.0).coerceAtLeast(0.0),
+                                externalVoNumber = clientRef.trim()
+                            ),
+                            clientRef.trim() != vo.externalVoNumber
+                        )
+                    }
+                ) { Text("Save", color = MastorCopper, fontWeight = FontWeight.SemiBold) }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(if (locked) "Close" else "Cancel", color = MastorInkMuted) }
         }
     )
 }
