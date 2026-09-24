@@ -12,13 +12,24 @@ import com.example.R
 // MASTOR DESIGN SYSTEM v3 TYPOGRAPHY
 // ========================================================================
 
-// Typefaces: Inter for primary & JetBrains Mono for figures & technical codes
+// Typefaces: Inter for primary & JetBrains Mono for figures & technical codes.
+// Real weight files (Latin-subset) — previously a single Regular file each, so every
+// Medium/SemiBold/Bold in the app was Android faking bold by smearing regular glyphs.
 val InterFontFamily = FontFamily(
-    Font(R.font.inter)
+    Font(R.font.inter_light, FontWeight.Light),
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semi_bold, FontWeight.SemiBold),
+    Font(R.font.inter_bold, FontWeight.Bold),
+    Font(R.font.inter_extra_bold, FontWeight.ExtraBold)
 )
 
 val JetBrainsMonoFontFamily = FontFamily(
-    Font(R.font.jetbrains_mono)
+    Font(R.font.jetbrains_mono_light, FontWeight.Light),
+    Font(R.font.jetbrains_mono_regular, FontWeight.Normal),
+    Font(R.font.jetbrains_mono_medium, FontWeight.Medium),
+    Font(R.font.jetbrains_mono_semi_bold, FontWeight.SemiBold),
+    Font(R.font.jetbrains_mono_bold, FontWeight.Bold)
 )
 
 // ------------------------------------------------------------------------

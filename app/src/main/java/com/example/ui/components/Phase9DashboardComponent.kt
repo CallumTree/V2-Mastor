@@ -60,6 +60,8 @@ import com.example.domain.calculation.MastorCalculationEngine
 import com.example.ui.illustrations.MastorDashboardHero
 import com.example.ui.theme.BracketLabel
 import com.example.ui.theme.StatusRed
+import com.example.ui.theme.MastorTitleBlock
+import com.example.ui.theme.TitleBlockCell
 import androidx.compose.foundation.clickable
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.MastorActionChip
@@ -325,7 +327,8 @@ fun ProjectDashboardOverviewScreen(
                     uplifts = totalUplifts,
                     grossTotal = grossTotal,
                     claimedVal = grandValuationTotal,
-                    contractSum = revisedContractSum
+                    contractSum = revisedContractSum,
+                    sheetRef = project.contractRef
                 )
             }
         }
@@ -409,113 +412,32 @@ private fun CommercialPositionCard(
     uplifts: Double,
     grossTotal: Double,
     claimedVal: Double,
-    contractSum: Double
+    contractSum: Double,
+    sheetRef: String = ""
 ) {
-    MastorDarkCard(modifier = Modifier.fillMaxWidth()) {
-        // Top row: two columns
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                BracketLabel(text = "BASE SCOPE", color = MastorCreamMuted)
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = MastorCalculationEngine.formatCurrency(baseScope),
-                    style = MastorFinancialMed.copy(color = MastorCreamText)
-                )
-            }
-            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                BracketLabel(text = "VARIATIONS", color = MastorCreamMuted)
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = MastorCalculationEngine.formatCurrency(variations),
-                    style = MastorFinancialMed.copy(color = MastorCopper)
-                )
-            }
-        }
+    val pct = if (contractSum > 0.0) (claimedVal / contractSum).coerceIn(0.0, 1.0) else 0.0
+    val remaining = (contractSum - claimedVal).coerceAtLeast(0.0)
 
-        Spacer(modifier = Modifier.height(SpaceMD))
-
-        // Divider: 1dp MastorCharcoalLight
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(MastorCharcoalLight)
-        )
-
-        Spacer(modifier = Modifier.height(SpaceMD))
-
-        // Middle: contract progress bar (claimed vs remaining)
-        val percentClaimed = if (contractSum > 0.0) (claimedVal / contractSum) * 100.0 else 0.0
-        val claimedRatio = (percentClaimed / 100.0).toFloat().coerceIn(0f, 1f)
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BracketLabel(text = "CLAIMED VS REMAINING", color = MastorCreamMuted)
-            Text(
-                text = "${"%.1f".format(percentClaimed)}%",
-                style = MastorFinancialSmall.copy(color = MastorCopper)
+    // Title block sits at ~88% width, aligned right — the way it sits on a drawing sheet.
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+        Column(modifier = Modifier.fillMaxWidth(0.88f)) {
+            MastorTitleBlock(
+                headline = TitleBlockCell("Gross contract value", MastorCalculationEngine.formatCurrency(grossTotal)),
+                rows = listOf(
+                    TitleBlockCell("Base scope", MastorCalculationEngine.formatCurrency(baseScope)) to
+                        TitleBlockCell("Variations", MastorCalculationEngine.formatCurrency(variations), MastorCopper),
+                    TitleBlockCell("Claimed", MastorCalculationEngine.formatCurrency(claimedVal), MastorCopper) to
+                        TitleBlockCell("Remaining", MastorCalculationEngine.formatCurrency(remaining)),
+                    TitleBlockCell("Uplifts", MastorCalculationEngine.formatCurrency(uplifts)) to
+                        TitleBlockCell("Complete", "${(pct * 100).toInt()}%")
+                ),
+                sheetRef = sheetRef,
+                modifier = Modifier.fillMaxWidth()
             )
-        }
-
-        Spacer(modifier = Modifier.height(SpaceSM))
-
-        // Restyled Progress Bar: MastorCopper fill, MastorCharcoalLight remaining, 8dp height, 4dp radius
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(MastorCharcoalLight)
-        ) {
-            if (claimedRatio > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(claimedRatio)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MastorCopper)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(SpaceMD))
-
-        // Divider: 1dp MastorCharcoalLight
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(MastorCharcoalLight)
-        )
-
-        Spacer(modifier = Modifier.height(SpaceMD))
-
-        // Bottom row: two columns
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                BracketLabel(text = "UPLIFTS", color = MastorCreamMuted)
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = MastorCalculationEngine.formatCurrency(uplifts),
-                    style = MastorFinancialMed.copy(color = MastorCreamText)
-                )
-            }
-            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                BracketLabel(text = "GROSS TOTAL", color = MastorCreamMuted)
-                Spacer(modifier = Modifier.height(SpaceXS))
-                Text(
-                    text = MastorCalculationEngine.formatCurrency(grossTotal),
-                    style = MastorFinancialMed.copy(color = MastorCopper)
-                )
+            // Progress rule — drawn like a scale bar beneath the title block
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(modifier = Modifier.fillMaxWidth().height(3.dp).background(MastorCharcoalLight)) {
+                Box(modifier = Modifier.fillMaxWidth(pct.toFloat()).fillMaxHeight().background(MastorCopper))
             }
         }
     }
