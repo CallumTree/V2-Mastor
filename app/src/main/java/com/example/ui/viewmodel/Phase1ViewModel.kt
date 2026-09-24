@@ -109,6 +109,34 @@ class Phase1ViewModel(application: Application) : AndroidViewModel(application) 
     private val _invoiceError = MutableStateFlow<String?>(null)
     val invoiceError: StateFlow<String?> = _invoiceError.asStateFlow()
 
+    // Variation Register PDF (all VOs + photo evidence) for the client's QS
+    private val _generatedVoRegisterFile = MutableStateFlow<File?>(null)
+    val generatedVoRegisterFile: StateFlow<File?> = _generatedVoRegisterFile.asStateFlow()
+    private val _voRegisterError = MutableStateFlow<String?>(null)
+    val voRegisterError: StateFlow<String?> = _voRegisterError.asStateFlow()
+
+    fun generateVariationRegister(context: Context) {
+        val project = uiState.value.project ?: return
+        val vos = uiState.value.variationOrders
+        if (vos.isEmpty()) { _voRegisterError.value = "No variations to export yet."; return }
+        viewModelScope.launch {
+            try {
+                val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.example.domain.documents.VariationRegisterGenerator.generate(context, project, vos)
+                }
+                _voRegisterError.value = null
+                _generatedVoRegisterFile.value = file
+            } catch (e: Exception) {
+                _voRegisterError.value = "Couldn't create the register: ${e.message}"
+            }
+        }
+    }
+
+    fun clearVoRegister() {
+        _generatedVoRegisterFile.value = null
+        _voRegisterError.value = null
+    }
+
     fun clearGeneratedInvoiceFile() {
         _generatedInvoiceFile.value = null
     }

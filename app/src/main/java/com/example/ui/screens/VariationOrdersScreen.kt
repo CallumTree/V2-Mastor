@@ -88,6 +88,26 @@ fun VariationOrdersScreen(
     modifier: Modifier = Modifier
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
+    val voContext = androidx.compose.ui.platform.LocalContext.current
+    val voRegisterFile by viewModel.generatedVoRegisterFile.collectAsState()
+    val voRegisterError by viewModel.voRegisterError.collectAsState()
+    LaunchedEffect(voRegisterFile) {
+        val file = voRegisterFile ?: return@LaunchedEffect
+        try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(voContext, "${voContext.packageName}.fileprovider", file)
+            val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                putExtra(android.content.Intent.EXTRA_SUBJECT, "Variation Register — ${project?.name ?: ""}")
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            voContext.startActivity(android.content.Intent.createChooser(send, "Send Variation Register").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e: Exception) {
+            // file is still saved in the app; nothing lost
+        } finally {
+            viewModel.clearVoRegister()
+        }
+    }
     var presetVoNumberForNewItem by remember { mutableStateOf<String?>(null) }
     var presetPropertyForNewItem by remember { mutableStateOf<String?>(null) }
 
@@ -262,6 +282,20 @@ fun VariationOrdersScreen(
             }
 
             Spacer(modifier = Modifier.height(SpaceSM))
+
+            // Variation Register — every VO with photos, for the client's QS
+            if (variationOrders.isNotEmpty()) {
+                MastorDarkButton(
+                    text = "Export Variation Register (PDF)",
+                    customIcon = { m, c -> com.example.ui.icons.MastorValuationIcon(modifier = m, size = 20.dp, lineColor = c) },
+                    onClick = { viewModel.generateVariationRegister(voContext) },
+                    modifier = Modifier.fillMaxWidth().testTag("export_vo_register_button")
+                )
+                if (voRegisterError != null) {
+                    Text(voRegisterError!!, style = MastorBody.copy(color = StatusRed, fontSize = 12.sp))
+                }
+                Spacer(modifier = Modifier.height(SpaceSM))
+            }
 
             // Match Summary Banner if present
             if (showMatchBanner && matchSummary != null) {

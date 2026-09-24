@@ -582,7 +582,8 @@ object InvoiceGenerator {
         pdfDocument.finishPage(currentPage)
 
         // Save PDF to context.cacheDir/invoices/IV-XX-[projectRef]-[date].pdf and return File
-        val invoicesDir = File(context.cacheDir, "invoices").apply { mkdirs() }
+        // Issued invoices are records — permanent storage, not cacheDir (Android clears cache).
+        val invoicesDir = File(context.filesDir, "documents/invoices").apply { mkdirs() }
         val cleanValNum = if (valuation.valuationNumber.startsWith("IV-", ignoreCase = true)) {
             valuation.valuationNumber
         } else {
