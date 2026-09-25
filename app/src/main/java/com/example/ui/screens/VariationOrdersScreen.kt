@@ -289,7 +289,7 @@ fun VariationOrdersScreen(
                 MastorSecondaryButton(
                     text = "+ New VO",
                     onClick = {
-                        presetVoNumberForNewItem = "VO-" + String.format("%03d", groupedTickets.size + 1)
+                        presetVoNumberForNewItem = nextVoNumberFrom(variationOrders)
                         presetPropertyForNewItem = ""
                         showCreateDialog = true
                     },
@@ -421,7 +421,7 @@ fun VariationOrdersScreen(
                     icon = Icons.Default.Description,
                     actionText = "New Variation Order",
                     onActionClick = {
-                        presetVoNumberForNewItem = "VO-" + String.format("%03d", groupedTickets.size + 1)
+                        presetVoNumberForNewItem = nextVoNumberFrom(variationOrders)
                         presetPropertyForNewItem = ""
                         showCreateDialog = true
                     }
@@ -1413,4 +1413,11 @@ private fun PriceVariationDialog(
             TextButton(onClick = onDismiss) { Text(if (locked) "Close" else "Cancel", color = MastorInkMuted) }
         }
     )
+}
+
+
+/** Highest existing VO number + 1. Never count-based — that reuses a number after a delete. */
+private fun nextVoNumberFrom(vos: List<VariationOrder>): String {
+    val max = vos.mapNotNull { Regex("\\d+").find(it.voNumber)?.value?.toIntOrNull() }.maxOrNull() ?: 0
+    return "VO-" + (max + 1).toString().padStart(3, '0')
 }
